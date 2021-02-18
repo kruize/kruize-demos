@@ -86,3 +86,26 @@ A tunable is a performance tuning knob specific to a layer. Autotune currently s
 
 `sla_class` is associated with a tunable and is one or more of `response_time`, `throughput` and `resource_usage`. It represents the impact a tunable has on the outcome for any given workload. For example, we know based on prior experiments that the [hotspot](https://github.com/kruize/autotune/blob/master/manifests/autotune-configs/hotspot-micrometer-config.yaml) tunable, `MaxInlineLevel` has an impact on both `throughput` and `response_time` but has a negligible impact on `resource_usage`.
 
+## How do I run it ?
+
+```
+# To setup the demo
+$ ./minikube_demo_setup.sh
+
+# If you want to access the Prometheus Console
+$ ./minikube_demo_setup.sh -sp
+
+# To terminate the demo
+$ ./minikube_demo_setup.sh -t
+```
+
+# Info about the various Kruize repositories
+
+- [autotune-demo](https://github.com/kruize/autotune-demo)
+  - This repo.
+- [autotune](https://github.com/kruize/autotune)
+  - Main repo for Autotune sources.
+- [benchmarks](https://github.com/kruize/benchmarks)
+  - Benchmark scripts for running performance tests with Autotune.
+- [autotune-results](https://github.com/kruize/autotune-results)
+  - Results of experiments run with Autotune.
