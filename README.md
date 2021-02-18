@@ -9,12 +9,12 @@ Want to know more about Autotune ? You've come to the right place !
 Autotune can take an arbitrarily large set of tunables and run experiments to continually optimize the user provided sla in incremental steps. For this reason, it does not necessarily have a "best" value for a set of tunables, only a "better" one than what is currently deployed.
 
 # [minikube demo](/minikube_demo_setup.sh)
-- Goal
-  - The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
-- Steps
-  - This demo installs Autotune along with Prometheus and Grafana to minikube. It also deploys two example REST CRUD applications, quakus galaxies and springboot petclinic, to the minikube cluster. It then deploys the "Autotune Objects" that define the objective function of the performance tuning that needs to be done for each application.
-- What does it do ?
-  - It provides a list of URLs that defines the tunables for a user provided sla. See the docs for the definition of the [REST API](https://github.com/kruize/autotune/blob/master/design/API.md) associated with these URLs.
+- Goal  
+  The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
+- Steps  
+  This demo installs Autotune along with Prometheus and Grafana to minikube. It also deploys two example REST CRUD applications, quakus galaxies and springboot petclinic, to the minikube cluster. It then deploys the "Autotune Objects" that define the objective function of the performance tuning that needs to be done for each application.
+- What does it do ?  
+  It provides a list of URLs that defines the tunables for a user provided sla. See the docs for the definition of the [REST API](https://github.com/kruize/autotune/blob/master/design/API.md) associated with these URLs.
 
 ```
 Info: Access Autotune tunables at http://192.168.39.138:30110/listAutotuneTunables
@@ -27,10 +27,10 @@ Info: Access autotune objects using: kubectl -n default get autotune
 Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig
 ```
 
-- What does it not do ?
-  - It does not kick off any experiments with the tunables (as yet). Stay tuned !!
-- pre-req
-  - It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory. 
+- What does it not do ?  
+  It does not kick off any experiments with the tunables (as yet). Stay tuned !!
+- pre-req  
+  It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory. 
 - ##### WARNING: The script deletes any existing minikube cluster.
 
 ## What is an Objective Function ?
@@ -101,11 +101,11 @@ $ ./minikube_demo_setup.sh -t
 
 # Info about the various Kruize repositories
 
-- [autotune-demo](https://github.com/kruize/autotune-demo)
-  - This repo.
-- [autotune](https://github.com/kruize/autotune)
-  - Main repo for Autotune sources.
-- [benchmarks](https://github.com/kruize/benchmarks)
-  - Benchmark scripts for running performance tests with Autotune.
-- [autotune-results](https://github.com/kruize/autotune-results)
-  - Results of experiments run with Autotune.
+- [autotune-demo](https://github.com/kruize/autotune-demo)  
+  This repo.
+- [autotune](https://github.com/kruize/autotune)  
+  Main repo for Autotune sources.
+- [benchmarks](https://github.com/kruize/benchmarks)  
+  Benchmark scripts for running performance tests with Autotune.
+- [autotune-results](https://github.com/kruize/autotune-results)  
+  Results of experiments run with Autotune.
