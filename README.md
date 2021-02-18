@@ -4,7 +4,7 @@ Want to know more about Autotune ? You've come to the right place !
 
 # What is Autotune ?
 
-Autotune is an Autonomous Performance Tuning Tool for Kubernetes. Autotune accepts a user provided "sla" goal to optimize application performance. It uses Prometheus to identify "layers" of an application that it is monitoring and matches tunables from those layers to the user provided sla. It then runs experiments with the help of a hyperparameter optimization framework to arrive at the most optimal values for the identified tunables to get a better result for the user provided sla.
+[Autotune](https://github.com/kruize/autotune/blob/master/README.md) is an Autonomous Performance Tuning Tool for Kubernetes. Autotune accepts a user provided "sla" goal to optimize application performance. It uses Prometheus to identify "layers" of an application that it is monitoring and matches tunables from those layers to the user provided sla. It then runs experiments with the help of a hyperparameter optimization framework to arrive at the most optimal values for the identified tunables to get a better result for the user provided sla.
 
 Autotune can take an arbitrarily large set of tunables and run experiments to continually optimize the user provided sla in incremental steps. For this reason, it does not necessarily have a "best" value for a set of tunables, only a "better" one than what is currently deployed.
 
