@@ -50,11 +50,13 @@ function clone_repos() {
 	echo "#######################################"
 	echo "1. Cloning autotune git repos"
 	git clone git@github.com:kruize/autotune.git 2>/dev/null
+	check_err "ERROR: git clone git@github.com:kruize/autotune.git failed."
 	pushd autotune >/dev/null
 	git checkout master
 	git pull
 	popd >/dev/null
 	git clone git@github.com:kruize/benchmarks.git 2>/dev/null
+	check_err "ERROR: git clone git@github.com:kruize/benchmarks.git failed."
 	pushd benchmarks >/dev/null
 	git checkout master
 	git pull
