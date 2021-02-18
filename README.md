@@ -55,7 +55,7 @@ See the [benchmarks](https://github.com/kruize/benchmarks) repo for more example
 
 ## What is a Layer ?
 
-A Layer is a software component of an application stack. In the Autotune, we currently have 4 layers defined.
+A Layer is a software component of an application stack. In Autotune, we currently have 4 layers defined.
 ```
 layer 0 = Container (Fixed and is always present)
 layer 1 = Language Runtime (Eg. Hotspot JVM, Eclipse OpenJ9 JVM, nodejs...)
