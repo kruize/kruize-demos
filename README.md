@@ -13,10 +13,27 @@ Autotune can take an arbitrarily large set of tunables and run experiments to co
   - The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
 - Steps
   - This demo installs Autotune along with Prometheus and Grafana to minikube. It also deploys two example REST CRUD applications, quakus galaxies and springboot petclinic, to the minikube cluster. It then deploys the "Autotune Objects" that define the objective function of the performance tuning that needs to be done for each application.
+- What does it do ?
+  - It provides a list of URLs that defines the tunables for a user provided sla. See the docs for the definition of the [REST API](https://github.com/kruize/autotune/blob/master/design/API.md) associated with these URLs.
+
+```
+#######################################
+#              Autotune               #
+#######################################
+Info: Access Autotune tunables at http://192.168.39.138:30110/listAutotuneTunables
+Info: Autotune is monitoring these apps http://192.168.39.138:30110/listApplications
+Info: List Layers in apps that Autotune is monitoring http://192.168.39.138:30110/listAppLayers
+Info: List Tunables in apps that Autotune is monitoring http://192.168.39.138:30110/listAppTunables
+Info: Autotune searchSpace at http://192.168.39.138:30110/searchSpace
+
+Info: Access autotune objects using: kubectl -n default get autotune
+Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig
+```
+
+- What does it not do ?
+  - It does not kick off any experiments with the tunables (as yet). Stay tuned !!
 - pre-req
   - It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory. 
-- What it does not do
-  - It does not kick off any experiments with the tunables (as yet). Stay tuned !!
 - ##### WARNING: The script deletes any existing minikube cluster.
 
 ## What is an Objective Function ?
