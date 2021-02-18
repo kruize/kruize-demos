@@ -17,9 +17,6 @@ Autotune can take an arbitrarily large set of tunables and run experiments to co
   - It provides a list of URLs that defines the tunables for a user provided sla. See the docs for the definition of the [REST API](https://github.com/kruize/autotune/blob/master/design/API.md) associated with these URLs.
 
 ```
-#######################################
-#              Autotune               #
-#######################################
 Info: Access Autotune tunables at http://192.168.39.138:30110/listAutotuneTunables
 Info: Autotune is monitoring these apps http://192.168.39.138:30110/listApplications
 Info: List Layers in apps that Autotune is monitoring http://192.168.39.138:30110/listAppLayers
