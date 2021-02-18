@@ -16,8 +16,9 @@
 #
 
 function usage() {
-	echo "Usage: $0 [-s] [-t]"
+	echo "Usage: $0 [-s|-t] [-p]"
 	echo "s = start (default), t = terminate"
+	echo "p = expose prometheus port"
 	exit 1
 }
 
@@ -227,12 +228,16 @@ function get_urls() {
 	echo "Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig"
 	echo "#######################################"
 	echo
+}
 
-	# Uncomment the following if you want to access Prometheus
-	#kubectl_cmd="kubectl -n monitoring"
-	#echo "10. Port forwarding Prometheus"
-	#echo "Info: Prometheus accessible at http://localhost:9090"
-	#${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
+###########################################
+#  Expose Prometheus port
+###########################################
+function expose_prometheus() {
+	kubectl_cmd="kubectl -n monitoring"
+	echo "10. Port forwarding Prometheus"
+	echo "Info: Prometheus accessible at http://localhost:9090"
+	${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
 }
 
 function autotune_start() {
@@ -281,22 +286,32 @@ if ! which minikube >/dev/null 2>/dev/null; then
 	exit 1
 fi
 
-if [ $# -eq 0 ]; then
-	autotune_start
-	exit 0
-fi
-
+# By default we start the demo and dont expose prometheus port
+start_demo=1
+prometheus=0
 # Iterate through the commandline options
 while getopts st gopts
 do
 	case "${gopts}" in
+		p)
+			prometheus=1
+			;;
 		s)
-			autotune_start
+			start_demo=1
 			;;
 		t)
-			autotune_terminate
+			start_demo=0
 			;;
 		*)
 			usage
 	esac
 done
+
+if [ ${start_demo} -eq 1 ]; then
+	autotune_start
+	if [ ${prometheus} -eq 1 ]; then
+		expose_prometheus
+	fi
+else
+	autotune_terminate
+fi
