@@ -15,6 +15,12 @@
 # limitations under the License.
 #
 
+function usage() {
+	echo "Usage: $0 [-s] [-t]"
+	echo "s = start (default), t = terminate"
+	exit 1
+}
+
 # get date in format
 function get_date() {
 	date "+%Y-%m-%d %H:%M:%S"
@@ -59,6 +65,14 @@ function clone_repos() {
 }
 
 ###########################################
+#   Cleanup Autotune git Repos
+###########################################
+function delete_repos() {
+	echo "1. Deleting autotune git repos"
+	rm -rf autotune benchmarks
+}
+
+###########################################
 #   Minikube Start
 ###########################################
 function minikube_start() {
@@ -75,6 +89,16 @@ function minikube_start() {
 	sleep 10
 	echo "done"
 	echo "#######################################"
+	echo
+}
+
+###########################################
+#   Minikube Delete
+###########################################
+function minikube_delete() {
+	echo "2. Deleting minikube cluster"
+	minikube delete
+	sleep 2
 	echo
 }
 
@@ -151,12 +175,12 @@ function autotune_objects_install() {
 			kubectl apply -f autotune/autotune-http_resp_time.yaml
 			check_err "ERROR: Failed to create Autotune object for galaxies, exiting"
 		popd >/dev/null
-	popd >/dev/null
 
-	echo "9. Installing Autotune Object for petclinic app"
-	pushd autotune >/dev/null
-		kubectl apply -f examples
-		check_err "ERROR: Failed to create Autotune object for petclinic, exiting"
+		echo "9. Installing Autotune Object for petclinic app"
+		pushd spring-petclinic >/dev/null
+			kubectl apply -f autotune/autotune-http_throughput.yaml
+			check_err "ERROR: Failed to create Autotune object for petclinic, exiting"
+		popd >/dev/null
 	popd >/dev/null
 	echo "#######################################"
 	echo
@@ -168,8 +192,6 @@ function autotune_objects_install() {
 function get_urls() {
 
 	kubectl_cmd="kubectl -n monitoring"
-	#echo "10. Port forwarding Prometheus"
-	#${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090 & >/dev/null
 	AUTOTUNE_PORT=$(${kubectl_cmd} get svc autotune --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 
 	kubectl_cmd="kubectl -n default"
@@ -198,14 +220,57 @@ function get_urls() {
 	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppLayers"
 	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppTunables"
 	echo "Info: Autotune searchSpace at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/searchSpace"
-	#echo "Info: Prometheus accessible at http://localhost:9090"
 	echo
 	echo "Info: Access autotune objects using: kubectl -n default get autotune"
 	echo "Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig"
 	echo "#######################################"
 	echo
+
+	# Uncomment the following if you want to access Prometheus
+	#kubectl_cmd="kubectl -n monitoring"
+	#echo "10. Port forwarding Prometheus"
+	#echo "Info: Prometheus accessible at http://localhost:9090"
+	#${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
 }
 
+function autotune_start() {
+	# Start all the installs
+	start_time=$(get_date)
+	echo
+	echo "#######################################"
+	echo "#        Autotune Demo Setup          #"
+	echo "#######################################"
+	echo
+	clone_repos
+	minikube_start
+	prometheus_install
+	benchmarks_install
+	autotune_install
+	autotune_objects_install
+	echo
+	kubectl -n monitoring get pods
+	echo
+	get_urls
+	end_time=$(get_date)
+	elapsed_time=$(time_diff "${start_time}" "${end_time}")
+	echo "Success! Autotune demo setup took ${elapsed_time} seconds"
+	echo
+}
+
+function autotune_terminate() {
+	start_time=$(get_date)
+	echo
+	echo "#######################################"
+	echo "#       Autotune Demo Terminate       #"
+	echo "#######################################"
+	echo
+	delete_repos
+	minikube_delete
+	end_time=$(get_date)
+	elapsed_time=$(time_diff "${start_time}" "${end_time}")
+	echo "Success! Autotune demo cleanup took ${elapsed_time} seconds"
+	echo
+}
 
 if ! which minikube >/dev/null 2>/dev/null; then
 	echo "ERROR: Please install minikube and try again"
@@ -214,24 +279,22 @@ if ! which minikube >/dev/null 2>/dev/null; then
 	exit 1
 fi
 
-# Start all the installs
-start_time=$(get_date)
-echo
-echo "#######################################"
-echo "#        Autotune Demo Setup          #"
-echo "#######################################"
-echo
-clone_repos
-minikube_start
-prometheus_install
-benchmarks_install
-autotune_install
-autotune_objects_install
-echo
-kubectl -n monitoring get pods
-echo
-get_urls
-end_time=$(get_date)
-elapsed_time=$(time_diff "${start_time}" "${end_time}")
-echo "Success! Autotune demo setup took ${elapsed_time} seconds"
-echo
+if [ $# -eq 0 ]; then
+	autotune_start
+	exit 0
+fi
+
+# Iterate through the commandline options
+while getopts st gopts
+do
+	case "${gopts}" in
+		s)
+			autotune_start
+			;;
+		t)
+			autotune_terminate
+			;;
+		*)
+			usage
+	esac
+done
