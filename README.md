@@ -99,7 +99,7 @@ $ ./minikube_demo_setup.sh -sp
 $ ./minikube_demo_setup.sh -t
 ```
 
-# Info about the various Kruize repositories
+# Info about Autotune repositories
 
 - [autotune-demo](https://github.com/kruize/autotune-demo)  
   This repo.
