@@ -18,6 +18,7 @@
 function usage() {
 	echo "Usage: $0 [-s|-t] [-p]"
 	echo "s = start (default), t = terminate"
+	echo "r = restart autotune only"
 	echo "p = expose prometheus port"
 	exit 1
 }
@@ -53,14 +54,14 @@ function clone_repos() {
 	git clone git@github.com:kruize/autotune.git 2>/dev/null
 	check_err "ERROR: git clone git@github.com:kruize/autotune.git failed."
 	pushd autotune >/dev/null
-	git checkout master
-	git pull
+		git checkout master
+		git pull
 	popd >/dev/null
 	git clone git@github.com:kruize/benchmarks.git 2>/dev/null
 	check_err "ERROR: git clone git@github.com:kruize/benchmarks.git failed."
 	pushd benchmarks >/dev/null
-	git checkout master
-	git pull
+		git checkout master
+		git pull
 	popd >/dev/null
 	echo "done"
 	echo "#######################################"
@@ -156,7 +157,11 @@ function autotune_install() {
 	pushd autotune >/dev/null
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
-		./deploy.sh -c minikube
+		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
+			./deploy.sh -c minikube -i "${AUTOTUNE_DOCKER_IMAGE}"
+		else
+			./deploy.sh -c minikube
+		fi
 		check_err "ERROR: Autotune failed to start, exiting"
 		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
 		sleep 30
@@ -172,8 +177,8 @@ function autotune_install() {
 function autotune_objects_install() {
 	echo
 	echo "#######################################"
-	echo "8. Installing Autotune Object for galaxies app"
 	pushd benchmarks >/dev/null
+		echo "8. Installing Autotune Object for galaxies app"
 		pushd galaxies >/dev/null
 			kubectl apply -f autotune/autotune-http_resp_time.yaml
 			check_err "ERROR: Failed to create Autotune object for galaxies, exiting"
@@ -248,10 +253,13 @@ function autotune_start() {
 	echo "#        Autotune Demo Setup          #"
 	echo "#######################################"
 	echo
-	clone_repos
-	minikube_start
-	prometheus_install
-	benchmarks_install
+
+	if [ ${autotune_restart} -eq 0 ]; then
+		clone_repos
+		minikube_start
+		prometheus_install
+		benchmarks_install
+	fi
 	autotune_install
 	autotune_objects_install
 	echo
@@ -262,6 +270,9 @@ function autotune_start() {
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Autotune demo setup took ${elapsed_time} seconds"
 	echo
+	if [ ${prometheus} -eq 1 ]; then
+		expose_prometheus
+	fi
 }
 
 function autotune_terminate() {
@@ -287,14 +298,22 @@ if ! which minikube >/dev/null 2>/dev/null; then
 fi
 
 # By default we start the demo and dont expose prometheus port
-start_demo=1
 prometheus=0
+autotune_restart=0
+start_demo=1
+AUTOTUNE_DOCKER_IMAGE=""
 # Iterate through the commandline options
-while getopts st gopts
+while getopts i:prst gopts
 do
 	case "${gopts}" in
+		i)
+			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
+			;;
 		p)
 			prometheus=1
+			;;
+		r)
+			autotune_restart=1
 			;;
 		s)
 			start_demo=1
@@ -309,9 +328,6 @@ done
 
 if [ ${start_demo} -eq 1 ]; then
 	autotune_start
-	if [ ${prometheus} -eq 1 ]; then
-		expose_prometheus
-	fi
 else
 	autotune_terminate
 fi
