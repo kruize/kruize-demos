@@ -16,7 +16,7 @@
 #
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-p]"
+	echo "Usage: $0 [-s|-t] [-p] [-i docker-image] [-r]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart autotune only"
 	echo "p = expose prometheus port"
@@ -157,7 +157,7 @@ function autotune_install() {
 	pushd autotune >/dev/null
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
-		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
+		if [ -n "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			./deploy.sh -c minikube -i "${AUTOTUNE_DOCKER_IMAGE}"
 		else
 			./deploy.sh -c minikube
