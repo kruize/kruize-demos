@@ -95,6 +95,9 @@ $ ./minikube_demo_setup.sh
 # If you want to access the Prometheus Console
 $ ./minikube_demo_setup.sh -sp
 
+# If you want to restart only autotune with the specified docker image
+$ ./minikube_demo_setup.sh -r -i [autotune docker image]
+
 # To terminate the demo
 $ ./minikube_demo_setup.sh -t
 ```
