@@ -15,6 +15,11 @@
 # limitations under the License.
 #
 
+# Minimum resources required to run the demo
+MIN_CPU=8
+MIN_MEM=16384
+
+
 function usage() {
 	echo "Usage: $0 [-s|-t] [-p] [-i docker-image] [-r]"
 	echo "s = start (default), t = terminate"
@@ -41,6 +46,32 @@ function check_err() {
 	if [ ${err} -ne 0 ]; then
 		echo "$*"
 		exit -1
+	fi
+}
+
+# Prints the minimum system resources required to run the demo
+function print_min_resources() {
+	echo "       Minikube resource config needed for demo:"
+	echo "       CPUs=8, Memory=16384MB"
+}
+
+# Checks if the system which tries to run autotune is having minimum resources required
+function sys_cpu_mem_check() {
+	SYS_CPU=$(lscpu -p | grep -v '^#' | wc -l)
+	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
+
+	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
+		echo "CPU's on system : ${SYS_CPU} | Minimum CPU's required for demo : ${MIN_CPU}"
+		print_min_resources
+		echo "Exiting due to lack of system resources."
+		exit 1
+	fi
+
+	if [ "${SYS_MEM}" -lt "${MIN_MEM}" ]; then
+		echo "Memory on system : ${SYS_MEM} | Minimum Memory required for demo : ${MIN_MEM}"
+		print_min_resources
+		echo "Exiting due to lack of system resources."
+		exit 1
 	fi
 }
 
@@ -87,7 +118,7 @@ function minikube_start() {
 	sleep 2
 	echo "3. Starting new minikube cluster"
 	echo
-	minikube start
+	minikube start --cpus=${MIN_CPU} --memory=${MIN_MEM}M
 	check_err "ERROR: minikube failed to start, exiting"
 	echo -n "Waiting for cluster to be up..."
 	sleep 10
@@ -292,10 +323,11 @@ function autotune_terminate() {
 
 if ! which minikube >/dev/null 2>/dev/null; then
 	echo "ERROR: Please install minikube and try again"
-	echo "       Minikube resources needed for demo"
-	echo "       CPUs=8, Memory=16384MB"
+	print_min_resources
 	exit 1
 fi
+
+sys_cpu_mem_check
 
 # By default we start the demo and dont expose prometheus port
 prometheus=0
