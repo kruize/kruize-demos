@@ -1,0 +1,178 @@
+{
+  "experiment_id": "2190310A384BC90EF",
+  "namespace": "default",
+  "application_name": "petclinic-sample",
+  "app-version": "v1",
+  "info": {
+    "trial_id": "",
+    "trial_num": 1
+  },
+  "settings": {
+    "trail_settings": {
+      "trial_run": "15mins",
+      "trial_measurement_time": "3mins"
+    },
+    "deployment_settings": {
+      "deployment_policy" : {
+        "type" : "rollingUpdate",
+        "target_env" : "qa",
+        "agent" : "EM"
+      },
+      "deployment_tracking": {
+        "trackers": [
+          "training",
+          "production"
+        ]
+      }
+    }
+  },
+  "deployments": [
+    {
+      "type" : "training",
+      "deployment_name": "petclinic-sample",
+      "namespace" : "default",
+      "state": "",
+      "result": "",
+      "result_info": "",
+      "result_error": "",
+      "metrics": [
+        {
+          "name": "request_sum",
+          "query": "request_sum_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "request_count",
+          "query": "request_count_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "hotspot_function",
+          "query": "hotspot_function_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "cpuRequest",
+          "query": "cpuRequest_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "memRequest",
+          "query": "memRequest_query",
+          "datasource": "prometheus"
+        }
+      ],
+      "config": [
+        {
+          "name": "update requests and limits",
+          "spec": {
+            "template": {
+              "spec": {
+                "container": {
+                  "resources": {
+                    "requests": {
+                      "cpu": 2,
+                      "memory": "510Mi"
+                    },
+                    "limits": {
+                      "cpu": 3,
+                      "memory": "1024Mi"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "update env",
+          "spec": {
+            "template": {
+              "spec": {
+                "container": {
+                  "env": {
+                    "JVM_OPTIONS": "-XX:MaxInlineLevel=23",
+                    "JVM_ARGS": "-XX:MaxInlineLevel=23"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type" : "production",
+      "deployment_name": "petclinic-sample",
+      "state": "",
+      "result": "",
+      "result_info": "",
+      "result_error": "",
+      "metrics": [
+        {
+          "name": "request_sum",
+          "query": "request_sum_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "request_count",
+          "query": "request_count_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "hotspot_function",
+          "query": "hotspot_function_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "cpuRequest",
+          "query": "cpuRequest_query",
+          "datasource": "prometheus"
+        },
+        {
+          "name": "memRequest",
+          "query": "memRequest_query",
+          "datasource": "prometheus"
+        }
+      ],
+      "config": [
+        {
+          "name": "update requests and limits",
+          "spec": {
+            "template": {
+              "spec": {
+                "container": {
+                  "resources": {
+                    "requests": {
+                      "cpu": 2,
+                      "memory": "512Mi"
+                    },
+                    "limits": {
+                      "cpu": 3,
+                      "memory": "1024Mi"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "update env",
+          "spec": {
+            "template": {
+              "spec": {
+                "container": {
+                  "env": {
+                    "JVM_OPTIONS": "-XX:MaxInlineLevel=23",
+                    "JVM_ARGS": "-XX:MaxInlineLevel=23"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
