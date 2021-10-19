@@ -21,9 +21,10 @@ MIN_MEM=16384
 
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-p] [-i docker-image] [-r]"
+	echo "Usage: $0 [-s|-t] [-d] [-p] [-i docker-image] [-r]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart autotune only"
+	echo "d = Don't start experiments"
 	echo "p = expose prometheus port"
 	exit 1
 }
@@ -292,7 +293,9 @@ function autotune_start() {
 		benchmarks_install
 	fi
 	autotune_install
-	autotune_objects_install
+	if [ ${EXPERIMENT_START} -eq 1 ]; then
+		autotune_objects_install
+	fi
 	echo
 	kubectl -n monitoring get pods
 	echo
@@ -334,10 +337,14 @@ prometheus=0
 autotune_restart=0
 start_demo=1
 AUTOTUNE_DOCKER_IMAGE=""
+EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts i:prst gopts
+while getopts di:prst gopts
 do
 	case "${gopts}" in
+		d)
+			EXPERIMENT_START=0
+			;;
 		i)
 			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
 			;;
