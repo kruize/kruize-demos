@@ -263,6 +263,7 @@ function get_urls() {
 	echo "#              Autotune               #"
 	echo "#######################################"
 	echo "Info: Access Autotune tunables at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAutotuneTunables"
+	echo "######  The following links are meaningful only after an autotune object is deployed ######"
 	echo "Info: Autotune is monitoring these apps http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listApplications"
 	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppLayers"
 	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppTunables"
