@@ -186,6 +186,13 @@ function autotune_install() {
 	echo
 	echo "#######################################"
 	echo "7. Installing Autotune"
+	if [ ! -d autotune ]; then
+		echo "ERROR: autotune dir not found."
+		if [ ${autotune_restart} -eq 1 ]; then
+			echo "ERROR: Wrong use of restart option"
+		fi
+		exit -1
+	fi
 	pushd autotune >/dev/null
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
