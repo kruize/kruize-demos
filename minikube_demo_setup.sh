@@ -21,9 +21,10 @@ MIN_MEM=16384
 
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-p] [-i docker-image] [-r]"
+	echo "Usage: $0 [-s|-t] [-d] [-p] [-i docker-image] [-r]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart autotune only"
+	echo "d = Don't start experiments"
 	echo "p = expose prometheus port"
 	exit 1
 }
@@ -185,6 +186,13 @@ function autotune_install() {
 	echo
 	echo "#######################################"
 	echo "7. Installing Autotune"
+	if [ ! -d autotune ]; then
+		echo "ERROR: autotune dir not found."
+		if [ ${autotune_restart} -eq 1 ]; then
+			echo "ERROR: Wrong use of restart option"
+		fi
+		exit -1
+	fi
 	pushd autotune >/dev/null
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
@@ -255,6 +263,7 @@ function get_urls() {
 	echo "#              Autotune               #"
 	echo "#######################################"
 	echo "Info: Access Autotune tunables at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAutotuneTunables"
+	echo "######  The following links are meaningful only after an autotune object is deployed ######"
 	echo "Info: Autotune is monitoring these apps http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listApplications"
 	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppLayers"
 	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppTunables"
@@ -292,7 +301,9 @@ function autotune_start() {
 		benchmarks_install
 	fi
 	autotune_install
-	autotune_objects_install
+	if [ ${EXPERIMENT_START} -eq 1 ]; then
+		autotune_objects_install
+	fi
 	echo
 	kubectl -n monitoring get pods
 	echo
@@ -334,10 +345,14 @@ prometheus=0
 autotune_restart=0
 start_demo=1
 AUTOTUNE_DOCKER_IMAGE=""
+EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts i:prst gopts
+while getopts di:prst gopts
 do
 	case "${gopts}" in
+		d)
+			EXPERIMENT_START=0
+			;;
 		i)
 			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
 			;;
