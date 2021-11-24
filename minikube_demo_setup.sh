@@ -21,7 +21,7 @@ MIN_MEM=16384
 
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-d] [-p] [-i docker-image] [-r]"
+	echo "Usage: $0 [-s|-t] [-d] [-p] [-i autotune-image] [-o optuna-image] [-r]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart autotune only"
 	echo "d = Don't start experiments"
@@ -197,10 +197,12 @@ function autotune_install() {
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
 		if [ -n "${AUTOTUNE_DOCKER_IMAGE}" ]; then
-			./deploy.sh -c minikube -i "${AUTOTUNE_DOCKER_IMAGE}"
-		else
-			./deploy.sh -c minikube
+			DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
+		if [ -n "${OPTUNA_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${OPTUNA_DOCKER_IMAGE}"
+		fi
+		./deploy.sh -c minikube ${DOCKER_IMAGES}
 		check_err "ERROR: Autotune failed to start, exiting"
 		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
 		sleep 30
@@ -268,6 +270,10 @@ function get_urls() {
 	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppLayers"
 	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppTunables"
 	echo "Info: Autotune searchSpace at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/searchSpace"
+	echo "Info: Autotune Experiments at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listExperiments"
+	echo "Info: Autotune Experiments Summary at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/experimentsSummary"
+	echo "Info: Autotune Experiments Summary at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listTrialStatus"
+
 	echo
 	echo "Info: Access autotune objects using: kubectl -n default get autotune"
 	echo "Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig"
@@ -344,10 +350,12 @@ sys_cpu_mem_check
 prometheus=0
 autotune_restart=0
 start_demo=1
+DOCKER_IMAGES=""
 AUTOTUNE_DOCKER_IMAGE=""
+OPTUNA_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts di:prst gopts
+while getopts di:o:prst gopts
 do
 	case "${gopts}" in
 		d)
@@ -355,6 +363,9 @@ do
 			;;
 		i)
 			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
+			;;
+		o)
+			OPTUNA_DOCKER_IMAGE="${OPTARG}"
 			;;
 		p)
 			prometheus=1
