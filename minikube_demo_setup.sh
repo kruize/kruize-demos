@@ -46,7 +46,7 @@ function check_err() {
 	err=$?
 	if [ ${err} -ne 0 ]; then
 		echo "$*"
-		exit -1
+		exit 1
 	fi
 }
 
@@ -64,14 +64,14 @@ function sys_cpu_mem_check() {
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
 		echo "CPU's on system : ${SYS_CPU} | Minimum CPU's required for demo : ${MIN_CPU}"
 		print_min_resources
-		echo "Exiting due to lack of system resources."
+		echo "ERROR: Exiting due to lack of system resources."
 		exit 1
 	fi
 
 	if [ "${SYS_MEM}" -lt "${MIN_MEM}" ]; then
 		echo "Memory on system : ${SYS_MEM} | Minimum Memory required for demo : ${MIN_MEM}"
 		print_min_resources
-		echo "Exiting due to lack of system resources."
+		echo "ERROR: Exiting due to lack of system resources."
 		exit 1
 	fi
 }
@@ -80,6 +80,11 @@ function sys_cpu_mem_check() {
 #   Clone Autotune git Repos
 ###########################################
 function clone_repos() {
+	if [ -d autotune -o -d benchmarks ]; then
+		echo "ERROR: autotune and benchmarks dir exist."
+		echo "Run '$0 -t' to cleanup first"
+		exit 1
+	fi
 	echo
 	echo "#######################################"
 	echo "1. Cloning autotune git repos"
@@ -266,13 +271,10 @@ function get_urls() {
 	echo "#######################################"
 	echo "Info: Access Autotune tunables at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAutotuneTunables"
 	echo "######  The following links are meaningful only after an autotune object is deployed ######"
-	echo "Info: Autotune is monitoring these apps http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listApplications"
-	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppLayers"
-	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppTunables"
+	echo "Info: Autotune is monitoring these apps http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listStacks"
+	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listStackLayers"
+	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listStackTunables"
 	echo "Info: Autotune searchSpace at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/searchSpace"
-	echo "Info: Autotune Experiments at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listExperiments"
-	echo "Info: Autotune Experiments Summary at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/experimentsSummary"
-	echo "Info: Autotune Experiments Summary at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listTrialStatus"
 
 	echo
 	echo "Info: Access autotune objects using: kubectl -n default get autotune"
