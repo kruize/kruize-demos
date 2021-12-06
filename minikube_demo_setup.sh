@@ -19,6 +19,9 @@
 MIN_CPU=8
 MIN_MEM=16384
 
+# Default docker image repos
+AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
+OPTUNA_DOCKER_REPO="docker.io/kruize/autotune_optuna"
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-d] [-p] [-i autotune-image] [-o optuna-image] [-r]"
@@ -199,14 +202,19 @@ function autotune_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
+		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
-		if [ -n "${AUTOTUNE_DOCKER_IMAGE}" ]; then
-			DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE}"
+		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
+			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
 		fi
-		if [ -n "${OPTUNA_DOCKER_IMAGE}" ]; then
-			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${OPTUNA_DOCKER_IMAGE}"
+		if [ -z "${OPTUNA_DOCKER_IMAGE}" ]; then
+			OPTUNA_DOCKER_IMAGE=${OPTUNA_DOCKER_REPO}:${AUTOTUNE_VERSION}
 		fi
+		DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE} -o ${OPTUNA_DOCKER_IMAGE}"
+		echo
+		echo "Starting install with  ./deploy.sh -c minikube ${DOCKER_IMAGES}"
+		echo
 		./deploy.sh -c minikube ${DOCKER_IMAGES}
 		check_err "ERROR: Autotune failed to start, exiting"
 		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
