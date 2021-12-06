@@ -18,9 +18,9 @@ Autotune can take an arbitrarily large set of tunables and run experiments to co
 
 ```
 Info: Access Autotune tunables at http://192.168.39.138:30110/listAutotuneTunables
-Info: Autotune is monitoring these apps http://192.168.39.138:30110/listApplications
-Info: List Layers in apps that Autotune is monitoring http://192.168.39.138:30110/listAppLayers
-Info: List Tunables in apps that Autotune is monitoring http://192.168.39.138:30110/listAppTunables
+Info: Autotune is monitoring these application stacks http://192.168.39.138:30110/listStacks
+Info: List Layers in application stacks that Autotune is monitoring http://192.168.39.138:30110/listStackLayers
+Info: List Tunables in application stacks that Autotune is monitoring http://192.168.39.138:30110/listStackTunables
 Info: Autotune searchSpace at http://192.168.39.138:30110/searchSpace
 
 Info: Access autotune objects using: kubectl -n default get autotune
@@ -46,6 +46,7 @@ spec:
     objective_function: "request_sum/request_count"
     slo_class: "response_time"
     direction: "minimize"
+    hpo_algo_impl: "optuna_tpe_multivariate"
     function_variables:
     - name: "request_sum"
       query: rate(http_server_requests_seconds_sum{method="GET",outcome="SUCCESS",status="200",uri="/galaxies",}[1m])
@@ -63,7 +64,7 @@ spec:
     matchURI: ""
     matchService: ""
 ```
-In the above yaml from the [benchmarks](https://github.com/kruize/benchmarks/blob/master/galaxies/autotune/autotune-http_resp_time.yaml) repo, the overall goal or `slo` for the IT Admin is to minimize response time of the application deployment `galaxies-deployment`. The objective function defines what exactly constitutes response time. In this example it is a regular expression `request_sum/request_count`. The `function_variables` section helps to resolve the individual variables of the expression. In this case, `request_sum` represents the value returned by the prometheus query `rate(http_server_requests_seconds_sum{method="GET",outcome="SUCCESS",status="200",uri="/galaxies",}[1m])` and `request_count` represents the value returned by the prometheus query `rate(http_server_requests_seconds_count{method="GET",outcome="SUCCESS",status="200",uri="/galaxies",}[1m])`.
+In the above yaml from the [benchmarks](https://github.com/kruize/benchmarks/blob/master/galaxies/autotune/autotune-http_resp_time.yaml) repo, the overall goal or `slo` for the IT Admin is to minimize response time of the application deployment `galaxies-deployment`. The objective function defines what exactly constitutes response time. In this example it is a regular expression `request_sum/request_count`. The `function_variables` section helps to resolve the individual variables of the expression. In this case, `request_sum` represents the value returned by the prometheus query `rate(http_server_requests_seconds_sum{method="GET",outcome="SUCCESS",status="200",uri="/galaxies",}[1m])` and `request_count` represents the value returned by the prometheus query `rate(http_server_requests_seconds_count{method="GET",outcome="SUCCESS",status="200",uri="/galaxies",}[1m])`. Autotune uses the `optuna_tpe` hyper parameter optimization algorithm by default. However you can use `hpo_algo_impl` to change it to use a different optuna supported HPO algorithm.
 
 See the [benchmarks](https://github.com/kruize/benchmarks) repo for more examples on how to define Autotune objects. Look for ${benchmark_name}/autotune dir for example yamls.
 
@@ -89,14 +90,15 @@ A tunable is a performance tuning knob specific to a layer. Autotune currently s
 ## How do I run it ?
 
 ```
-# To setup the demo
+# To setup the demo. This will use the default docker images as decided
+# by the autotune version in pom.xml in the autotune repo
 $ ./minikube_demo_setup.sh
 
 # If you want to access the Prometheus Console
 $ ./minikube_demo_setup.sh -sp
 
 # If you want to restart only autotune with the specified docker image
-$ ./minikube_demo_setup.sh -r -i [autotune docker image]
+$ ./minikube_demo_setup.sh -r -i [autotune operator image] -o [autotune optuna image]
 
 # To terminate the demo
 $ ./minikube_demo_setup.sh -t
