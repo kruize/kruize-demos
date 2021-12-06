@@ -21,7 +21,7 @@ MIN_MEM=16384
 
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-d] [-p] [-i docker-image] [-r]"
+	echo "Usage: $0 [-s|-t] [-d] [-p] [-i autotune-image] [-o optuna-image] [-r]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart autotune only"
 	echo "d = Don't start experiments"
@@ -46,7 +46,7 @@ function check_err() {
 	err=$?
 	if [ ${err} -ne 0 ]; then
 		echo "$*"
-		exit -1
+		exit 1
 	fi
 }
 
@@ -64,14 +64,14 @@ function sys_cpu_mem_check() {
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
 		echo "CPU's on system : ${SYS_CPU} | Minimum CPU's required for demo : ${MIN_CPU}"
 		print_min_resources
-		echo "Exiting due to lack of system resources."
+		echo "ERROR: Exiting due to lack of system resources."
 		exit 1
 	fi
 
 	if [ "${SYS_MEM}" -lt "${MIN_MEM}" ]; then
 		echo "Memory on system : ${SYS_MEM} | Minimum Memory required for demo : ${MIN_MEM}"
 		print_min_resources
-		echo "Exiting due to lack of system resources."
+		echo "ERROR: Exiting due to lack of system resources."
 		exit 1
 	fi
 }
@@ -80,6 +80,11 @@ function sys_cpu_mem_check() {
 #   Clone Autotune git Repos
 ###########################################
 function clone_repos() {
+	if [ -d autotune -o -d benchmarks ]; then
+		echo "ERROR: autotune and benchmarks dir exist."
+		echo "Run '$0 -t' to cleanup first"
+		exit 1
+	fi
 	echo
 	echo "#######################################"
 	echo "1. Cloning autotune git repos"
@@ -197,10 +202,12 @@ function autotune_install() {
 		./deploy.sh -c minikube -t 2>/dev/null
 		sleep 5
 		if [ -n "${AUTOTUNE_DOCKER_IMAGE}" ]; then
-			./deploy.sh -c minikube -i "${AUTOTUNE_DOCKER_IMAGE}"
-		else
-			./deploy.sh -c minikube
+			DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
+		if [ -n "${OPTUNA_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${OPTUNA_DOCKER_IMAGE}"
+		fi
+		./deploy.sh -c minikube ${DOCKER_IMAGES}
 		check_err "ERROR: Autotune failed to start, exiting"
 		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
 		sleep 30
@@ -264,10 +271,11 @@ function get_urls() {
 	echo "#######################################"
 	echo "Info: Access Autotune tunables at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAutotuneTunables"
 	echo "######  The following links are meaningful only after an autotune object is deployed ######"
-	echo "Info: Autotune is monitoring these apps http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listApplications"
-	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppLayers"
-	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAppTunables"
+	echo "Info: Autotune is monitoring these apps http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listStacks"
+	echo "Info: List Layers in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listStackLayers"
+	echo "Info: List Tunables in apps that Autotune is monitoring http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listStackTunables"
 	echo "Info: Autotune searchSpace at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/searchSpace"
+
 	echo
 	echo "Info: Access autotune objects using: kubectl -n default get autotune"
 	echo "Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig"
@@ -344,10 +352,12 @@ sys_cpu_mem_check
 prometheus=0
 autotune_restart=0
 start_demo=1
+DOCKER_IMAGES=""
 AUTOTUNE_DOCKER_IMAGE=""
+OPTUNA_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts di:prst gopts
+while getopts di:o:prst gopts
 do
 	case "${gopts}" in
 		d)
@@ -355,6 +365,9 @@ do
 			;;
 		i)
 			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
+			;;
+		o)
+			OPTUNA_DOCKER_IMAGE="${OPTARG}"
 			;;
 		p)
 			prometheus=1
