@@ -90,7 +90,8 @@ A tunable is a performance tuning knob specific to a layer. Autotune currently s
 ## How do I run it ?
 
 ```
-# To setup the demo
+# To setup the demo. This will use the default docker images as decided
+# by the autotune version in pom.xml in the autotune repo
 $ ./minikube_demo_setup.sh
 
 # If you want to access the Prometheus Console
