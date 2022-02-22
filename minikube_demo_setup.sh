@@ -171,13 +171,19 @@ function benchmarks_install() {
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
-		echo "5. Installing galaxies (quarkus REST CRUD) benchmark into cluster"
+		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
+                pushd techempower >/dev/null
+                        kubectl apply -f manifests
+                        check_err "ERROR: TechEmpower app failed to start, exiting"
+                popd >/dev/null
+
+		echo "6. Installing galaxies (quarkus REST CRUD) benchmark into cluster"
 		pushd galaxies >/dev/null
 			kubectl apply -f manifests
 			check_err "ERROR: Galaxies app failed to start, exiting"
 		popd >/dev/null
 
-		echo "6. Installing petclinic (springboot REST CRUD) benchmark into cluster"
+		echo "7. Installing petclinic (springboot REST CRUD) benchmark into cluster"
 		pushd spring-petclinic >/dev/null
 			kubectl apply -f manifests
 			check_err "ERROR: Petclinic app failed to start, exiting"
@@ -193,7 +199,7 @@ function benchmarks_install() {
 function autotune_install() {
 	echo
 	echo "#######################################"
-	echo "7. Installing Autotune"
+	echo "8. Installing Autotune"
 	if [ ! -d autotune ]; then
 		echo "ERROR: autotune dir not found."
 		if [ ${autotune_restart} -eq 1 ]; then
@@ -232,13 +238,19 @@ function autotune_objects_install() {
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
-		echo "8. Installing Autotune Object for galaxies app"
+		echo "9. Installing Autotune Object for techempower app"
+                pushd techempower >/dev/null
+                        kubectl apply -f autotune/autotune-http_resp_time.yaml
+                        check_err "ERROR: Failed to create Autotune object for techempower, exiting"
+                popd >/dev/null
+
+		echo "10. Installing Autotune Object for galaxies app"
 		pushd galaxies >/dev/null
 			kubectl apply -f autotune/autotune-http_resp_time.yaml
 			check_err "ERROR: Failed to create Autotune object for galaxies, exiting"
 		popd >/dev/null
 
-		echo "9. Installing Autotune Object for petclinic app"
+		echo "11. Installing Autotune Object for petclinic app"
 		pushd spring-petclinic >/dev/null
 			kubectl apply -f autotune/autotune-http_throughput.yaml
 			check_err "ERROR: Failed to create Autotune object for petclinic, exiting"
@@ -257,14 +269,19 @@ function get_urls() {
 	AUTOTUNE_PORT=$(${kubectl_cmd} get svc autotune --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 
 	kubectl_cmd="kubectl -n default"
+	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	GALAXIES_PORT=$(${kubectl_cmd} get svc galaxies-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	PETCLINIC_PORT=$(${kubectl_cmd} get svc petclinic-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+
 	MINIKUBE_IP=$(minikube ip)
 
 	echo
 	echo "#######################################"
 	echo "#             Quarkus App             #"
 	echo "#######################################"
+	echo "Info: Access techempower app at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+        echo "Info: Access techempower app metrics at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}/q/metrics"
+	echo
 	echo "Info: Access galaxies app at http://${MINIKUBE_IP}:${GALAXIES_PORT}"
 	echo "Info: Access galaxies app metrics at http://${MINIKUBE_IP}:${GALAXIES_PORT}/metrics"
 	echo
@@ -296,7 +313,7 @@ function get_urls() {
 ###########################################
 function expose_prometheus() {
 	kubectl_cmd="kubectl -n monitoring"
-	echo "10. Port forwarding Prometheus"
+	echo "12. Port forwarding Prometheus"
 	echo "Info: Prometheus accessible at http://localhost:9090"
 	${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
 }
