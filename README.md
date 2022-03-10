@@ -30,7 +30,24 @@ Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig
 - **What does it not do ?**  
   It does not kick off any experiments with the tunables (as yet). Stay tuned !!
 - **pre-req**  
-  It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory. 
+  It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory. The default memory limit is 2GB and CPU limit is 2. You can see the current config with the following command:
+  Altogether:
+  ```
+  $ minikube config view vm-driver
+  - cpus: 2
+  - memory: 2048
+  ```
+  Each One:
+  ```
+  $ minikube config get memory
+  2048
+  $ minikube config get cpus
+  2
+  ```
+  Also, you can set default CPU and memory while starting the minikube:
+  ```
+  minikube start --cpus=8 --memory=16384
+  ```
 - ##### WARNING: The script deletes any existing minikube cluster.
 
 ## What is an Objective Function ?
