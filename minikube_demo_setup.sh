@@ -61,10 +61,7 @@ function print_min_resources() {
 
 # Checks if the system which tries to run autotune is having minimum resources required
 function sys_cpu_mem_check() {
-	cpuinfo=/proc/cpuinfo
-	core=$(awk '/^cpu cores/{print $4; exit}' <"$cpuinfo" )
-	siblings=$(awk '/^siblings/{print $3; exit}' <"$cpuinfo")
-	SYS_CPU=$((core * siblings))
+	SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
 	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
 
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
