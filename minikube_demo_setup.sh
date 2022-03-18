@@ -252,7 +252,7 @@ function get_urls() {
 	echo "#######################################"
 	echo "#             Quarkus App             #"
 	echo "#######################################"
-	echo "Info: Access techempower app at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+	echo "Info: Access techempower app at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}/db"
         echo "Info: Access techempower app metrics at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}/q/metrics"
 	echo
 	echo "#######################################"
