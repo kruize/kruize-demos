@@ -1,14 +1,14 @@
-# Autotune Demo Scripts
+# Kruize Demo Scripts
 
-Want to know more about Autotune ? You've come to the right place !
+Want to know more about Kruize ? You've come to the right place !
 
-# What is Autotune ?
+# What is Kruize Autotune ?
 
-[Autotune](https://github.com/kruize/autotune/blob/master/README.md) is an Autonomous Performance Tuning Tool for Kubernetes. Autotune accepts a user provided Service Level Objective or "slo" goal to optimize application performance. It uses Prometheus to identify "layers" of an application that it is monitoring and matches tunables from those layers to the user provided slo. It then runs experiments with the help of a hyperparameter optimization framework to arrive at the most optimal values for the identified tunables to get a better result for the user provided slo.
+[Kruize Autotune](https://github.com/kruize/autotune/blob/master/README.md) is an Autonomous Performance Tuning Tool for Kubernetes. Autotune accepts a user provided Service Level Objective or "slo" goal to optimize application performance. It uses Prometheus to identify "layers" of an application that it is monitoring and matches tunables from those layers to the user provided slo. It then runs experiments with the help of a hyperparameter optimization framework to arrive at the most optimal values for the identified tunables to get a better result for the user provided slo.
 
 Autotune can take an arbitrarily large set of tunables and run experiments to continually optimize the user provided slo in incremental steps. For this reason, it does not necessarily have a "best" value for a set of tunables, only a "better" one than what is currently deployed.
 
-# [minikube demo](/minikube_demo_setup.sh)
+# [minikube demo](/autotune_minikube_demo_setup.sh)
 - **Goal**  
   The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
 - **Steps**  
@@ -92,25 +92,27 @@ A tunable is a performance tuning knob specific to a layer. Autotune currently s
 ```
 # To setup the demo. This will use the default docker images as decided
 # by the autotune version in pom.xml in the autotune repo
-$ ./minikube_demo_setup.sh
+$ ./autotune_minikube_demo_setup.sh
 
 # If you want to access the Prometheus Console
-$ ./minikube_demo_setup.sh -sp
+$ ./autotune_minikube_demo_setup.sh -sp
 
 # If you want to restart only autotune with the specified docker image
-$ ./minikube_demo_setup.sh -r -i [autotune operator image] -o [autotune optuna image]
+$ ./autotune_minikube_demo_setup.sh -r -i [autotune operator image] -o [autotune optuna image]
 
 # To terminate the demo
-$ ./minikube_demo_setup.sh -t
+$ ./autotune_minikube_demo_setup.sh -t
 ```
 
-# Info about Autotune repositories
+# Info about Kruize repositories
 
-- [autotune-demo](https://github.com/kruize/autotune-demo)  
+- [kruize-demos](https://github.com/kruize/kruize-demos)
   This repo.
-- [autotune](https://github.com/kruize/autotune)  
+- [autotune](https://github.com/kruize/autotune)
   Main repo for Autotune sources.
-- [benchmarks](https://github.com/kruize/benchmarks)  
+- [benchmarks](https://github.com/kruize/benchmarks)
   Benchmark scripts for running performance tests with Autotune.
-- [autotune-results](https://github.com/kruize/autotune-results)  
+- [autotune-results](https://github.com/kruize/autotune-results)
   Results of experiments run with Autotune.
+- [hpo](https://github.com/kruize/hpo)
+  HPO as a Service.
