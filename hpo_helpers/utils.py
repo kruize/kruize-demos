@@ -61,7 +61,7 @@ def convert2envoptions(data):
 
 def calcobj(searchspacejson , outputcsvfile):
     funcvariables = []
-
+    
     with open(searchspacejson) as f:
         sdata1 = json.load(f)
 
@@ -91,18 +91,29 @@ def calcobj(searchspacejson , outputcsvfile):
                 for k,v in row.items():
                     if (k == x):
                         objf = objf.replace(x , v)
-
-    print(eval(objf))
+    try:
+        print(eval(objf))
+    except:
+        print("-1")
     
+def getexperimentid(searchspacejson):
+    with open(searchspacejson) as f:
+        sdata = json.load(f)
+        for sd in sdata:
+            ## Get experiment id
+            if sd == "experiment_id":
+                eid = sdata["experiment_id"]
+    print(eid)
 
 def gettrials(searchspacejson):
     with open(searchspacejson) as f:
-        sd = json.load(f)
-        for et in sd:
-            ## Get the no.of trials
-            trials = et.get('experiment_trials')
-    print(trials)
-
+        sdata = json.load(f)
+        for sd in sdata:
+            ## Get trials
+            if sd == "experiment_trials":
+                etrials = sdata["experiment_trials"]
+    print(etrials)
+    
 def hpoconfig2csv(hpoconfigjson, benchmarkcsv, outputcsv, trial):
     list2 = []
     list1 = []

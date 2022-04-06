@@ -17,9 +17,11 @@
 
 # Default docker image repos
 HPO_DOCKER_REPO="docker.io/kruize/hpo"
+HPO_VERSION="0.01"
 
 # Default cluster
 CLUSTER_TYPE="native"
+PY_CMD="python3.6"
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-d] [-i hpo-image] [-r] [-c cluster-type]"
@@ -79,7 +81,7 @@ function clone_repos() {
 }
 
 ###########################################
-#   Cleanup Autotune git Repos
+#   Cleanup HPO git Repos
 ###########################################
 function delete_repos() {
 	echo "1. Delete hpo and benchmarks git repos"
@@ -109,14 +111,14 @@ function hpo_install() {
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
 			echo
 			./deploy_hpo.sh -c ${CLUSTER_TYPE} &
-			check_err "ERROR: HPO failed to start, exiting"
+			#check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -h ${HPO_DOCKER_IMAGE}"
 			echo
 
 			./deploy_hpo.sh -c ${CLUSTER_TYPE} -h ${HPO_DOCKER_IMAGE} &
-			check_err "ERROR: HPO failed to start, exiting"
+			#check_err "ERROR: HPO failed to start, exiting"
 		fi
 	popd >/dev/null
 	echo "#######################################"
@@ -128,15 +130,26 @@ function hpo_install() {
 ###########################################
 function hpo_experiments() {
 
-	## TODO : Get experiment_id from search_space
+	## TODO : Support to docker. Supports only native mode.
+
+	SEARCHSPACE_JSON="hpo_helpers/search_space.json"
+	URL="http://localhost:8085"
+	## TODO : Add check to eid
+	eid=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentid(\"${SEARCHSPACE_JSON}\")")
+
+	##TODO : Delete the old logs if any before starting the experiment
+	rm -rf benchmark.log 
 
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
-	## TODO : Check if searchspace is empty
-	exp_json=$( cat "hpo_helpers/search_space.json" )
-	curl  -v -s -H 'Content-Type: application/json' http://localhost:8085/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
-	check_err "Error: Creating the new experiment failed."
+	exp_json=$( cat ${SEARCHSPACE_JSON} )
+	if [[ ${exp_json} != "" ]]; then
+		curl -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
+		check_err "Error: Creating the new experiment failed."
+	else
+		check_err "Error: Searchspace is empty"
+	fi
 
 	## Looping through trials of an experiment
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -144,8 +157,8 @@ function hpo_experiments() {
 		## Step 2: Get the HPO config from HPOaaS
 		echo "#######################################"
         	echo "Generate the config for trial ${i}"
-		sleep 10
-		HPO_CONFIG=$(curl -H 'Accept: application/json' 'http://localhost:8085/experiment_trials?experiment_id=a123&trial_number='"${i}")
+		sleep 2
+		HPO_CONFIG=$(curl -Ss -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
 		echo ${HPO_CONFIG}
 		if [[ ${HPO_CONFIG} != -1 ]]; then
 			echo "${HPO_CONFIG}" > hpo_config.json
@@ -156,8 +169,8 @@ function hpo_experiments() {
 		## Step 3: Run the benchmark with HPO config.
 		echo "#######################################"
 	        echo "Run the benchmark for trial ${i}"
-		#BENCHMARK_OUTPUT=$(./runbenchmark.sh "${HPO_CONFIG}")
-		BENCHMARK_OUTPUT="Objfunc_result=0.007914818407446147 Benchmark_status=success"
+		#BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh ${SEARCHSPACE_JSON})
+		BENCHMARK_OUTPUT="Objfunc_result=0.007914818407446147 Benchmark_status=prune"
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -166,19 +179,19 @@ function hpo_experiments() {
 			trial_state="prune"
 		fi
 		### Add the HPO config and output data from benchmark of all trials into single csv
-		python3.6 -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"trials-output.csv\",\"${i}\")"
+		${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"trials-output.csv\",\"${i}\")"
 
 		## Step 4: Send the results of benchmark to HPOaaS
 		echo "#######################################"
         	echo "Send the benchmark results for trial ${i}"
-		curl  -Ss -H 'Content-Type: application/json' http://localhost:8085/experiment_trials -d '{"experiment_id" : "a123", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
+		curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
 		check_err "ERROR: Sending the results to HPO failed."
 
 		sleep 5
 		## Step 5 : Generate a subsequent trial
 		echo "#######################################"
 	        echo "Generate subsequent trial of ${i}"
-		curl  -Ss -H 'Content-Type: application/json' http://localhost:8085/experiment_trials -d '{"experiment_id" : "a123", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+		curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 		check_err "ERROR: Generating the subsequent trial failed."
 	done
 
@@ -202,7 +215,7 @@ function hpo_start() {
 		clone_repos
 	fi
 	hpo_install
-	sleep 20
+	sleep 10
 	if [ ${EXPERIMENT_START} -eq 1 ]; then
 		hpo_experiments
 	fi
@@ -240,7 +253,7 @@ start_demo=1
 HPO_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts di:o:prst gopts
+while getopts di:o:crst gopts
 do
 	case "${gopts}" in
 		d)
@@ -257,6 +270,9 @@ do
 			;;
 		t)
 			start_demo=0
+			;;
+		c)
+			CLUSTER_TYPE="${OPTARG}"
 			;;
 		*)
 			usage
