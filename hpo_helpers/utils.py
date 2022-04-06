@@ -28,20 +28,27 @@ def convert2envoptions(data):
                     JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -XX:+" + btunable
                 elif st["tunable_value"] == "false":
                     JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -XX:-" + btunable
+
         for jvtunable in tunables_jvm_values:
             if jvtunable == st["tunable_name"]:
-                JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -XX:" + jvtunable + "=" + str(st["tunable_value"])
+                if jvtunable == "ConcGCThreads":
+                    ## To avoid JVM exit if ParallelGCThreads < ConcGCThreads.
+                    ## Only until dependencies between tunables are set.
+                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -XX:" + jvtunable + "=" + str(st["tunable_value"]) + " -XX:ParallelGCThreads=" + str(st["tunable_value"])
+                else:
+                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -XX:" + jvtunable + "=" + str(st["tunable_value"])
                 
         for qtunable in tunables_quarkus:
             if qtunable == st["tunable_name"]:
                 if qtunable == "quarkustpcorethreads":
-                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.thread-pool.core-threads=" + st["tunable_value"]
+                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.thread-pool.core-threads=" + str(st["tunable_value"])
                 elif qtunable == "quarkustpqueuesize":
-                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.thread-pool.queue-size=" + st["tunable_value"]
+                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.thread-pool.queue-size=" + str(st["tunable_value"])
                 elif qtunable == "quarkusdatasourcejdbcminsize":
-                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.datasource.jdbc.min-size" + st["tunable_value"]
+
+                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.datasource.jdbc.min-size" + str(st["tunable_value"])
                 elif qtunable == "quarkusdatasourcejdbcmaxsize":
-                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.datasource.jdbc.max-size" + st["tunable_value"]
+                    JDK_JAVA_OPTIONS = JDK_JAVA_OPTIONS + " -Dquarkus.datasource.jdbc.max-size" + str(st["tunable_value"])
 
         if st["tunable_name"] == "cpuRequest":
             cpureq = str(st["tunable_value"])

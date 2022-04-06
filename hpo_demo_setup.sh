@@ -22,6 +22,7 @@ HPO_VERSION="0.01"
 # Default cluster
 CLUSTER_TYPE="native"
 PY_CMD="python3.6"
+LOGFILE="${PWD}/hpo.log"
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-d] [-i hpo-image] [-r] [-c cluster-type]"
@@ -110,15 +111,14 @@ function hpo_install() {
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
 			echo
-			./deploy_hpo.sh -c ${CLUSTER_TYPE} &
+			./deploy_hpo.sh -c ${CLUSTER_TYPE} >> ${LOGFILE}  &
 			#check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
-			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}" -h "${HPO_DOCKER_IMAGE}"
+			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -h ${HPO_DOCKER_IMAGE}"
 			echo
 
-			./deploy_hpo.sh -c ${CLUSTER_TYPE} 
-			#-h ${HPO_DOCKER_IMAGE} &
+			./deploy_hpo.sh -c "${CLUSTER_TYPE}" -h "${HPO_DOCKER_IMAGE}"
 			#check_err "ERROR: HPO failed to start, exiting"
 		fi
 	popd >/dev/null
@@ -223,7 +223,7 @@ function hpo_start() {
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! HPO demo setup took ${elapsed_time} seconds"
 	echo
-	echo "Look into ${exp_output} for results of all trials"
+	echo "Look into ${exp_output} for configuration and results of all trials"
 	echo
 
 }

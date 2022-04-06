@@ -37,6 +37,34 @@
 			      "step": 0.1
 		      },
 		      {
+			      "name": "quarkusthreadpoolcorethreads",
+			      "value_type": "integer",
+                              "upper_bound": 32,
+                              "lower_bound": 1,
+                              "step": 1
+		      },
+		      {
+			      "name": "quarkusthreadpoolqueuesize",
+                              "value_type": "integer",
+                              "upper_bound": 10001,
+                              "lower_bound": 1,
+                              "step": 10
+		      },
+		      {
+			      "name": "quarkusdatasourcejdbcminsize",
+                              "value_type": "integer",
+                              "upper_bound": 12,
+                              "lower_bound": 1,
+                              "step": 1
+		      },
+		      {
+			      "name": "quarkusdatasourcejdbcmaxsize",
+                              "value_type": "integer",
+                              "upper_bound": 90,
+                              "lower_bound": 12,
+                              "step": 1
+		      },
+		      {
 			      "name": "FreqInlineSize",
 			      "value_type": "integer",
 			      "lower_bound": 325,
