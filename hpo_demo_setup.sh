@@ -106,7 +106,7 @@ function hpo_install() {
 		if [ -z "${HPO_DOCKER_IMAGE}" ]; then
 			HPO_DOCKER_IMAGE=${HPO_DOCKER_REPO}:${HPO_VERSION}
 		fi
-		if [ ${CLUSTER_TYPE} == "native" ]; then
+		if [[ ${CLUSTER_TYPE} == "native" ]]; then
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
 			echo
@@ -114,10 +114,11 @@ function hpo_install() {
 			#check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
-			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -h ${HPO_DOCKER_IMAGE}"
+			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}" -h "${HPO_DOCKER_IMAGE}"
 			echo
 
-			./deploy_hpo.sh -c ${CLUSTER_TYPE} -h ${HPO_DOCKER_IMAGE} &
+			./deploy_hpo.sh -c ${CLUSTER_TYPE} 
+			#-h ${HPO_DOCKER_IMAGE} &
 			#check_err "ERROR: HPO failed to start, exiting"
 		fi
 	popd >/dev/null
@@ -130,15 +131,13 @@ function hpo_install() {
 ###########################################
 function hpo_experiments() {
 
-	## TODO : Support to docker. Supports only native mode.
-
 	SEARCHSPACE_JSON="hpo_helpers/search_space.json"
 	URL="http://localhost:8085"
 	## TODO : Add check to eid
 	eid=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentid(\"${SEARCHSPACE_JSON}\")")
+	exp_output="experiment-output.csv"
 
 	##TODO : Delete the old logs if any before starting the experiment
-	rm -rf benchmark.log 
 
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
@@ -159,7 +158,7 @@ function hpo_experiments() {
         	echo "Generate the config for trial ${i}"
 		sleep 2
 		HPO_CONFIG=$(curl -Ss -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
-		echo ${HPO_CONFIG}
+		#echo ${HPO_CONFIG}
 		if [[ ${HPO_CONFIG} != -1 ]]; then
 			echo "${HPO_CONFIG}" > hpo_config.json
 		else
@@ -169,8 +168,8 @@ function hpo_experiments() {
 		## Step 3: Run the benchmark with HPO config.
 		echo "#######################################"
 	        echo "Run the benchmark for trial ${i}"
-		#BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh ${SEARCHSPACE_JSON})
-		BENCHMARK_OUTPUT="Objfunc_result=0.007914818407446147 Benchmark_status=prune"
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh ${SEARCHSPACE_JSON})
+		#BENCHMARK_OUTPUT="Objfunc_result=0.007914818407446147 Benchmark_status=prune"
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -179,7 +178,7 @@ function hpo_experiments() {
 			trial_state="prune"
 		fi
 		### Add the HPO config and output data from benchmark of all trials into single csv
-		${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"trials-output.csv\",\"${i}\")"
+		${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"${exp_output}\",\"${i}\")"
 
 		## Step 4: Send the results of benchmark to HPOaaS
 		echo "#######################################"
@@ -224,6 +223,9 @@ function hpo_start() {
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! HPO demo setup took ${elapsed_time} seconds"
 	echo
+	echo "Look into ${exp_output} for results of all trials"
+	echo
+
 }
 
 function hpo_terminate() {
@@ -247,19 +249,19 @@ function hpo_terminate() {
 	echo
 }
 
-# By default we start the demo and dont expose prometheus port
+# By default we start the demo and experiment
 hpo_restart=0
 start_demo=1
 HPO_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts di:o:crst gopts
+while getopts di:o:c:rst gopts
 do
 	case "${gopts}" in
 		d)
 			EXPERIMENT_START=0
 			;;
-		h)
+		i)
 			HPO_DOCKER_IMAGE="${OPTARG}"
 			;;
 		r)

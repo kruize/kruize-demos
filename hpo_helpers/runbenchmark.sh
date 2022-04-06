@@ -52,7 +52,7 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	CLUSTER_TYPE="minikube"
 	BENCHMARK_SERVER="localhost"
 	RESULTS_DIR="results"
-	TFB_IMAGE="kusumach/tfb-qrh:1.13.2.F_mm_p"
+	TFB_IMAGE="kruize/tfb-qrh:1.13.2.F_mm_p"
 	DB_TYPE="docker"
 	DURATION="60"
 	WARMUPS=1
@@ -66,8 +66,6 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${BENCHMARK_SERVER} -e ${RESULTS_DIR} -g ${TFB_IMAGE} --dbtype=${DB_TYPE} --dbhost=${DB_HOST} -r -d ${DURATION} -w ${WARMUPS} -m ${MEASURES} -i ${SERVER_INSTANCES} --iter=${ITERATIONS} -n ${NAMESPACE} -t ${THREADS} --connection=${CONNECTIONS} --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_request} --memlim=${memory_request}M --envoptions="${envoptions}"  >> benchmark.log
 
 	RES_DIR=`ls -td -- ./benchmarks/techempower/results/*/ | head -n1 `
-	is_failed=$( echo $BENCHMARK_OUTPUT | grep "failed")
-
 	if [[ -f "${RES_DIR}/output.csv" ]]; then
 		## Remove any old benchmark output file and Copy the output.csv into current directory
 		rm -rf output.csv
@@ -90,11 +88,9 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	if [[ ${benchmark_status} == "prune" ]];then
 		objfunc_result=0
 	fi
+	### Append output.csv into single file
+	${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.alltrialsoutput(\"output.csv\",\"trials-output.csv\","1")"
 fi
-
-### Append output.csv into single file
-#${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.alltrialsoutput(\"output.csv\",\"trials-output.csv\","1")"
-
 
 echo "Objfunc_result=${objfunc_result}"
 echo "Benchmark_status=${benchmark_status}"
