@@ -17,12 +17,15 @@
 
 # Default docker image repos
 HPO_DOCKER_REPO="docker.io/kruize/hpo"
+## TODO: Get the version from hpo repo
 HPO_VERSION="0.01"
 
 # Default cluster
 CLUSTER_TYPE="native"
 PY_CMD="python3.6"
 LOGFILE="${PWD}/hpo.log"
+export N_TRIALS=3
+export N_JOBS=1
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-d] [-i hpo-image] [-r] [-c cluster-type]"
@@ -60,7 +63,7 @@ function check_err() {
 function clone_repos() {
 	echo
 	echo "#######################################"
-	echo "1. Cloning hpo git repos"
+	echo " Cloning hpo git repos"
 	if [ ! -d hpo ]; then
 		git clone git@github.com:kruize/hpo.git 2>/dev/null
 		if [ $? -ne 0 ]; then
@@ -85,7 +88,7 @@ function clone_repos() {
 #   Cleanup HPO git Repos
 ###########################################
 function delete_repos() {
-	echo "1. Delete hpo and benchmarks git repos"
+	echo " Delete hpo and benchmarks git repos"
 	rm -rf hpo benchmarks
 }
 
@@ -95,7 +98,7 @@ function delete_repos() {
 function hpo_install() {
 	echo
 	echo "#######################################"
-	echo "6. Start HPO"
+	echo " Start HPO Server"
 	if [ ! -d hpo ]; then
 		echo "ERROR: hpo dir not found."
 		if [ ${hpo_restart} -eq 1 ]; then
@@ -135,7 +138,6 @@ function hpo_experiments() {
 	URL="http://localhost:8085"
 	## TODO : Add check to eid
 	eid=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentid(\"${SEARCHSPACE_JSON}\")")
-	exp_output="experiment-output.csv"
 
 	##TODO : Delete the old logs if any before starting the experiment
 
@@ -143,12 +145,11 @@ function hpo_experiments() {
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
 	exp_json=$( cat ${SEARCHSPACE_JSON} )
-	if [[ ${exp_json} != "" ]]; then
-		curl -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
-		check_err "Error: Creating the new experiment failed."
-	else
+	if [[ ${exp_json} == "" ]]; then
 		check_err "Error: Searchspace is empty"
 	fi
+	curl -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
+	check_err "Error: Creating the new experiment failed."
 
 	## Looping through trials of an experiment
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -159,16 +160,18 @@ function hpo_experiments() {
 		sleep 2
 		HPO_CONFIG=$(curl -Ss -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
 		#echo ${HPO_CONFIG}
-		if [[ ${HPO_CONFIG} != -1 ]]; then
-			echo "${HPO_CONFIG}" > hpo_config.json
-		else
+		if [[ ${HPO_CONFIG} == -1 ]]; then
 			check_err "Error: Issue generating the configuration from HPO."
 		fi
+		echo "${HPO_CONFIG}" > hpo_config.json
 
 		## Step 3: Run the benchmark with HPO config.
+		## Output of the benchmark should contain objective function result value and status of the benchmark.
+		## Status of the benchmark supported is success and prune
+		## Output format expected for BENCHMARK_OUTPUT is "Objfunc_result=0.007914818407446147 Benchmark_status=success"
 		echo "#######################################"
 	        echo "Run the benchmark for trial ${i}"
-		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh ${SEARCHSPACE_JSON})
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i")
 		#BENCHMARK_OUTPUT="Objfunc_result=0.007914818407446147 Benchmark_status=prune"
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
@@ -177,8 +180,6 @@ function hpo_experiments() {
 			obj_result=0
 			trial_state="prune"
 		fi
-		### Add the HPO config and output data from benchmark of all trials into single csv
-		${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"${exp_output}\",\"${i}\")"
 
 		## Step 4: Send the results of benchmark to HPOaaS
 		echo "#######################################"
@@ -223,7 +224,7 @@ function hpo_start() {
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! HPO demo setup took ${elapsed_time} seconds"
 	echo
-	echo "Look into ${exp_output} for configuration and results of all trials"
+	echo "Look into experiment-data.csv for configuration and results of all trials"
 	echo
 
 }
