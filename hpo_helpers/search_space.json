@@ -1,8 +1,8 @@
 	{
 	      "experiment_name": "application-object-name",
 	      "experiment_id": "a123",
-	      "experiment_trials": 5,
-	      "experiment_jobs": 1,
+	      "total_trials": 5,
+	      "parallel_trials":1,
 	      "objective_function": "1000*(125*THROUGHPUT_RATE_3m)/(150*RESPONSE_TIME_RATE_3m)/(25*MAX_RESPONSE_TIME/1000)",
 	      "value_type": "double",
 	      "hpo_algo_impl": "optuna_tpe",
@@ -37,28 +37,28 @@
 			      "step": 0.1
 		      },
 		      {
-			      "name": "quarkusthreadpoolcorethreads",
+			      "name": "quarkus.thread-pool.core-threads",
 			      "value_type": "integer",
                               "upper_bound": 32,
                               "lower_bound": 1,
                               "step": 1
 		      },
 		      {
-			      "name": "quarkusthreadpoolqueuesize",
+			      "name": "quarkus.thread-pool.queue-size",
                               "value_type": "integer",
                               "upper_bound": 10001,
                               "lower_bound": 1,
                               "step": 10
 		      },
 		      {
-			      "name": "quarkusdatasourcejdbcminsize",
+			      "name": "quarkus.datasource.jdbc.min-size",
                               "value_type": "integer",
                               "upper_bound": 12,
                               "lower_bound": 1,
                               "step": 1
 		      },
 		      {
-			      "name": "quarkusdatasourcejdbcmaxsize",
+			      "name": "quarkus.datasource.jdbc.max-size",
                               "value_type": "integer",
                               "upper_bound": 90,
                               "lower_bound": 12,

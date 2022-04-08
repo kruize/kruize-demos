@@ -22,7 +22,7 @@ HPO_VERSION="0.01"
 
 # Default cluster
 CLUSTER_TYPE="native"
-PY_CMD="python3.6"
+PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
 export N_TRIALS=3
 export N_JOBS=1
@@ -63,7 +63,7 @@ function check_err() {
 function clone_repos() {
 	echo
 	echo "#######################################"
-	echo " Cloning hpo git repos"
+	echo "Cloning hpo git repos"
 	if [ ! -d hpo ]; then
 		git clone git@github.com:kruize/hpo.git 2>/dev/null
 		if [ $? -ne 0 ]; then
@@ -88,7 +88,7 @@ function clone_repos() {
 #   Cleanup HPO git Repos
 ###########################################
 function delete_repos() {
-	echo " Delete hpo and benchmarks git repos"
+	echo "Delete hpo and benchmarks git repos"
 	rm -rf hpo benchmarks
 }
 
@@ -98,7 +98,7 @@ function delete_repos() {
 function hpo_install() {
 	echo
 	echo "#######################################"
-	echo " Start HPO Server"
+	echo "Start HPO Server"
 	if [ ! -d hpo ]; then
 		echo "ERROR: hpo dir not found."
 		if [ ${hpo_restart} -eq 1 ]; then
@@ -108,6 +108,7 @@ function hpo_install() {
 	fi
 	pushd hpo >/dev/null
 		if [ -z "${HPO_DOCKER_IMAGE}" ]; then
+			HPO_VERSION=$(cat version.py | grep "HPO_VERSION" | cut -d "=" -f2 | tr -d '"')
 			HPO_DOCKER_IMAGE=${HPO_DOCKER_REPO}:${HPO_VERSION}
 		fi
 		if [[ ${CLUSTER_TYPE} == "native" ]]; then
@@ -118,10 +119,10 @@ function hpo_install() {
 			#check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
-			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -h ${HPO_DOCKER_IMAGE}"
+			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -o ${HPO_DOCKER_IMAGE}"
 			echo
 
-			./deploy_hpo.sh -c "${CLUSTER_TYPE}" -h "${HPO_DOCKER_IMAGE}"
+			./deploy_hpo.sh -c "${CLUSTER_TYPE}" -o "${HPO_DOCKER_IMAGE}"
 			#check_err "ERROR: HPO failed to start, exiting"
 		fi
 	popd >/dev/null
@@ -136,33 +137,41 @@ function hpo_experiments() {
 
 	SEARCHSPACE_JSON="hpo_helpers/search_space.json"
 	URL="http://localhost:8085"
-	## TODO : Add check to eid
+	exp_json=$(cat ${SEARCHSPACE_JSON})
+	if [[ ${exp_json} == "" ]]; then
+                check_err "Error: Searchspace is empty"
+        fi
+	## Get experiment_id from searchspace
 	eid=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentid(\"${SEARCHSPACE_JSON}\")")
+	## Get total_trials from searchspace
+	ttrials=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.gettrials(\"${SEARCHSPACE_JSON}\")")
+	if [[ ${eid} == "" || ${ttrials} == "" ]]; then
+		check_err "Error: Invalid search space"
+	fi
 
-	##TODO : Delete the old logs if any before starting the experiment
+	## Delete the old logs if any before starting the experiment
+	rm -rf experiment-output.log hpo_config.json
 
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
-	exp_json=$( cat ${SEARCHSPACE_JSON} )
-	if [[ ${exp_json} == "" ]]; then
-		check_err "Error: Searchspace is empty"
-	fi
 	curl -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
 	check_err "Error: Creating the new experiment failed."
 
 	## Looping through trials of an experiment
-	for (( i=0 ; i<${N_TRIALS} ; i++ ))
+	for (( i=0 ; i<${ttrials} ; i++ ))
 	do
 		## Step 2: Get the HPO config from HPOaaS
 		echo "#######################################"
-        	echo "Generate the config for trial ${i}"
-		sleep 2
+        	echo
+		echo "Generate the config for trial ${i}"
+		echo
+		sleep 10
 		HPO_CONFIG=$(curl -Ss -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
-		#echo ${HPO_CONFIG}
 		if [[ ${HPO_CONFIG} == -1 ]]; then
 			check_err "Error: Issue generating the configuration from HPO."
 		fi
+                echo ${HPO_CONFIG}
 		echo "${HPO_CONFIG}" > hpo_config.json
 
 		## Step 3: Run the benchmark with HPO config.
@@ -170,9 +179,10 @@ function hpo_experiments() {
 		## Status of the benchmark supported is success and prune
 		## Output format expected for BENCHMARK_OUTPUT is "Objfunc_result=0.007914818407446147 Benchmark_status=success"
 		echo "#######################################"
+		echo
 	        echo "Run the benchmark for trial ${i}"
+		echo
 		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i")
-		#BENCHMARK_OUTPUT="Objfunc_result=0.007914818407446147 Benchmark_status=prune"
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -183,20 +193,26 @@ function hpo_experiments() {
 
 		## Step 4: Send the results of benchmark to HPOaaS
 		echo "#######################################"
+		echo
         	echo "Send the benchmark results for trial ${i}"
 		curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
 		check_err "ERROR: Sending the results to HPO failed."
-
+		echo
 		sleep 5
 		## Step 5 : Generate a subsequent trial
-		echo "#######################################"
-	        echo "Generate subsequent trial of ${i}"
-		curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
-		check_err "ERROR: Generating the subsequent trial failed."
+		if (( i < ${ttrial} - 1 )); then
+			echo "#######################################"
+			echo
+	        	echo "Generate subsequent trial of ${i}"
+			curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			check_err "ERROR: Generating the subsequent trial failed."
+			echo
+		fi
 	done
 
 	echo "#######################################"
-	echo " Experiment complete"
+	echo
+	echo "Experiment complete"
 	echo
 
 }
@@ -207,7 +223,7 @@ function hpo_start() {
 	start_time=$(get_date)
 	echo
 	echo "#######################################"
-	echo "#        HPO Demo Setup          #"
+	echo "#        HPO Demo Setup               #"
 	echo "#######################################"
 	echo
 
@@ -224,7 +240,7 @@ function hpo_start() {
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! HPO demo setup took ${elapsed_time} seconds"
 	echo
-	echo "Look into experiment-data.csv for configuration and results of all trials"
+	echo "Look into experiment-output.csv for configuration and results of all trials"
 	echo
 
 }
@@ -239,9 +255,6 @@ function hpo_terminate() {
 	pushd hpo >/dev/null
                 ./deploy_hpo.sh -t -c ${CLUSTER_TYPE}
 		check_err "ERROR: Failed to terminate hpo"
-
-		## Only for now as deploy script doesn't kill the service.
-		ps -ef | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9
         popd >/dev/null
 	delete_repos
 	end_time=$(get_date)
