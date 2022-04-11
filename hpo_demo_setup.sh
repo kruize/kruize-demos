@@ -180,6 +180,7 @@ function hpo_experiments() {
 		## Output of the benchmark should contain objective function result value and status of the benchmark.
 		## Status of the benchmark supported is success and prune
 		## Output format expected for BENCHMARK_OUTPUT is "Objfunc_result=0.007914818407446147 Benchmark_status=success"
+		## Status of benchmark trial is set to prune, if objective function result value is not a number.
 		echo "#######################################"
 		echo
 	        echo "Run the benchmark for trial ${i}"
@@ -188,9 +189,12 @@ function hpo_experiments() {
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
-		### Setting obj_result=0 and trial_state="prune" to contine the experiment if obj_result or trial_state is empty because of any issue with benchmark output.
-		if [[ ${obj_result} == "" || ${trial_state} == "" ]]; then
+		### Setting obj_result=0 and trial_state="prune" to contine the experiment if obj_result is nan or trial_state is empty because of any issue with benchmark output.
+		number_check='^[0-9,.]+$'
+		if ! [[ ${obj_result} =~  ${number_check} ]]; then
 			obj_result=0
+			trial_state="prune"
+		elif [[ ${trial_state} == "" ]]; then
 			trial_state="prune"
 		fi
 
