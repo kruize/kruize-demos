@@ -17,8 +17,6 @@
 
 # Default docker image repos
 HPO_DOCKER_REPO="docker.io/kruize/hpo"
-## TODO: Get the version from hpo repo
-HPO_VERSION="0.01"
 
 # Default cluster
 CLUSTER_TYPE="native"
@@ -28,7 +26,7 @@ export N_TRIALS=3
 export N_JOBS=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-d] [-i hpo-image] [-r] [-c cluster-type]"
+	echo "Usage: $0 [-s|-t] [-d] [-o hpo-image] [-r] [-c cluster-type]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "d = Don't start experiments"
@@ -55,6 +53,11 @@ function check_err() {
 		echo "$*"
 		exit 1
 	fi
+}
+
+function err_exit() {
+	echo "$*"
+	exit 1
 }
 
 ###########################################
@@ -116,14 +119,14 @@ function hpo_install() {
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
 			echo
 			./deploy_hpo.sh -c ${CLUSTER_TYPE} >> ${LOGFILE}  &
-			#check_err "ERROR: HPO failed to start, exiting"
+			check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -o ${HPO_DOCKER_IMAGE}"
 			echo
 
 			./deploy_hpo.sh -c "${CLUSTER_TYPE}" -o "${HPO_DOCKER_IMAGE}"
-			#check_err "ERROR: HPO failed to start, exiting"
+			check_err "ERROR: HPO failed to start, exiting"
 		fi
 	popd >/dev/null
 	echo "#######################################"
@@ -133,20 +136,24 @@ function hpo_install() {
 ###########################################
 #   Start HPO Experiments
 ###########################################
+## This is function to start experiments with the provided searchspace json.
+## It can be customized to run for any usecase, by providing the searchspace json / 
+## and modifying Step3 to run the benchmark user needs.
+## Currently, it uses TechEmpower benchmark for the demo.
 function hpo_experiments() {
 
 	SEARCHSPACE_JSON="hpo_helpers/search_space.json"
 	URL="http://localhost:8085"
 	exp_json=$(cat ${SEARCHSPACE_JSON})
 	if [[ ${exp_json} == "" ]]; then
-                check_err "Error: Searchspace is empty"
+		err_exit "Error: Searchspace is empty"
         fi
 	## Get experiment_id from searchspace
 	eid=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentid(\"${SEARCHSPACE_JSON}\")")
 	## Get total_trials from searchspace
 	ttrials=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.gettrials(\"${SEARCHSPACE_JSON}\")")
 	if [[ ${eid} == "" || ${ttrials} == "" ]]; then
-		check_err "Error: Invalid search space"
+		err_exit "Error: Invalid search space"
 	fi
 
 	## Delete the old logs if any before starting the experiment
@@ -155,7 +162,7 @@ function hpo_experiments() {
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
-	curl -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
+	curl -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
 	check_err "Error: Creating the new experiment failed."
 
 	## Looping through trials of an experiment
@@ -167,10 +174,8 @@ function hpo_experiments() {
 		echo "Generate the config for trial ${i}"
 		echo
 		sleep 10
-		HPO_CONFIG=$(curl -Ss -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
-		if [[ ${HPO_CONFIG} == -1 ]]; then
-			check_err "Error: Issue generating the configuration from HPO."
-		fi
+		HPO_CONFIG=$(curl -LfSs -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
+		check_err "Error: Issue generating the configuration from HPO."
                 echo ${HPO_CONFIG}
 		echo "${HPO_CONFIG}" > hpo_config.json
 
@@ -195,7 +200,7 @@ function hpo_experiments() {
 		echo "#######################################"
 		echo
         	echo "Send the benchmark results for trial ${i}"
-		curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
+		curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
 		check_err "ERROR: Sending the results to HPO failed."
 		echo
 		sleep 5
@@ -204,7 +209,7 @@ function hpo_experiments() {
 			echo "#######################################"
 			echo
 	        	echo "Generate subsequent trial of ${i}"
-			curl  -Ss -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 			check_err "ERROR: Generating the subsequent trial failed."
 			echo
 		fi
@@ -275,7 +280,7 @@ do
 		d)
 			EXPERIMENT_START=0
 			;;
-		i)
+		o)
 			HPO_DOCKER_IMAGE="${OPTARG}"
 			;;
 		r)

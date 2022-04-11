@@ -29,6 +29,7 @@ TRIAL=$3
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
 BENCHMARK_NAME="techempower"
+BENCHMARK_LOGFILE="${PWD}/benchmark.log"
 
 cpu_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tunablevalue(\"hpo_config.json\", \"cpuRequest\")")
 memory_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tunablevalue(\"hpo_config.json\", \"memoryRequest\")")
@@ -60,6 +61,7 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	if [[ -f "${RES_DIR}/output.csv" ]]; then
 		## Copy the output.csv into current directory
 		cp -r ${RES_DIR}/output.csv .
+		cat ${RES_DIR}/../../setup.log >> ${BENCHMARK_LOGFILE}
 		## Format csv file
 		sed -i 's/[[:blank:]]//g' output.csv
 		## Calculate objective function result value
