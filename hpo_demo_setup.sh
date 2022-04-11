@@ -156,9 +156,6 @@ function hpo_experiments() {
 		err_exit "Error: Invalid search space"
 	fi
 
-	## Delete the old logs if any before starting the experiment
-	rm -rf experiment-output.log hpo_config.json
-
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
@@ -191,6 +188,7 @@ function hpo_experiments() {
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
+		### Setting obj_result=0 and trial_state="prune" to contine the experiment if obj_result or trial_state is empty because of any issue with benchmark output.
 		if [[ ${obj_result} == "" || ${trial_state} == "" ]]; then
 			obj_result=0
 			trial_state="prune"
@@ -262,6 +260,8 @@ function hpo_terminate() {
 		check_err "ERROR: Failed to terminate hpo"
         popd >/dev/null
 	delete_repos
+	## Delete the logs if any before starting the experiment
+        rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! HPO demo cleanup took ${elapsed_time} seconds"
@@ -271,7 +271,6 @@ function hpo_terminate() {
 # By default we start the demo and experiment
 hpo_restart=0
 start_demo=1
-HPO_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
 while getopts di:o:c:rst gopts
