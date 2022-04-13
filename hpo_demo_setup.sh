@@ -30,7 +30,7 @@ function usage() {
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "d = Don't start experiments"
-	echo "p = expose prometheus port"
+	echo "c = supports native and docker cluster-type to start HPO"
 	exit 1
 }
 
@@ -114,11 +114,18 @@ function hpo_install() {
 			HPO_VERSION=$(cat version.py | grep "HPO_VERSION" | cut -d "=" -f2 | tr -d '"')
 			HPO_DOCKER_IMAGE=${HPO_DOCKER_REPO}:${HPO_VERSION}
 		fi
+		if [[ ${hpo_restart} -eq 1 ]]; then
+			echo
+			echo "Terminating the HPO server"
+			echo
+			./deploy_hpo.sh -c ${CLUSTER_TYPE} -t
+			check_err "ERROR: HPO failed to terminate, exiting"
+		fi
 		if [[ ${CLUSTER_TYPE} == "native" ]]; then
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
 			echo
-			./deploy_hpo.sh -c ${CLUSTER_TYPE} >> ${LOGFILE}  &
+			./deploy_hpo.sh -c ${CLUSTER_TYPE} &
 			check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
@@ -238,10 +245,11 @@ function hpo_start() {
 		clone_repos
 	fi
 	hpo_install
-	sleep 10
-	if [ ${EXPERIMENT_START} -eq 1 ]; then
-		hpo_experiments
-	fi
+	sleep 5
+	## Requires minikube to run the demo benchmark for experiments
+	minikube >/dev/null
+	check_err "ERROR: minikube not installed. Requires for demo benchmark"
+	hpo_experiments
 	echo
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
@@ -253,7 +261,6 @@ function hpo_start() {
 }
 
 function hpo_terminate() {
-	start_time=$(get_date)
 	echo
 	echo "#######################################"
 	echo "#       HPO Demo Terminate       #"
@@ -263,26 +270,24 @@ function hpo_terminate() {
                 ./deploy_hpo.sh -t -c ${CLUSTER_TYPE}
 		check_err "ERROR: Failed to terminate hpo"
         popd >/dev/null
+}
+
+function hpo_cleanup() {
+
 	delete_repos
 	## Delete the logs if any before starting the experiment
         rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log
-	end_time=$(get_date)
-	elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "Success! HPO demo cleanup took ${elapsed_time} seconds"
+	echo "Success! HPO demo cleanup completed."
 	echo
 }
 
 # By default we start the demo and experiment
 hpo_restart=0
 start_demo=1
-EXPERIMENT_START=1
 # Iterate through the commandline options
-while getopts di:o:c:rst gopts
+while getopts o:c:rst gopts
 do
 	case "${gopts}" in
-		d)
-			EXPERIMENT_START=0
-			;;
 		o)
 			HPO_DOCKER_IMAGE="${OPTARG}"
 			;;
@@ -307,4 +312,5 @@ if [ ${start_demo} -eq 1 ]; then
 	hpo_start
 else
 	hpo_terminate
+	hpo_cleanup
 fi
