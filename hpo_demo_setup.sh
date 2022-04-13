@@ -30,7 +30,7 @@ function usage() {
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "d = Don't start experiments"
-	echo "c = supports native and docker cluster-type to start HPO"
+	echo "c = supports native and docker cluster-type to start HPO service"
 	exit 1
 }
 
