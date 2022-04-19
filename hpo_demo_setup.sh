@@ -26,10 +26,9 @@ export N_TRIALS=3
 export N_JOBS=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-d] [-o hpo-image] [-r] [-c cluster-type]"
+	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
-	echo "d = Don't start experiments"
 	echo "c = supports native and docker cluster-type to start HPO service"
 	exit 1
 }
@@ -143,10 +142,11 @@ function hpo_install() {
 ###########################################
 #   Start HPO Experiments
 ###########################################
-## This is function to start experiments with the provided searchspace json.
-## It can be customized to run for any usecase, by providing the searchspace json / 
-## and modifying Step3 to run the benchmark user needs.
-## Currently, it uses TechEmpower benchmark for the demo.
+## This function starts the experiments with the provided searchspace json.
+## It can be customized to run for any usecase by
+## 1. Providing the searchspace json
+## 2. Modifying "Step 3" to run the usecase specific benchmark
+## Currently, it uses TechEmpower benchmark running in minikube for the demo.
 function hpo_experiments() {
 
 	SEARCHSPACE_JSON="hpo_helpers/search_space.json"
@@ -170,17 +170,20 @@ function hpo_experiments() {
 	check_err "Error: Creating the new experiment failed."
 
 	## Looping through trials of an experiment
+	echo
+	echo "Starting an experiment with ${ttrials} trials to optimize techempower"
+	echo
 	for (( i=0 ; i<${ttrials} ; i++ ))
 	do
 		## Step 2: Get the HPO config from HPOaaS
 		echo "#######################################"
-        	echo
+		echo
 		echo "Generate the config for trial ${i}"
 		echo
 		sleep 10
 		HPO_CONFIG=$(curl -LfSs -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
 		check_err "Error: Issue generating the configuration from HPO."
-                echo ${HPO_CONFIG}
+		echo ${HPO_CONFIG}
 		echo "${HPO_CONFIG}" > hpo_config.json
 
 		## Step 3: Run the benchmark with HPO config.
@@ -190,7 +193,7 @@ function hpo_experiments() {
 		## Status of benchmark trial is set to prune, if objective function result value is not a number.
 		echo "#######################################"
 		echo
-	        echo "Run the benchmark for trial ${i}"
+		echo "Run the benchmark for trial ${i}"
 		echo
 		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i")
 		echo ${BENCHMARK_OUTPUT}
@@ -208,7 +211,7 @@ function hpo_experiments() {
 		## Step 4: Send the results of benchmark to HPOaaS
 		echo "#######################################"
 		echo
-        	echo "Send the benchmark results for trial ${i}"
+		echo "Send the benchmark results for trial ${i}"
 		curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
 		check_err "ERROR: Sending the results to HPO failed."
 		echo
@@ -217,7 +220,7 @@ function hpo_experiments() {
 		if (( i < ${ttrial} - 1 )); then
 			echo "#######################################"
 			echo
-	        	echo "Generate subsequent trial of ${i}"
+			echo "Generate subsequent trial of ${i}"
 			curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 			check_err "ERROR: Generating the subsequent trial failed."
 			echo
@@ -237,18 +240,28 @@ function hpo_start() {
 	start_time=$(get_date)
 	echo
 	echo "#######################################"
-	echo "#        HPO Demo Setup               #"
+	echo "#           HPOaaS Demo               #"
 	echo "#######################################"
 	echo
+	echo "--> Starts HPOaaS"
+	echo "--> Runs techEmpower benchmark on minikube"
+	echo "--> Optimizes TechEmpower benchmark based on the provided search_space.json using HPOaaS"
+	echo "--> search_space.json provides a performance objective and tunables along with ranges"
+	echo
+
+	## Requires minikube to run the demo benchmark for experiments
+	minikube >/dev/null 2>/dev/null
+	check_err "ERROR: minikube not installed. Required for running benchmark"
+	kubectl get pods >/dev/null 2>/dev/null
+	check_err "ERROR: minikube not running. Required for running benchmark"
+	php --version >/dev/null 2>/dev/null
+	check_err "ERROR: php not installed. Required for running benchmark"
 
 	if [ ${hpo_restart} -eq 0 ]; then
 		clone_repos
 	fi
 	hpo_install
 	sleep 5
-	## Requires minikube to run the demo benchmark for experiments
-	minikube >/dev/null
-	check_err "ERROR: minikube not installed. Requires for demo benchmark"
 	hpo_experiments
 	echo
 	end_time=$(get_date)
@@ -267,16 +280,16 @@ function hpo_terminate() {
 	echo "#######################################"
 	echo
 	pushd hpo >/dev/null
-                ./deploy_hpo.sh -t -c ${CLUSTER_TYPE}
+		./deploy_hpo.sh -t -c ${CLUSTER_TYPE}
 		check_err "ERROR: Failed to terminate hpo"
-        popd >/dev/null
+	popd >/dev/null
 }
 
 function hpo_cleanup() {
 
 	delete_repos
 	## Delete the logs if any before starting the experiment
-        rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log
+	rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log
 	echo "Success! HPO demo cleanup completed."
 	echo
 }
