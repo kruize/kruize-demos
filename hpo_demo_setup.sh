@@ -20,16 +20,19 @@ HPO_DOCKER_REPO="docker.io/kruize/hpo"
 
 # Default cluster
 CLUSTER_TYPE="native"
+# Default duration of benchmark warmup/measurement cycles in seconds.
+DURATION=60
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
 export N_TRIALS=3
 export N_JOBS=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type]"
+	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type] [-d]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "c = supports native and docker cluster-type to start HPO service"
+	echo "d = duration of benchmark warmup/measurement cycles"
 	exit 1
 }
 
@@ -57,6 +60,44 @@ function check_err() {
 function err_exit() {
 	echo "$*"
 	exit 1
+}
+
+## Checks for the pre-requisites to run the demo benchmark with HPO.
+function prereq_check() {
+        ## Requires python3 to start HPO
+        python3 --version >/dev/null 2>/dev/null
+        check_err "ERROR: python3 not installed. Required to start HPO. Check if all dependencies (python3,minikube,php,java11,wget,curl,zip,bc,jq) are installed."
+        ## Requires minikube to run the demo benchmark for experiments
+        minikube >/dev/null 2>/dev/null
+        check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
+        kubectl get pods >/dev/null 2>/dev/null
+        check_err "ERROR: minikube not running. Required for running benchmark"
+        ## Requires java 11
+        java -version >/dev/null 2>/dev/null
+        check_err "Error: java is not found. Requires Java 11 for running benchmark."
+        JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+        if [[ ${JAVA_VERSION} < "11" ]]; then
+                err_exit "ERROR: Java 11 is required."
+        fi
+        ## Requires wget
+        wget --version >/dev/null 2>/dev/null
+        check_err "ERROR: wget not installed. Required for running benchmark. Check if all other dependencies (php,curl,zip,bc,jq) are installed."
+        ## Requires curl
+        curl --version >/dev/null 2>/dev/null
+        check_err "ERROR: curl not installed. Required for running benchmark. Check if all other dependencies (php,zip,bc,jq) are installed."
+        ## Requires bc
+        bc --version >/dev/null 2>/dev/null
+        check_err "ERROR: bc not installed. Required for running benchmark. Check if all other dependencies (php,zip,jq) are installed."
+        ## Requires jq
+        jq --version >/dev/null 2>/dev/null
+        check_err "ERROR: jq not installed. Required for running benchmark. Check if all other dependencies (php,zip) are installed."
+        ## Requires zip
+        zip --version >/dev/null 2>/dev/null
+        check_err "ERROR: zip not installed. Required for running benchmark. Check if other dependencies (php) are installed."
+        ## Requires php
+        php --version >/dev/null 2>/dev/null
+        check_err "ERROR: php not installed. Required for running benchmark."
+
 }
 
 ###########################################
@@ -167,7 +208,7 @@ function hpo_experiments() {
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
 	curl -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
-	check_err "Error: Creating the new experiment failed."
+	check_err "Error: Creating the new experiment failed. Restart HPO."
 
 	## Looping through trials of an experiment
 	echo
@@ -195,7 +236,7 @@ function hpo_experiments() {
 		echo
 		echo "Run the benchmark for trial ${i}"
 		echo
-		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i")
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${DURATION}")
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -248,15 +289,7 @@ function hpo_start() {
 	echo "--> Optimizes TechEmpower benchmark based on the provided search_space.json using HPOaaS"
 	echo "--> search_space.json provides a performance objective and tunables along with ranges"
 	echo
-
-	## Requires minikube to run the demo benchmark for experiments
-	minikube >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not installed. Required for running benchmark"
-	kubectl get pods >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not running. Required for running benchmark"
-	php --version >/dev/null 2>/dev/null
-	check_err "ERROR: php not installed. Required for running benchmark"
-
+	prereq_check
 	if [ ${hpo_restart} -eq 0 ]; then
 		clone_repos
 	fi
@@ -269,6 +302,7 @@ function hpo_start() {
 	echo "Success! HPO demo setup took ${elapsed_time} seconds"
 	echo
 	echo "Look into experiment-output.csv for configuration and results of all trials"
+	echo "and benchmark.log for demo benchmark logs"
 	echo
 
 }
@@ -298,7 +332,7 @@ function hpo_cleanup() {
 hpo_restart=0
 start_demo=1
 # Iterate through the commandline options
-while getopts o:c:rst gopts
+while getopts o:c:d:rst gopts
 do
 	case "${gopts}" in
 		o)
@@ -315,6 +349,9 @@ do
 			;;
 		c)
 			CLUSTER_TYPE="${OPTARG}"
+			;;
+		d)
+			DURATION="${OPTARG}"
 			;;
 		*)
 			usage
