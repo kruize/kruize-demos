@@ -26,6 +26,7 @@
 HPO_CONFIG=$1
 SEARCHSPACE_JSON=$2
 TRIAL=$3
+DURATION=$4
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
 BENCHMARK_NAME="techempower"
@@ -46,7 +47,6 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	RESULTS_DIR="results"
 	TFB_IMAGE="kruize/tfb-qrh:1.13.2.F_mm_p"
 	DB_TYPE="docker"
-	DURATION="60"
 	WARMUPS=1
 	MEASURES=3
 	SERVER_INSTANCES=1
@@ -55,7 +55,7 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	THREADS="40"
 	CONNECTIONS="512"
 
-	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${BENCHMARK_SERVER} -e ${RESULTS_DIR} -g ${TFB_IMAGE} --dbtype=${DB_TYPE} --dbhost=${DB_HOST} -r -d ${DURATION} -w ${WARMUPS} -m ${MEASURES} -i ${SERVER_INSTANCES} --iter=${ITERATIONS} -n ${NAMESPACE} -t ${THREADS} --connection=${CONNECTIONS} --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_request} --memlim=${memory_request}M --envoptions="${envoptions}"  >> ${LOGFILE}
+	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${BENCHMARK_SERVER} -e ${RESULTS_DIR} -g ${TFB_IMAGE} --dbtype=${DB_TYPE} --dbhost=${DB_HOST} -r -d ${DURATION} -w ${WARMUPS} -m ${MEASURES} -i ${SERVER_INSTANCES} --iter=${ITERATIONS} -n ${NAMESPACE} -t ${THREADS} --connection=${CONNECTIONS} --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_request} --memlim=${memory_request}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}
 
 	RES_DIR=`ls -td -- ./benchmarks/techempower/results/*/ | head -n1 `
 	if [[ -f "${RES_DIR}/output.csv" ]]; then
