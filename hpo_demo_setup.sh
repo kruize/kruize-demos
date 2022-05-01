@@ -72,6 +72,11 @@ function prereq_check() {
         check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
         kubectl get pods >/dev/null 2>/dev/null
         check_err "ERROR: minikube not running. Required for running benchmark"
+	## Check if prometheus is running for valid benchmark results.
+        prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+        if [ "${prometheus_pod_running}" == "" ]; then
+                err_exit "Install prometheus for valid results from benchmark."
+        fi
         ## Requires java 11
         java -version >/dev/null 2>/dev/null
         check_err "Error: java is not found. Requires Java 11 for running benchmark."
