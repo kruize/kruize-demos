@@ -72,6 +72,11 @@ function prereq_check() {
         check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
         kubectl get pods >/dev/null 2>/dev/null
         check_err "ERROR: minikube not running. Required for running benchmark"
+	## Check if prometheus is running for valid benchmark results.
+        prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+        if [ "${prometheus_pod_running}" == "" ]; then
+                err_exit "Install prometheus for valid results from benchmark."
+        fi
         ## Requires java 11
         java -version >/dev/null 2>/dev/null
         check_err "Error: java is not found. Requires Java 11 for running benchmark."
@@ -196,11 +201,11 @@ function hpo_experiments() {
 	if [[ ${exp_json} == "" ]]; then
 		err_exit "Error: Searchspace is empty"
         fi
-	## Get experiment_id from searchspace
-	eid=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentid(\"${SEARCHSPACE_JSON}\")")
+	## Get experiment_name from searchspace
+	ename=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.getexperimentname(\"${SEARCHSPACE_JSON}\")")
 	## Get total_trials from searchspace
 	ttrials=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.gettrials(\"${SEARCHSPACE_JSON}\")")
-	if [[ ${eid} == "" || ${ttrials} == "" ]]; then
+	if [[ ${ename} == "" || ${ttrials} == "" ]]; then
 		err_exit "Error: Invalid search space"
 	fi
 
@@ -222,7 +227,7 @@ function hpo_experiments() {
 		echo "Generate the config for trial ${i}"
 		echo
 		sleep 10
-		HPO_CONFIG=$(curl -LfSs -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_id='"${eid}"'&trial_number='"${i}")
+		HPO_CONFIG=$(curl -LfSs -H 'Accept: application/json' "${URL}"'/experiment_trials?experiment_name='"${ename}"'&trial_number='"${i}")
 		check_err "Error: Issue generating the configuration from HPO."
 		echo ${HPO_CONFIG}
 		echo "${HPO_CONFIG}" > hpo_config.json
@@ -253,7 +258,7 @@ function hpo_experiments() {
 		echo "#######################################"
 		echo
 		echo "Send the benchmark results for trial ${i}"
-		curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
+		curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
 		check_err "ERROR: Sending the results to HPO failed."
 		echo
 		sleep 5
@@ -262,7 +267,7 @@ function hpo_experiments() {
 			echo "#######################################"
 			echo
 			echo "Generate subsequent trial of ${i}"
-			curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_id" : "'"${eid}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 			check_err "ERROR: Generating the subsequent trial failed."
 			echo
 		fi
@@ -294,7 +299,7 @@ function hpo_start() {
 		clone_repos
 	fi
 	hpo_install
-	sleep 5
+	sleep 10
 	hpo_experiments
 	echo
 	end_time=$(get_date)

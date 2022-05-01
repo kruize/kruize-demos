@@ -25,6 +25,18 @@ def getexperimentid(searchspacejson):
                 eid = sdata["experiment_id"]
     print(eid)
 
+## Get experiment_name from the searchspace
+## Input: searchspacejson
+## Output: experiment_name
+def getexperimentname(searchspacejson):
+    with open(searchspacejson) as f:
+        sdata = json.load(f)
+        for sd in sdata:
+            ## Get experiment name
+            if sd == "experiment_name":
+                ename = sdata["experiment_name"]
+    print(ename)
+
 ## Get total_trials from searchspace
 ## Input: searchspacejson
 ## Output: total_trials
