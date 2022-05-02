@@ -1,19 +1,36 @@
 # Kruize Demo Scripts
 
-Want to know more about Kruize ? You've come to the right place !
+Want to try out Kruize? You've come to the right place!
 
-# What is Kruize Autotune ?
+# What is Kruize HPOaaS?
+
+Machine learning is a process of teaching a system to make accurate predictions based on the data fed. Hyperparamter optimization (/ tuning) helps to choose the right set of parameters for a learning algorithm. HPO uses different methods like Manual, Random search, Grid search, Bayesian optimization. [Kruize HPOaaS](https://github.com/kruize/hpo/blob/master/README.md) currently uses Bayesian optimization because of the multiple advantages that it provides.
+
+## [HPOaaS demo](/hpo_demo_setup.sh)
+
+- **Goal**
+  The user has an objective function that needs to be either maximized or minimized. They also have a search space (aka Domain space) which consists of a group of hyperparameters and the range within which they operate. The user provides the objective function and the search space to HPOaaS (running natively or on minikube). HPOaaS then provides trial configs which the user can test (Eg with a benchmark) and then return the result back to HPOaaS. This is then done in a loop until the entire gets a satisfactory result with the objective function.
+- **Steps**
+  This demo starts HPOaaS natively and then starts the TFB benchmark on minikube. It then starts an experiment with the given search space [JSON](/hpo_helpers/search_space.json) and runs it for 3 trials.
+- **What does it do?**
+  Currently it provides a log that consists the results of all the trials and needs to be manually evaluated to see which configuration provided the best result.
+- **pre-req**
+  It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
+- ##### WARNING: The script deletes any existing minikube cluster.
+
+# What is Kruize Autotune?
 
 [Kruize Autotune](https://github.com/kruize/autotune/blob/master/README.md) is an Autonomous Performance Tuning Tool for Kubernetes. Autotune accepts a user provided Service Level Objective or "slo" goal to optimize application performance. It uses Prometheus to identify "layers" of an application that it is monitoring and matches tunables from those layers to the user provided slo. It then runs experiments with the help of a hyperparameter optimization framework to arrive at the most optimal values for the identified tunables to get a better result for the user provided slo.
 
 Autotune can take an arbitrarily large set of tunables and run experiments to continually optimize the user provided slo in incremental steps. For this reason, it does not necessarily have a "best" value for a set of tunables, only a "better" one than what is currently deployed.
 
-# [minikube demo](/autotune_minikube_demo_setup.sh)
-- **Goal**  
-  The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
-- **Steps**  
+## [Autotune minikube demo](/autotune_minikube_demo_setup.sh)
+
+- **Goal**
+  The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune, also deployed to minikube, then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
+- **Steps**
   This demo installs Autotune along with Prometheus and Grafana to minikube. It also deploys two example REST CRUD applications, quakus galaxies and springboot petclinic, to the minikube cluster. It then deploys the "Autotune Objects" that define the objective function of the performance tuning that needs to be done for each application.
-- **What does it do ?**  
+- **What does it do?**
   It provides a list of URLs that defines the tunables for a user provided slo. See the docs for the definition of the [REST API](https://github.com/kruize/autotune/blob/master/design/API.md) associated with these URLs.
 
 ```
@@ -27,13 +44,14 @@ Info: Access autotune objects using: kubectl -n default get autotune
 Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig
 ```
 
-- **What does it not do ?**  
-  It does not kick off any experiments with the tunables (as yet). Stay tuned !!
-- **pre-req**  
-  It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory. 
+- **What does it not do?**
+  It does not kick off any experiments with the tunables (as yet). Stay tuned!!
+- **pre-req**
+  It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
 - ##### WARNING: The script deletes any existing minikube cluster.
 
-## What is an Objective Function ?
+### What is an Objective Function?
+
 An objective function specifies a tuning goal in the form of a monitoring system (Eg Prometheus) query.
 ```
 apiVersion: "recommender.com/v1"
@@ -68,7 +86,7 @@ In the above yaml from the [benchmarks](https://github.com/kruize/benchmarks/blo
 
 See the [benchmarks](https://github.com/kruize/benchmarks) repo for more examples on how to define Autotune objects. Look for ${benchmark_name}/autotune dir for example yamls.
 
-## What is a Layer ?
+### What is a Layer?
 
 A Layer is a software component of an application stack. In Autotune, we currently have 4 layers defined.
 ```
@@ -79,15 +97,15 @@ layer 3 = Application
 ```
 A layer is defined by an `AutotuneConfig` object in Autotune. See the layer [template](https://github.com/kruize/autotune/blob/master/manifests/autotune-configs/layer-config.yaml_template) if you want to add a new layer.
 
-## What is a Tunable ?
+### What is a Tunable?
 
 A tunable is a performance tuning knob specific to a layer. Autotune currently supports `double` and `integer` tunables. Tunables of these two types require a range to be specified in the form of a `upper_bound` and a `lower_bound`. This forms the valid range of values inside which the tunable operates. Tunables are defined in the `AutotuneConfig` object and are associated with a layer. Eg. The [Quarkus](https://github.com/kruize/autotune/blob/master/manifests/autotune-configs/quarkus-micrometer-config.yaml) `AutotuneConfig` yaml currently defines three tunables. See the layer [template](https://github.com/kruize/autotune/blob/master/manifests/autotune-configs/layer-config.yaml_template) if you want to add a new tunable.
 
-## What is `slo_class` ?
+### What is `slo_class`?
 
 `slo_class` is associated with a tunable and is one or more of `response_time`, `throughput` and `resource_usage`. It represents the impact a tunable has on the outcome for any given workload. For example, we know based on prior experiments that the [hotspot](https://github.com/kruize/autotune/blob/master/manifests/autotune-configs/hotspot-micrometer-config.yaml) tunable, `MaxInlineLevel` has an impact on both `throughput` and `response_time` but has a negligible impact on `resource_usage`.
 
-## How do I run it ?
+### How do I run it?
 
 ```
 # To setup the demo. This will use the default docker images as decided
