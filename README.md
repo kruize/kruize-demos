@@ -2,53 +2,57 @@
 
 Want to try out Kruize? You've come to the right place!
 
-# What is Kruize HPOaaS?
+## What is Kruize HPOaaS?
 
 Machine learning is a process of teaching a system to make accurate predictions based on the data fed. Hyperparamter optimization (/ tuning) helps to choose the right set of parameters for a learning algorithm. HPO uses different methods like Manual, Random search, Grid search, Bayesian optimization. [Kruize HPOaaS](https://github.com/kruize/hpo/blob/master/README.md) currently uses Bayesian optimization because of the multiple advantages that it provides.
 
-## [HPOaaS demo](/hpo_demo_setup.sh)
+### [HPOaaS demo](/hpo_demo_setup.sh)
 
-- **Goal**
+#### Goal
   The user has an objective function that needs to be either maximized or minimized. They also have a search space (aka Domain space) which consists of a group of hyperparameters and the range within which they operate. The user provides the objective function and the search space to HPOaaS (running natively or on minikube). HPOaaS then provides trial configs which the user can test (Eg with a benchmark) and then return the result back to HPOaaS. This is then done in a loop until the entire gets a satisfactory result with the objective function.
-- **Steps**
+#### Steps
   This demo starts HPOaaS natively and then starts the TFB benchmark on minikube. It then starts an experiment with the given search space [JSON](/hpo_helpers/search_space.json) and runs it for 3 trials.
-- **What does it do?**
+#### What does it do?
   Currently it provides a log that consists the results of all the trials and needs to be manually evaluated to see which configuration provided the best result.
-- **pre-req**
+#### pre-req
   It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
-- ##### WARNING: The script deletes any existing minikube cluster.
+##### WARNING: The script deletes any existing minikube cluster.
 
-# What is Kruize Autotune?
+## What is Kruize Autotune?
 
 [Kruize Autotune](https://github.com/kruize/autotune/blob/master/README.md) is an Autonomous Performance Tuning Tool for Kubernetes. Autotune accepts a user provided Service Level Objective or "slo" goal to optimize application performance. It uses Prometheus to identify "layers" of an application that it is monitoring and matches tunables from those layers to the user provided slo. It then runs experiments with the help of a hyperparameter optimization framework to arrive at the most optimal values for the identified tunables to get a better result for the user provided slo.
 
 Autotune can take an arbitrarily large set of tunables and run experiments to continually optimize the user provided slo in incremental steps. For this reason, it does not necessarily have a "best" value for a set of tunables, only a "better" one than what is currently deployed.
 
-## [Autotune minikube demo](/autotune_minikube_demo_setup.sh)
+### [Autotune minikube demo](/autotune_minikube_demo_setup.sh)
 
-- **Goal**
-  The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune, also deployed to minikube, then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
-- **Steps**
-  This demo installs Autotune along with Prometheus and Grafana to minikube. It also deploys two example REST CRUD applications, quakus galaxies and springboot petclinic, to the minikube cluster. It then deploys the "Autotune Objects" that define the objective function of the performance tuning that needs to be done for each application.
-- **What does it do?**
+#### Goal
+The user has an application that is deployed to minikube and is looking to improve some aspect of performance of the application. The user specifies an "objective function" in an "Autotune object" that defines the performance aspect of the application that needs to be optimized. Autotune, also deployed to minikube, then analyzes the user application, breaks it down into its component layers and provides tunables associated with each layer that can help optimize the user provided objective function.
+
+#### Steps
+This demo installs Autotune along with Prometheus and Grafana to minikube. It also deploys two example REST CRUD applications, quakus galaxies and springboot petclinic, to the minikube cluster. It then deploys the "Autotune Objects" that define the objective function of the performance tuning that needs to be done for each application.
+
+#### What does it do?
   It provides a list of URLs that defines the tunables for a user provided slo. See the docs for the definition of the [REST API](https://github.com/kruize/autotune/blob/master/design/API.md) associated with these URLs.
 
-```
-Info: Access Autotune tunables at http://192.168.39.138:30110/listAutotuneTunables
-Info: Autotune is monitoring these application stacks http://192.168.39.138:30110/listStacks
-Info: List Layers in application stacks that Autotune is monitoring http://192.168.39.138:30110/listStackLayers
-Info: List Tunables in application stacks that Autotune is monitoring http://192.168.39.138:30110/listStackTunables
-Info: Autotune searchSpace at http://192.168.39.138:30110/searchSpace
+  ```
+  Info: Access Autotune tunables at http://192.168.39.138:30110/listAutotuneTunables
+  Info: Autotune is monitoring these application stacks http://192.168.39.138:30110/listStacks
+  Info: List Layers in application stacks that Autotune is monitoring http://192.168.39.138:30110/listStackLayers
+  Info: List Tunables in application stacks that Autotune is monitoring http://192.168.39.138:30110/listStackTunables
+  Info: Autotune searchSpace at http://192.168.39.138:30110/searchSpace
 
-Info: Access autotune objects using: kubectl -n default get autotune
-Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig
-```
+  Info: Access autotune objects using: kubectl -n default get autotune
+  Info: Access autotune tunables using: kubectl -n monitoring get autotuneconfig
+  ```
 
-- **What does it not do?**
+#### What does it not do?
   It does not kick off any experiments with the tunables (as yet). Stay tuned!!
-- **pre-req**
+
+#### **pre-req**
   It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
-- ##### WARNING: The script deletes any existing minikube cluster.
+
+##### WARNING: The script deletes any existing minikube cluster.
 
 ### What is an Objective Function?
 
@@ -122,7 +126,7 @@ $ ./autotune_minikube_demo_setup.sh -r -i [autotune operator image] -o [autotune
 $ ./autotune_minikube_demo_setup.sh -t
 ```
 
-# Info about Kruize repositories
+## Info about Kruize repositories
 
 - [kruize-demos](https://github.com/kruize/kruize-demos)
   This repo.
