@@ -65,153 +65,194 @@
             "step": 1
         },
         {
+            "name": "quarkus.hibernate-orm.jdbc.statement-fetch-size",
+            "value_type": "integer",
+            "upper_bound": 50,
+            "lower_bound": 1,
+            "step": 1
+        },
+        {
+            "name": "quarkus.http.io-threads",
+            "value_type": "categorical",
+            "choices": ["true","false"]
+        },
+        {
+            "name": "GCPolicy",
+            "value_type": "categorical",
+            "choices": ["G1GC","ParallelGC","SerialGC","ShenandoahGC","ZGC"]
+        },
+        {
             "name": "FreqInlineSize",
             "value_type": "integer",
-            "lower_bound": 325,
             "upper_bound": 500,
-            "step": 1
+            "lower_bound": 325,
+            "step": 5
         },
         {
             "name": "MaxInlineLevel",
             "value_type": "integer",
-            "lower_bound": 9,
             "upper_bound": 50,
+            "lower_bound": 9,
             "step": 1
         },
         {
             "name": "MinInliningThreshold",
             "value_type": "integer",
-            "lower_bound": 0,
             "upper_bound": 200,
-            "step": 1
+            "lower_bound": 0,
+            "step": 5
         },
         {
             "name": "CompileThreshold",
-            "value_type": "intger",
-            "lower_bound": 1000,
+            "value_type": "integer",
             "upper_bound": 10000,
-            "step": 10
+            "lower_bound": 1000,
+            "step": 50
         },
         {
             "name": "CompileThresholdScaling",
             "value_type": "double",
-            "lower_bound": 1,
             "upper_bound": 15,
+            "lower_bound": 1,
             "step": 0.1
         },
         {
             "name": "ConcGCThreads",
             "value_type": "integer",
-            "lower_bound": 0,
             "upper_bound": 8,
+            "lower_bound": 1, 
             "step": 1
         },
         {
             "name": "InlineSmallCode",
-            "value_type": "integer",
-            "lower_bound": 500,
+            "value_type": "integer", 
             "upper_bound": 5000,
-            "step": 1
-        },
+            "lower_bound": 500,
+            "step": 20
+        }, 
         {
-            "name": "LoopUnrollLimit",
+            "name": "LoopUnrollLimit", 
             "value_type": "integer",
-            "lower_bound": 20,
-            "upper_bound": 250,
-            "step": 1
+            "upper_bound": 250, 
+            "lower_bound": 20, 
+            "step": 2
         },
         {
             "name": "LoopUnrollMin",
             "value_type": "integer",
-            "lower_bound": 0,
             "upper_bound": 20,
+            "lower_bound": 0, 
             "step": 1
         },
         {
             "name": "MinSurvivorRatio",
             "value_type": "integer",
-            "lower_bound": 3,
             "upper_bound": 48,
+            "lower_bound": 3,
             "step": 1
-        },
+        }, 
         {
             "name": "NewRatio",
             "value_type": "integer",
-            "lower_bound": 1,
             "upper_bound": 10,
+            "lower_bound": 1, 
             "step": 1
         },
         {
             "name": "TieredStopAtLevel",
-            "value_type": "integer",
-            "lower_bound": 0,
+            "value_type": "integer", 
             "upper_bound": 4,
+            "lower_bound": 0,
             "step": 1
         },
         {
-            "name": "TieredCompilation",
-            "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "name": "MinHeapFreeRatio",            
+            "value_type": "integer",
+            "upper_bound": "70",
+            "lower_bound": "5",
+            "step": 1
         },
         {
-            "name": "AllowParallelDefineClass",
-            "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "name": "MaxHeapFreeRatio",
+            "value_type": "integer",
+            "upper_bound": "100",
+            "lower_bound": "20",
+            "step": 1
         },
         {
-            "name": "AllowVectorizeOnDemand",
+            "name": "TieredCompilation", 
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
+        }, 
+        {
+            "name": "AllowParallelDefineClass", 
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "AllowVectorizeOnDemand", 
+            "value_type": "categorical", 
+            "choices": ["true", "false"]
         },
         {
             "name": "AlwaysCompileLoopMethods",
-            "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "value_type": "categorical", 
+            "choices": ["true", "false"]
         },
         {
-            "name": "AlwaysPreTouch",
-            "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "name": "AlwaysPreTouch", 
+            "value_type": "categorical", 
+            "choices": ["true", "false"]
         },
         {
             "name": "AlwaysTenure",
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
-            "name": "BackgroundCompilation",
+            "name": "BackgroundCompilation", 
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
             "name": "DoEscapeAnalysis",
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
             "name": "UseInlineCaches",
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
             "name": "UseLoopPredicate",
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
             "name": "UseStringDeduplication",
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
-            "name": "UseSuperWord",
+            "name": "UseSuperWord", 
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
+            "choices": ["true", "false"]
         },
         {
             "name": "UseTypeSpeculation",
             "value_type": "categorical",
-            "choices": [ "true", "false" ]
-        }
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "StackTraceInThrowable",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "nettyBufferCheck",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
     ]
 }
