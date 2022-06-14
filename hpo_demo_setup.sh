@@ -195,7 +195,7 @@ function hpo_install() {
 ## Currently, it uses TechEmpower benchmark running in minikube for the demo.
 function hpo_experiments() {
 
-	SEARCHSPACE_JSON="hpo_helpers/search_space.json"
+	SEARCHSPACE_JSON="hpo_helpers/tfb_qrh_search_space.json"
 	URL="http://localhost:8085"
 	exp_json=$(cat ${SEARCHSPACE_JSON})
 	if [[ ${exp_json} == "" ]]; then
@@ -291,8 +291,8 @@ function hpo_start() {
 	echo
 	echo "--> Starts HPOaaS"
 	echo "--> Runs techEmpower benchmark on minikube"
-	echo "--> Optimizes TechEmpower benchmark based on the provided search_space.json using HPOaaS"
-	echo "--> search_space.json provides a performance objective and tunables along with ranges"
+	echo "--> Optimizes TechEmpower benchmark based on the provided search_space(tfb_qrh_search_space.json) using HPOaaS"
+	echo "--> search_space provides a performance objective and tunables along with ranges"
 	echo
 	prereq_check
 	if [ ${hpo_restart} -eq 0 ]; then
