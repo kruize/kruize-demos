@@ -16,6 +16,8 @@ Machine learning is a process of teaching a system to make accurate predictions 
   Currently it provides a log that consists the results of all the trials and needs to be manually evaluated to see which configuration provided the best result.
 #### pre-req
   It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
+#### To add Usecase 
+   Follow [Add HPO UseCase](hpo_helpers/ReadMe.md) to add any usecase to run with Kruize HPO.
 ##### WARNING: The script deletes any existing minikube cluster.
 
 ## What is Kruize Autotune?
