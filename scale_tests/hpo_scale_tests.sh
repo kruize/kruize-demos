@@ -26,6 +26,7 @@ start_demo=1
 hpo_restart=0
 cluster_type="native"
 HPO_REPO="hpo"
+AUTOTUNE_REPO="autotune"
 HPO_CONTAINER_IMAGE="kruize/hpo:test"
 
 function usage() {
@@ -65,10 +66,13 @@ function err_exit() {
 function setup_prometheus() {
 	kubectl_cmd="kubectl"
 	prometheus_pod_running=$(${kubectl_cmd} get pods --all-namespaces | grep "prometheus-k8s-1")
-	if [ "${prometheus_pod_running}" == "" ]; then
-		echo "Running prometheus script..."
-		./autotune/scripts/prometheus_on_minikube.sh -as
-	fi
+	
+	pushd ${AUTOTUNE_REPO} > /dev/null
+		if [ "${prometheus_pod_running}" == "" ]; then
+			echo "Running prometheus script..."
+			./scripts/prometheus_on_minikube.sh -as
+		fi
+	popd > /dev/null
 }
 
 ###########################################
@@ -118,12 +122,6 @@ function prereq_check() {
         	check_err "ERROR: minikube not installed. Check if all other dependencies (git,curl,bc,jq) are installed."
 	fi
 
-	## Check if prometheus is running for valid benchmark results.
-        prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
-        if [ "${prometheus_pod_running}" == "" ]; then
-                err_exit "Install prometheus for obtaining resource usage"
-        fi
-
         ## Requires curl
         curl --version >/dev/null 2>/dev/null
         check_err "ERROR: curl not installed. Check if all other dependencies (bc,jq) are installed."
@@ -134,6 +132,20 @@ function prereq_check() {
         ## Requires jq
         jq --version >/dev/null 2>/dev/null
         check_err "ERROR: jq not installed. "
+
+	# Check if the cluster_type is minikube., if so deploy prometheus
+	if [ "${cluster_type}" == "minikube" ]; then
+		if [ ${hpo_restart} -eq 0 ]; then
+			echo
+			echo "#######################################"
+			echo "Installing Prometheus on minikube"
+			setup_prometheus
+			echo "done"
+			echo "#######################################"
+			echo
+		fi
+		kubectl -n monitoring port-forward svc/prometheus-k8s 9090:9090 &
+	fi
 }
 
 
@@ -160,9 +172,8 @@ function hpo_scale_tests() {
 		clone_repos
 	fi
 
-
 	# Stop the HPO servers
-	echo "Terminating any running HPO servers...$cluster_type"
+	echo "Terminating any running HPO servers..."
 	hpo_terminate ${cluster_type} > /dev/null
 	echo "Terminating any running HPO servers...Done"
 
@@ -278,9 +289,7 @@ function run_experiments() {
 		echo "Completed Iteration $iter"
 		echo "*************************************************" | tee -a ${LOG}
 		echo ""
-	
 	done
-
 }
 
 function run_iteration() {
@@ -426,13 +435,6 @@ function deploy_hpo() {
 	HPO_CONTAINER_IMAGE=$2
 
 	pushd ${HPO_REPO} > /dev/null
-
-	# Check if the cluster_type is minikube., if so deploy prometheus
-	if [ "${cluster_type}" == "minikube" ]; then
-		SETUP_LOG="${RESULTS_DIR}/prometheus-setup.log"
-		echo "Installing Prometheus on minikube"
-		setup_prometheus >> ${SETUP_LOG} 2>&1
-	fi
 	
 	if [ ${cluster_type} == "native" ]; then
 		echo
@@ -635,6 +637,24 @@ function hpo_run_experiments() {
 
 }
 
+# Check if the cluster_type is one of kubernetes clusters
+# input: cluster type
+# output: If cluster type is not supported then print the usage
+function check_cluster_type() {
+        if [ -z "${cluster_type}" ]; then
+                echo
+                usage
+        fi
+        case "${cluster_type}" in
+                minikube|openshift)
+                ;;
+                *)
+                echo "Error: Cluster type **${cluster_type}** is not supported  "
+                usage
+        esac
+}
+
+
 # Iterate through the commandline options
 while getopts o:n:c:d:rst gopts
 do
@@ -656,6 +676,7 @@ do
 			;;
 		c)
 			cluster_type="${OPTARG}"
+			check_cluster_type
 			;;
 		d)
 			resultsdir="${OPTARG}"
@@ -674,9 +695,6 @@ fi
 
 if [ -z "${namespace}" ]; then
         case $cluster_type in
-                native|docker)
-                        namespace=""
-                        ;;
                 minikube)
                         namespace="monitoring"
                         ;;
@@ -685,7 +703,6 @@ if [ -z "${namespace}" ]; then
                         ;;
                 *);;
         esac
-
 fi
 
 mkdir -p "${RESULTS_DIR}"
