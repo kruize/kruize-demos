@@ -24,7 +24,7 @@ SCRIPTS_DIR="./scripts"
 failed=0
 start_demo=1
 hpo_restart=0
-cluster_type="native"
+cluster_type="minikube"
 HPO_REPO="hpo"
 AUTOTUNE_REPO="autotune"
 HPO_CONTAINER_IMAGE="kruize/hpo:test"
@@ -304,9 +304,8 @@ function run_iteration() {
 	if [ ${cluster_type} == "openshift" ]; then
 	 	BENCHMARK_SERVER=$(oc whoami --show-server  | awk -F[/:] '{print $4}' | sed -e 's/api.//')
 	 	BENCHMARK_SERVER="testautotune.lab.upshift.rdu2.redhat.com"
-	 	#BENCHMARK_SERVER="hpoaas2.lab.pnq2.cee.redhat.com"
 	else
-	 	BENCHMARK_SERVER="${SERVER_IP}"
+		BENCHMARK_SERVER="localhost"
 	fi
 
 	echo "BENCHMARK_SERVER = ${BENCHMARK_SERVER} pod = $hpo_pod"
