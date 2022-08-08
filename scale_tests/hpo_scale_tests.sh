@@ -30,9 +30,10 @@ AUTOTUNE_REPO="autotune"
 HPO_CONTAINER_IMAGE="kruize/hpo:test"
 
 function usage() {
-	echo "Usage: $0 [ -s|-t ] [ -o hpo-image ] [ -c cluster-type ] [ -d resultsdir ]"
+	echo "Usage: $0 [ -s|-t ] [ -o hpo-image ] [ -c cluster-type ] [ -d resultsdir ] [ -b Benchmark Server ]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports cluster-type minikube, openshift to start HPO service"
+	echo "b = Benchmark server, mandatory when cluster type is openshift"
 	exit 1
 }
 
@@ -301,10 +302,9 @@ function run_iteration() {
 	RES_DIR=$6
 
 	# Start the metrics collection script
-	if [ ${cluster_type} == "openshift" ]; then
-	 	BENCHMARK_SERVER=$(oc whoami --show-server  | awk -F[/:] '{print $4}' | sed -e 's/api.//')
-	 	BENCHMARK_SERVER="testautotune.lab.upshift.rdu2.redhat.com"
-	else
+	if [ "${cluster_type}" == "openshift" ]; then
+		BENCHMARK_SERVER="${server}"
+	else 
 		BENCHMARK_SERVER="localhost"
 	fi
 
@@ -655,7 +655,7 @@ function check_cluster_type() {
 
 
 # Iterate through the commandline options
-while getopts o:n:c:d:rst gopts
+while getopts o:n:b:c:d:rst gopts
 do
 	case "${gopts}" in
 		o)
@@ -680,6 +680,9 @@ do
 		d)
 			resultsdir="${OPTARG}"
 			;;
+		b)
+			server="${OPTARG}"
+			;;
 		*)
 			usage
 	esac
@@ -690,6 +693,13 @@ if [ -z "${resultsdir}" ]; then
 	RESULTS_DIR="${PWD}/hpo_scale_test_results_$(date +%Y%m%d:%T)"
 else
 	RESULTS_DIR="${resultsdir}/hpo_scale_test_results_$(date +%Y%m%d:%T)"
+fi
+
+if [ "${cluster_type}" == "openshift" ]; then
+	if [ -z "${server}" ]; then
+		echo "Specify the BENCHMARK server using -b option!"
+		usage
+	fi
 fi
 
 if [ -z "${namespace}" ]; then
@@ -703,6 +713,7 @@ if [ -z "${namespace}" ]; then
                 *);;
         esac
 fi
+
 
 mkdir -p "${RESULTS_DIR}"
 
