@@ -107,7 +107,7 @@ function clone_repos() {
 ###########################################
 
 function delete_repos() {
-	echo "Delete hpo and autotune git repos"
+	echo "Delete hpo and autotune git repo"
 	rm -rf hpo autotune
 }
 
@@ -144,7 +144,7 @@ function prereq_check() {
 			echo "#######################################"
 			echo
 		fi
-		kubectl -n monitoring port-forward svc/prometheus-k8s 9090:9090 &
+		kubectl -n monitoring port-forward svc/prometheus-k8s 9090:9090 > /dev/null &
 	fi
 }
 
@@ -167,18 +167,18 @@ function hpo_scale_tests() {
 	echo "--> Edit the variables num_experiments, N_TRIALS or ITERATIONS to change this"
 	echo
 
-	prereq_check
 	if [ ${hpo_restart} -eq 0 ]; then
 		clone_repos
 	fi
+	prereq_check
 
 	# Stop the HPO servers
 	echo "Terminating any running HPO servers..."
-	hpo_terminate ${cluster_type} > /dev/null
+	hpo_terminate ${cluster_type}
 	echo "Terminating any running HPO servers...Done"
 
 	# Defaults for experiments, trials and iterations. 
-	num_experiments=(1)
+	num_experiments=(1 10 100)
 	N_TRIALS=5
 	ITERATIONS=3
 	LOG="${RESULTS_DIR}/hpo_scale_tests.log"
@@ -196,12 +196,12 @@ function hpo_scale_tests() {
 		mkdir -p "${SCALE_TEST_RES_DIR}"
 		run_experiments "${NUM_EXPS}" "${N_TRIALS}" "${SCALE_TEST_RES_DIR}" "${ITERATIONS}"
 
-		${SCRIPTS_DIR}/parsemetrics-promql.sh ${ITERATIONS} ${SCALE_TEST_RES_DIR} ${hpo_instances} ${WARMUP_CYCLES} ${MEASURE_CYCLES} ${SCRIPTS_DIR}
+		${SCRIPTS_DIR}/parsemetrics-promql.sh ${ITERATIONS} ${SCALE_TEST_RES_DIR} ${hpo_instances} ${WARMUP_CYCLES} ${MEASURE_CYCLES} ${SCRIPTS_DIR} ${NUM_EXPS}
 
 	done
 
 	echo "Results of experiments"
-	echo "INSTANCES ,  CPU_USAGE , MEM_USAGE(MB) , FS_USAGE(B) , NW_RECEIVE_BANDWIDTH_USAGE , NW_TRANSMIT_BANDWIDTH_USAGE , CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX , NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > "${RESULTS_DIR}/res_usage_output.csv"
+	echo "EXPERIMENTS COUNT , INSTANCES ,  CPU_USAGE , MEM_USAGE(MB) , FS_USAGE(B) , NW_RECEIVE_BANDWIDTH_USAGE , NW_TRANSMIT_BANDWIDTH_USAGE , CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX , NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > "${RESULTS_DIR}/res_usage_output.csv"
 	for NUM_EXPS in ${num_experiments[@]}
 	do
 		cat "${RESULTS_DIR}/${NUM_EXPS}x-result/Metrics-prom.log"
@@ -510,7 +510,7 @@ function check_server_status() {
 		exit 1
 	fi
 
-	service_log_msg="Access server at"
+	service_log_msg="Access REST Service at"
 
 	if grep -q "${service_log_msg}" "${log}" ; then
 		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
@@ -710,8 +710,12 @@ SETUP_LOG="${RESULTS_DIR}/setup.log"
 
 if [ ${start_demo} -eq 1 ]; then
 	# Invoke hpo scale tests
+	pkill -f "port-forward"
 	hpo_scale_tests > >(tee "${RESULTS_DIR}/hpo_scale_tests.log") 2>&1
+	hpo_terminate "${cluster_type}"
+	pkill -f "port-forward"
 else
 	hpo_terminate "${cluster_type}"
+	pkill -f "port-forward"
 	delete_repos	
 fi

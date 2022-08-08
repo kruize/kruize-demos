@@ -223,7 +223,7 @@ function parseResults() {
 		fi
 	done
 
-	echo "${SCALE} , ${total_cpu_avg} , ${total_mem_avg} , ${total_fsusage_avg} , ${total_receive_bandwidth_avg} , ${total_transmit_bandwidth_avg} , ${total_cpu_min} , ${total_cpu_max} , ${total_mem_min} , ${total_mem_max} , ${total_fsusage_min} , ${total_fsusage_max} , ${total_receive_bandwidth_min} , ${total_receive_bandwidth_max} , ${total_transmit_bandwidth_min} , ${total_transmit_bandwidth_max}" >> ${RESULTS_DIR_J}/Metrics-prom.log
+	echo "${NUM_EXPS} , ${SCALE} , ${total_cpu_avg} , ${total_mem_avg} , ${total_fsusage_avg} , ${total_receive_bandwidth_avg} , ${total_transmit_bandwidth_avg} , ${total_cpu_min} , ${total_cpu_max} , ${total_mem_min} , ${total_mem_max} , ${total_fsusage_min} , ${total_fsusage_max} , ${total_receive_bandwidth_min} , ${total_receive_bandwidth_max} , ${total_transmit_bandwidth_min} , ${total_transmit_bandwidth_max}" >> ${RESULTS_DIR_J}/Metrics-prom.log
 
         echo "${SCALE} ,  ${total_mem_avg} , ${total_memusage_avg} " >> ${RESULTS_DIR_J}/Metrics-mem-prom.log
         echo "${SCALE} ,  ${total_cpu_avg} " >> ${RESULTS_DIR_J}/Metrics-cpu-prom.log
@@ -248,5 +248,6 @@ SCALE=$3
 WARMUPS=$4
 MEASURES=$5
 SCRIPT_REPO=$6
+NUM_EXPS=$7
 
-parseResults ${TOTAL_ITR} ${RESULTS_DIR_J} ${SCALE} ${WARMUPS} ${MEASURES} ${SCRIPT_REPO}
+parseResults ${TOTAL_ITR} ${RESULTS_DIR_J} ${SCALE} ${WARMUPS} ${MEASURES} ${SCRIPT_REPO} ${NUM_EXPS}
