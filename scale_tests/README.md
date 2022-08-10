@@ -16,7 +16,7 @@ Use the below command to test:
 ```
 cd <KRUIZE_DEMO_REPO>/scale_tests
 
-./hpo_scale_tests.sh -c [ openshift|minikube ] [ -d results directory] [-s|-t] [-r] [-o hpo container image]
+./hpo_scale_tests.sh -c [ openshift|minikube ] [ -d results directory] [-s|-t] [-r] [-o hpo container image] [ -b Benchmark Server ] 
 ```
 
 Where values for hpo_scale_tests.sh are:
@@ -27,11 +27,12 @@ usage: hpo_scale_tests.sh [ -c ] : cluster type. Supported types -  minikube, op
 			[ -s | -t ] : start or terminate hpo, default is start hpo
 			[ -o ] : optional. Container image for hpo, default is kruize/hpo:test
 			[ -d ] : optional. Results directory location, by default it creates the results directory in current working directory
+			[ -b ] : BENCHMARK server, mandatory if cluster type is openshift
 
 ```
 
 For example, to run the scale test on openshift execute the below command:
 ```
-./hpo_scale_tests.sh -c openshift -o kruize/hpo:test -d /home/results
+./hpo_scale_tests.sh -c openshift -o kruize/hpo:test -d /home/results -s testhpo.lab.ind.example.com
 ```
 Note - resource usage details can be found in res_usage_output.csv in the results directory

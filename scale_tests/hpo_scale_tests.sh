@@ -34,6 +34,8 @@ function usage() {
 	echo "s = start (default), t = terminate"
 	echo "c = supports cluster-type minikube, openshift to start HPO service"
 	echo "b = Benchmark server, mandatory when cluster type is openshift"
+	echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
+	echo " [Example - REGISTRY: docker.io, quay.io, etc]"
 	exit 1
 }
 
@@ -700,6 +702,15 @@ if [ "${cluster_type}" == "openshift" ]; then
 		echo "Specify the BENCHMARK server using -b option!"
 		usage
 	fi
+fi
+
+# In case of Minikube and Openshift, check if registry credentials are set as Environment Variables
+if [[ "${cluster_type}" == "minikube" || "${cluster_type}" == "openshift" ]]; then
+        if [ -z "${REGISTRY}" ] || [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ] || [ -z "${REGISTRY_EMAIL}" ]; then
+                echo "You need to set the environment variables first for Kubernetes secret creation"
+                usage
+                exit -1
+        fi
 fi
 
 if [ -z "${namespace}" ]; then
