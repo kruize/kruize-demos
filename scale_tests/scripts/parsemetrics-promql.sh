@@ -196,7 +196,7 @@ function parseResults() {
 	for metric in "${TOTAL_LOGS[@]}"
 	do
 		if [ -s ${RESULTS_DIR_J}/${metric}-measure-temp.log ]; then
-			if [ ${metric} == "cpu_min" ] || [ ${metric} == "mem_min" ] || [ ${metric} == "fsusage_min" ] || [ ${metric} == "receive_bandwidth_min" ] || [ ${metric} == "transmit_bandwidth_min" ]; then
+			if [ ${metric} == "cpu_min" ] || [ ${metric} == "mem_min" ] || [ ${metric} == "memusage_min" ] || [ ${metric} == "fsusage_min" ] || [ ${metric} == "receive_bandwidth_min" ] || [ ${metric} == "transmit_bandwidth_min" ]; then
 				minval=$(echo `calcMin ${RESULTS_DIR_J}/${metric}-measure-temp.log`)
 				if [ ! -z ${minval} ]; then
 					eval total_${metric}=${minval}
@@ -205,7 +205,7 @@ function parseResults() {
 				fi
 
 
-			elif [ ${metric} == "cpu_max" ] || [ ${metric} == "mem_max" ] || [ ${metric} == "latency_seconds_max" ] || [ ${metric} == "server_requests_max" ] || [ ${metric} == "fsusage_max" ] || [ ${metric} == "receive_bandwidth_max" ] || [ ${metric} == "transmit_bandwidth_max" ]; then
+			elif [ ${metric} == "cpu_max" ] || [ ${metric} == "mem_max" ] || [ ${metric} == "memusage_max" ] || [ ${metric} == "latency_seconds_max" ] || [ ${metric} == "server_requests_max" ] || [ ${metric} == "fsusage_max" ] || [ ${metric} == "receive_bandwidth_max" ] || [ ${metric} == "transmit_bandwidth_max" ]; then
 				maxval=$(echo `calcMax ${RESULTS_DIR_J}/${metric}-measure-temp.log`)
 				if [ ! -z ${maxval} ]; then
 					eval total_${metric}=${maxval}
@@ -223,7 +223,7 @@ function parseResults() {
 		fi
 	done
 
-	echo "${NUM_EXPS} , ${SCALE} , ${total_cpu_avg} , ${total_mem_avg} , ${total_fsusage_avg} , ${total_receive_bandwidth_avg} , ${total_transmit_bandwidth_avg} , ${total_cpu_min} , ${total_cpu_max} , ${total_mem_min} , ${total_mem_max} , ${total_fsusage_min} , ${total_fsusage_max} , ${total_receive_bandwidth_min} , ${total_receive_bandwidth_max} , ${total_transmit_bandwidth_min} , ${total_transmit_bandwidth_max}" >> ${RESULTS_DIR_J}/Metrics-prom.log
+	echo "${NUM_EXPS} , ${SCALE} , ${total_cpu_avg} , ${total_mem_avg} , ${total_memusage_avg} , ${total_fsusage_avg} , ${total_receive_bandwidth_avg} , ${total_transmit_bandwidth_avg} , ${total_cpu_min} , ${total_cpu_max} , ${total_mem_min} , ${total_mem_max} , ${total_memusage_min} , ${total_memusage_max} , ${total_fsusage_min} , ${total_fsusage_max} , ${total_receive_bandwidth_min} , ${total_receive_bandwidth_max} , ${total_transmit_bandwidth_min} , ${total_transmit_bandwidth_max}" >> ${RESULTS_DIR_J}/Metrics-prom.log
 
         echo "${SCALE} ,  ${total_mem_avg} , ${total_memusage_avg} " >> ${RESULTS_DIR_J}/Metrics-mem-prom.log
         echo "${SCALE} ,  ${total_cpu_avg} " >> ${RESULTS_DIR_J}/Metrics-cpu-prom.log
@@ -239,7 +239,7 @@ POD_NW_LOGS=(receive_bandwidth transmit_bandwidth)
 
 CLUSTER_LOGS=(c_mem c_cpu)
 
-TOTAL_LOGS=(${POD_CPU_LOGS[@]} ${POD_MEM_LOGS[@]} ${POD_FS_USAGE_LOGS[@]} ${POD_NW_LOGS[@]} cpu_min cpu_max mem_min mem_max fsusage_min fsusage_max receive_bandwidth_min receive_bandwidth_max transmit_bandwidth_min transmit_bandwidth_max)
+TOTAL_LOGS=(${POD_CPU_LOGS[@]} ${POD_MEM_LOGS[@]} ${POD_FS_USAGE_LOGS[@]} ${POD_NW_LOGS[@]} cpu_min cpu_max mem_min mem_max memusage_min memusage_max fsusage_min fsusage_max receive_bandwidth_min receive_bandwidth_max transmit_bandwidth_min transmit_bandwidth_max)
 
 
 TOTAL_ITR=$1

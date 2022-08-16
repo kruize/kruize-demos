@@ -200,11 +200,10 @@ function hpo_scale_tests() {
 		run_experiments "${NUM_EXPS}" "${N_TRIALS}" "${SCALE_TEST_RES_DIR}" "${ITERATIONS}"
 
 		${SCRIPTS_DIR}/parsemetrics-promql.sh ${ITERATIONS} ${SCALE_TEST_RES_DIR} ${hpo_instances} ${WARMUP_CYCLES} ${MEASURE_CYCLES} ${SCRIPTS_DIR} ${NUM_EXPS}
-
 	done
 
 	echo "Results of experiments"
-	echo "EXPERIMENTS COUNT , INSTANCES ,  CPU_USAGE , MEM_USAGE(MB) , FS_USAGE(B) , NW_RECEIVE_BANDWIDTH_USAGE , NW_TRANSMIT_BANDWIDTH_USAGE , CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX , NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > "${RESULTS_DIR}/res_usage_output.csv"
+	echo "EXPERIMENTS COUNT , INSTANCES ,  CPU_USAGE , MEM_RSS(MB) , MEM_USAGE(MB) , FS_USAGE(B) , NW_RECEIVE_BANDWIDTH_USAGE , NW_TRANSMIT_BANDWIDTH_USAGE , CPU_MIN , CPU_MAX , MEM_RSS_MIN , MEM_RSS_MAX , MEMUSAGE_MIN , MEMUSAGE_MAX , FS_MIN , FS_MAX , NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > "${RESULTS_DIR}/res_usage_output.csv"
 	for NUM_EXPS in ${num_experiments[@]}
 	do
 		cat "${RESULTS_DIR}/${NUM_EXPS}x-result/Metrics-prom.log"
@@ -303,6 +302,8 @@ function run_iteration() {
 	TYPE=$5
 	RES_DIR=$6
 
+	start_itr_time=$(get_date)
+
 	# Start the metrics collection script
 	if [ "${cluster_type}" == "openshift" ]; then
 		BENCHMARK_SERVER="${server}"
@@ -331,7 +332,9 @@ function run_iteration() {
 		echo ""
 	done
 
-
+	end_itr_time=$(get_date)
+	elapsed_itr_time=$(time_diff "${start_itr_time}" "${end_itr_time}")
+	echo "Elapsed Iteration time = ${elapsed_itr_time}"
 }
 
 # Post the experiment result to HPO /experiment_trials API
