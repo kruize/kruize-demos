@@ -24,7 +24,7 @@ Follow the below steps to add usecase to demo scripts:
       https://github.com/kruize/kruize-demos/blob/fcbac244db5eac5e6254dfb0bd932c629ff399ab/hpo_demo_setup.sh#L198
     - inputs to [runbenchmark.sh](runbenchmark.sh) if any like duration of the run.
       https://github.com/kruize/kruize-demos/blob/fcbac244db5eac5e6254dfb0bd932c629ff399ab/hpo_demo_setup.sh#L244
-- Update [runbenchmark.sh](runbenchmark.sh) on how to run the usecase and generate the output in specific format "Objfunc_result=<double> Benchmark_status=<success/prune>"
+- Update [runbenchmark.sh](runbenchmark.sh) on how to run the usecase and generate the output in specific format "Objfunc_result=<double> Benchmark_status=<success/failure>"
 
 
 ## Other helpful scripts

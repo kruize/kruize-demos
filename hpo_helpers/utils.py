@@ -79,7 +79,7 @@ def hpoconfig2csv(hpoconfigjson, benchmarkcsv, outputcsv, trial):
     ## Deleting the intermediate file
     os.remove("intermediate.csv")
 
-    ## TODO : header of benchmark data will be missing if trial 0 is pruned.
+    ## TODO : header of benchmark data will be missing if trial 0 status is failure.
     if os.path.isfile(benchmarkcsv):
         with open(benchmarkcsv, 'r') as f:
             csv_reader = csv.DictReader(f, delimiter=',')
