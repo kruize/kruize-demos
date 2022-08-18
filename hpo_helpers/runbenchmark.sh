@@ -70,14 +70,14 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 		if [[ ${objfunc_result} != "-1" ]]; then
 			benchmark_status="success"
 		else
-			benchmark_status="prune"
+			benchmark_status="failure"
 			echo "Error calculating the objective function result value" >> ${LOGFILE}
 		fi
 	else
-		benchmark_status="prune"
+		benchmark_status="failure"
 	fi
 
-	if [[ ${benchmark_status} == "prune" ]];then
+	if [[ ${benchmark_status} == "failure" ]];then
 		objfunc_result=0
 	fi
 	### Add the HPO config and output data from benchmark of all trials into single csv
