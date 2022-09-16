@@ -23,15 +23,15 @@ MIN_MEM=16384
 DRIVER="podman"
 CRUNTIME="cri-o"
 # Comment this for development
-unset ${DRIVER}
-unset ${CRUNTIME}
+unset DRIVER
+unset CRUNTIME
 
 # Default docker image repos
 AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
-OPTUNA_DOCKER_REPO="docker.io/kruize/autotune_optuna"
+HPO_DOCKER_REPO="docker.io/kruize/hpo"
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-d] [-p] [-i autotune-image] [-o optuna-image] [-r]"
+	echo "Usage: $0 [-s|-t] [-d] [-p] [-i autotune-image] [-o hpo-image] [-r]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart autotune only"
 	echo "d = Don't start experiments"
@@ -211,6 +211,9 @@ function autotune_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
+		# Checkout the mvp_demo branch for now
+		git checkout mvp_demo
+
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		YAML_TEMPLATE="./manifests/autotune-operator-deployment.yaml_template"
 		YAML_TEMPLATE_OLD="./manifests/autotune-operator-deployment.yaml_template.old"
@@ -220,10 +223,10 @@ function autotune_install() {
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
 		fi
-		if [ -z "${OPTUNA_DOCKER_IMAGE}" ]; then
-			OPTUNA_DOCKER_IMAGE=${OPTUNA_DOCKER_REPO}:${AUTOTUNE_VERSION}
+		DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE}"
+		if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${HPO_DOCKER_IMAGE}"
 		fi
-		DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE} -o ${OPTUNA_DOCKER_IMAGE}"
 		echo
 		echo "Starting install with  ./deploy.sh -c minikube ${DOCKER_IMAGES}"
 		echo
@@ -233,8 +236,10 @@ function autotune_install() {
 			sed -e "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" ${YAML_TEMPLATE_OLD} > ${YAML_TEMPLATE}
 			CURR_DRIVER=$(minikube config get driver 2>/dev/null)
 			if [ "${CURR_DRIVER}" == "docker" ]; then
+				echo "Setting docker env"
 				eval $(minikube docker-env)
 			elif [ "${CURR_DRIVER}" == "podman" ]; then
+				echo "Setting podman env"
 				eval $(minikube podman-env)
 			fi
 		fi
@@ -301,6 +306,8 @@ function get_urls() {
 	echo "Info: Autotune Experiments at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listExperiments"
 	echo "Info: Autotune Experiments Summary at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/experimentsSummary"
 	echo "Info: Autotune Trials Status at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listTrialStatus"
+	echo "Info: List Layers in autotune http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/query/listStackLayers?deployment_name=autotune&namespace=monitoring"
+	echo "Info: List Layers in tfb http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/query/listStackLayers?deployment_name=tfb-qrh-sample&namespace=default"
 
 	echo
 	echo "Info: Access autotune objects using: kubectl -n default get autotune"
@@ -382,7 +389,7 @@ autotune_restart=0
 start_demo=1
 DOCKER_IMAGES=""
 AUTOTUNE_DOCKER_IMAGE=""
-OPTUNA_DOCKER_IMAGE=""
+HPO_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
 while getopts di:o:prst gopts
@@ -395,7 +402,7 @@ do
 			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
 			;;
 		o)
-			OPTUNA_DOCKER_IMAGE="${OPTARG}"
+			HPO_DOCKER_IMAGE="${OPTARG}"
 			;;
 		p)
 			prometheus=1
