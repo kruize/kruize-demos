@@ -1,0 +1,46 @@
+[{
+    "name": "quarkus-resteasy-autotune-min-http-response-time-db",
+    "experiment_id": "04c99daec35563782c29f17ebe568ea96065a7b20b93eb47c225a2f2ad769445",
+    "deployment_name": "tfb-qrh-sample",
+    "info": {"trial_info": {
+        "trial_number": 98,
+	"trial_timestamp": "yyyymmddhhmmss"
+    }},
+    "deployments": [{
+        "pod_metrics": [{
+            "datasource": "prometheus",
+            "summary_results": {
+                "percentile_info": {
+                    "99p": 90.59,
+                    "97p": 90.75,
+                    "95p": 90.94,
+                    "50p": 0.63,
+                    "99.9p": 93.48,
+                    "100p": 30000,
+                    "99.99p": 111.5,
+                    "99.999p": 198.52
+                },
+                "general_info": {
+                    "min": 2.15,
+                    "max": 2107.212121,
+                    "mean": 31.91
+                }
+            },
+            "name": "request_sum"
+        }],
+        "deployment_name": "tfb-qrh-sample",
+        "namespace": "default",
+        "containers": [{
+            "image_name": "kruize/tfb-qrh:1.13.2.F_et17",
+            "container_name": "tfb-server",
+            "container_metrics": [{
+                "summary_results": {"general_info": {
+                    "min": 2.15,
+                    "max": 2107.212121,
+                    "mean": 31.91
+                }},
+                "name": "memoryRequest"
+            }]
+        }]
+    }]
+}]
