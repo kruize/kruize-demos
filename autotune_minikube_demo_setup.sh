@@ -306,6 +306,7 @@ function get_urls() {
 	echo "Info: Autotune Experiments at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listExperiments"
 	echo "Info: Autotune Experiments Summary at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/experimentsSummary"
 	echo "Info: Autotune Trials Status at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listTrialStatus"
+	echo "Info: Autotune Trials Status at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listTrialStatus?experiment_name=quarkus-resteasy-autotune-min-http-response-time-db&trial_number=0&verbose=true"
 	echo "Info: List Layers in autotune http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/query/listStackLayers?deployment_name=autotune&namespace=monitoring"
 	echo "Info: List Layers in tfb http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/query/listStackLayers?deployment_name=tfb-qrh-sample&namespace=default"
 
