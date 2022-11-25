@@ -170,19 +170,30 @@ function hpo_install() {
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
 			echo
-			./deploy_hpo.sh -c ${CLUSTER_TYPE} &
+			./deploy_hpo.sh -c ${CLUSTER_TYPE} >> ${LOGFILE} 2>&1 &
 			check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
 			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} -o ${HPO_DOCKER_IMAGE}"
 			echo
 
-			./deploy_hpo.sh -c "${CLUSTER_TYPE}" -o "${HPO_DOCKER_IMAGE}"
+			./deploy_hpo.sh -c "${CLUSTER_TYPE}" -o "${HPO_DOCKER_IMAGE}" >> ${LOGFILE} 2>&1
 			check_err "ERROR: HPO failed to start, exiting"
 		fi
 	popd >/dev/null
 	echo "#######################################"
 	echo
+}
+
+# Function to get the URL to access HPO
+function getURL() {
+	if [[ ${CLUSTER_TYPE} == "native" ]] || [[ ${CLUSTER_TYPE} == "docker" ]]; then
+		service_msg="Access REST Service at"
+	else
+		service_msg="Access HPO at"
+	fi
+	url=`awk '/'"${service_msg}"'/{print $NF}' "${LOGFILE}" | tail -1`
+	echo ${url}
 }
 
 ###########################################
@@ -196,7 +207,7 @@ function hpo_install() {
 function hpo_experiments() {
 
 	SEARCHSPACE_JSON="hpo_helpers/tfb_qrh_search_space.json"
-	URL="http://localhost:8085"
+	URL=$(getURL)
 	exp_json=$(cat ${SEARCHSPACE_JSON})
 	if [[ ${exp_json} == "" ]]; then
 		err_exit "Error: Searchspace is empty"
