@@ -28,8 +28,10 @@ exp_input_schema = {
     "items": {
         "type": "object",
         "properties": {
-            "name": {"type": "string"},
+            "experiment_name": {"type": "string"},
+            "deployment_name": {"type": "string"},
             "namespace": {"type": "string"},
+            "performanceProfile": {"type": "string"},
             "slo": {
                 "type": "object",
                 "properties": {
@@ -82,7 +84,7 @@ exp_input_schema = {
                 "additionalProperties": False
              }
         },
-        "required": ["name", "namespace", "slo", "mode", "targetCluster", "containers", "trial_settings", "recommendation_settings", "selector"],
+        "required": ["experiment_name", "deployment_name", "namespace", "mode", "performanceProfile", "targetCluster", "containers", "trial_settings", "recommendation_settings"],
         "additionalProperties": False
     }
 }

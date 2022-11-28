@@ -17,41 +17,63 @@ limitations under the License.
 from kruize.autotune import *
 import sys, getopt
 
+def generate_json(find_arr, json_file, filename, i):
+
+    with open(json_file, 'r') as file:
+        data = file.read()
+
+    for find in find_arr:
+        replace = find + "_" + str(i)
+        data = data.replace(find, replace)
+
+    with open(filename, 'w') as file:
+        file.write(data)
+
 def main(argv):
     cluster_type="minikube"
     result_json_file="result.json"
     input_json_file="input.json"
+    num_exps = 10
 
     try:
-        opts, args = getopt.getopt(argv,"hi:r:c:")
+        opts, args = getopt.getopt(argv,"hi:r:n:c:")
     except getopt.GetoptError:
         print("demo.py -c <cluster type> -i <input json> -r <result json>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print("demo.py -c <cluster type> -i <input json> -r <result json>")
+            print("demo.py -c <cluster type> -n <no. of experiments> -i <input json> -r <result json>")
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
+        elif opt == '-n':
+            num_exps = int(arg)
         elif opt == '-i':
             input_json_file = arg
         elif opt == '-r':
             result_json_file = arg
 
     print("Cluster type = ", cluster_type)
-    print("Input json = ", input_json_file)
-    print("Result json =", result_json_file)
 
     form_autotune_url(cluster_type)
 
     # Create experiment using the specified json
-    create_experiment(input_json_file)
+    for i in range(num_exps):
+        find = ["quarkus-resteasy-autotune-min-http-response-time-db", "tfb-qrh-sample", "default"]
+        json_file = "/tmp/input.json"
+        generate_json(find, input_json_file, json_file, i)
+        create_experiment(json_file)
 
     # Post the experiment results
-    update_results(result_json_file)
+    for i in range(num_exps):
+        find = ["quarkus-resteasy-autotune-min-http-response-time-db", "tfb-qrh-sample", "default"]
+        json_file = "/tmp/result.json"
+        generate_json(find, result_json_file, json_file, i)
+        update_results(json_file)
     
     # Get the recommendations
-    list_recommendations()
+    for i in range(num_exps):
+        list_recommendations()
 
 
 if __name__ == '__main__':
