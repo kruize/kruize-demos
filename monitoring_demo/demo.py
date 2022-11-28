@@ -16,6 +16,7 @@ limitations under the License.
 
 from kruize.autotune import *
 import sys, getopt
+import json
 
 def generate_json(find_arr, json_file, filename, i):
 
@@ -30,15 +31,26 @@ def generate_json(find_arr, json_file, filename, i):
         file.write(data)
 
 def main(argv):
-    cluster_type="minikube"
-    result_json_file="result.json"
-    input_json_file="input.json"
+    cluster_type = "minikube"
+    result_json_file = "result.json"
+    input_json_file = "input.json"
+    find = []
+    json_data = json.load(open(input_json_file))
+
+    find.append(json_data[0]['experiment_name'])
+    find.append(json_data[0]['deployment_name'])
+    find.append(json_data[0]['namespace'])
+
+    print("Experiment name = ", json_data[0]['experiment_name'])
+    print("Deployment name = ", json_data[0]['deployment_name'])
+    print("Namespace = ", json_data[0]['namespace'])
+
     num_exps = 10
 
     try:
         opts, args = getopt.getopt(argv,"hi:r:n:c:")
     except getopt.GetoptError:
-        print("demo.py -c <cluster type> -i <input json> -r <result json>")
+        print("demo.py -c <cluster type> -n <no. of experiments> -i <input json> -r <result json>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -55,25 +67,27 @@ def main(argv):
 
     print("Cluster type = ", cluster_type)
 
+    # Form the kruize autotune url
     form_autotune_url(cluster_type)
 
     # Create experiment using the specified json
     for i in range(num_exps):
-        find = ["quarkus-resteasy-autotune-min-http-response-time-db", "tfb-qrh-sample", "default"]
         json_file = "/tmp/input.json"
         generate_json(find, input_json_file, json_file, i)
         create_experiment(json_file)
 
     # Post the experiment results
     for i in range(num_exps):
-        find = ["quarkus-resteasy-autotune-min-http-response-time-db", "tfb-qrh-sample", "default"]
         json_file = "/tmp/result.json"
         generate_json(find, result_json_file, json_file, i)
         update_results(json_file)
     
     # Get the recommendations
     for i in range(num_exps):
-        list_recommendations()
+        experiment_name = find[0] + "_" + str(i)
+        deployment_name = find[1] + "_" + str(i)
+        namespace = find[2] + "_" + str(i)
+        list_recommendations(experiment_name, deployment_name, namespace)
 
 
 if __name__ == '__main__':
