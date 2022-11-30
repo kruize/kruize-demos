@@ -133,12 +133,16 @@ function hpo_install() {
 
 # Function to get the URL to access HPO
 function getURL() {
-	if [[ ${CLUSTER_TYPE} == "native" ]] || [[ ${CLUSTER_TYPE} == "docker" ]]; then
-		service_msg="Access REST Service at"
+  if [[ ${CLUSTER_TYPE} == "operate-first" ]]; then
+    url="http://hpo-openshift-tuning.apps.smaug.na.operate-first.cloud"
 	else
-		service_msg="Access HPO at"
-	fi
-	url=`awk '/'"${service_msg}"'/{print $NF}' "${LOGFILE}" | tail -1`
+    if [[ ${CLUSTER_TYPE} == "native" ]] || [[ ${CLUSTER_TYPE} == "docker" ]]; then
+      service_msg="Access REST Service at"
+    else
+      service_msg="Access HPO at"
+    fi
+	  url=`awk '/'"${service_msg}"'/{print $NF}' "${LOGFILE}" | tail -1`
+  fi
 	echo ${url}
 }
 
@@ -169,8 +173,10 @@ function hpo_experiments() {
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
-	curl -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}'
-	check_err "Error: Creating the new experiment failed. Restart HPO."
+	http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}')
+	if [ "$http_response" != "200" ]; then
+	  err_exit "Error:" $(cat response.txt)
+  fi
 
 	## Looping through trials of an experiment
 	echo
@@ -215,8 +221,10 @@ function hpo_experiments() {
 		echo "#######################################"
 		echo
 		echo "Send the benchmark results for trial ${i}"
-		curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}'
-		check_err "ERROR: Sending the results to HPO failed."
+		http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}')
+		if [ "$http_response" != "200" ]; then
+      err_exit "Error:" $(cat response.txt)
+    fi
 		echo
 		sleep 5
 		## Step 5 : Generate a subsequent trial
@@ -224,8 +232,10 @@ function hpo_experiments() {
 			echo "#######################################"
 			echo
 			echo "Generate subsequent trial of ${i}"
-			curl  -LfSs -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}'
-			check_err "ERROR: Generating the subsequent trial failed."
+			http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}')
+			if [ "$http_response" != "200" ]; then
+        err_exit "Error:" $(cat response.txt)
+      fi
 			echo
 		fi
 	done
@@ -260,16 +270,15 @@ function hpo_start() {
 		prometheus_install hpo
 		benchmarks_install
 	fi
+#	Check for pre-requisites to run the demo benchmark with HPO.
+  prereq_check ${CLUSTER_TYPE}
+#  HPO is already running on operate-first. So, no need to install again.
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
-		prereq_check "native"
 		hpo_install
 		sleep 10
-		URL="http://localhost:8085"
-	else
-		URL="http://hpo-openshift-tuning.apps.smaug.na.operate-first.cloud/"
 	fi
 
-	hpo_experiments ${URL}
+  hpo_experiments
 
 	echo
 	end_time=$(get_date)
@@ -302,7 +311,7 @@ function hpo_cleanup() {
 	delete_repos hpo
 	minikube_delete
 	## Delete the logs if any before starting the experiment
-	rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log
+	rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log response.txt
 	echo "Success! HPO demo cleanup completed."
 	echo
 }
