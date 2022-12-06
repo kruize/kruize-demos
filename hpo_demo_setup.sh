@@ -266,8 +266,10 @@ function hpo_start() {
 
 	if [ ${hpo_restart} -eq 0 ]; then
 		clone_repos hpo
+# clone autotune repo as well to install the prometheus
+		clone_repos autotune
 		minikube_start
-		prometheus_install hpo
+		prometheus_install
 		benchmarks_install
 	fi
 #	Check for pre-requisites to run the demo benchmark with HPO.
@@ -302,13 +304,15 @@ function hpo_terminate() {
 	echo
 	pushd hpo >/dev/null
 		./deploy_hpo.sh -t -c ${CLUSTER_TYPE}
-		check_err "ERROR: Failed to terminate hpo"
+		echo "ERROR: Failed to terminate hpo"
+		echo
 	popd >/dev/null
 }
 
 function hpo_cleanup() {
 
 	delete_repos hpo
+	delete_repos autotune
 	minikube_delete
 	## Delete the logs if any before starting the experiment
 	rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log response.txt

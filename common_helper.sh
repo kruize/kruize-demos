@@ -159,14 +159,13 @@ function minikube_delete() {
 #   Prometheus and Grafana Install
 ###########################################
 function prometheus_install() {
-  app_name=$1
 	echo
 	echo "#######################################"
 	echo "4. Installing Prometheus and Grafana"
-	pushd ${app_name} >/dev/null
+	pushd autotune >/dev/null
 		./scripts/prometheus_on_minikube.sh -as
 		check_err "ERROR: Prometheus failed to start, exiting"
-		echo -n "Waiting 30 seconds for Prometheus to get initiliazed..."
+		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
 		sleep 30
 		echo "done"
 	popd >/dev/null
