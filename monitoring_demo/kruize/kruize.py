@@ -21,7 +21,7 @@ import json
 import os
 import time
 
-def form_autotune_url(cluster_type):
+def form_kruize_url(cluster_type):
     global URL
     if (cluster_type == "minikube"):
         port = subprocess.run(['kubectl -n monitoring get svc autotune --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)

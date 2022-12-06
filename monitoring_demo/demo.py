@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from kruize.autotune import *
+from kruize.kruize import *
 import sys, getopt
 import json
 
@@ -67,8 +67,8 @@ def main(argv):
 
     print("Cluster type = ", cluster_type)
 
-    # Form the kruize autotune url
-    form_autotune_url(cluster_type)
+    # Form the kruize url
+    form_kruize_url(cluster_type)
 
     # Create experiment using the specified json
     for i in range(num_exps):

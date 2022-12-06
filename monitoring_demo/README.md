@@ -12,21 +12,21 @@ It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
 ## How do I run it?
 
 ```
-# To setup the demo, clone autotune repo, install prometheus and deploy autotune using the following commands:
+# To setup the demo, clone kruize repo, install prometheus and deploy kruize using the following commands:
 $ git clone https://github.com/kruize/autotune.git
 
 # Install Prometheus using the below command:
 $ cd autotune
 $ ./scripts/prometheus_on_minikube.sh -as
 
-# Deploy autotune using the below command:
-$ ./deploy -i [autotune operator image]
+# Deploy kruize using the below command:
+$ ./deploy -i [kruize autotune operator image]
 
 # Run the Kruize monitoring demo using the below command:
-$ python demo.py -c [cluster type] -i [No. of experiments] -i [Input json] -r [result json]
+$ python demo.py -c [cluster type] -i [No. of experiments] -i [input json] -r [result json]
 
 Where values for demo.py are:
-usage: demo.py [ -c ] : cluster type. Supported types - minikube, default is minikube
+usage: demo.py [ -c ] : cluster type. Supported types - minikube, openshift, default is minikube
 	       [ -n] : No. of experiments, default is 10
 	       [ -i ] : path to the input json file to create an experiment, default input.json
 	       [ -r ] : path to the result json file to create an experiment, default input.json

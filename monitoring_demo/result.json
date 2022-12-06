@@ -1,5 +1,5 @@
 [{
- "experiment_name": "quarkus-resteasy-autotune-min-http-response-time-db",
+ "experiment_name": "quarkus-resteasy-kruize-min-http-response-time-db",
  "info": {"trial_info": {
    "trial_number": 98,
    "trial_timestamp": "yyyymmddhhmmss"
