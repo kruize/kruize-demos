@@ -90,8 +90,12 @@ def main(argv):
         deployment_name = find[1] + "_" + str(i)
         namespace = find[2] + "_" + str(i)
         reco = list_recommendations(experiment_name, deployment_name, namespace)
-       
-        print("************************************ response json")
+
+        recommendations_json_arr.append(reco)
+
+
+    print("Print all recommendations...")
+    print(recommendations_json_arr)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

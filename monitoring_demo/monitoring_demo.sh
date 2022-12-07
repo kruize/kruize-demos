@@ -187,9 +187,6 @@ function monitoring_demo_start() {
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Monitoring demo setup took ${elapsed_time} seconds"
 	echo
-	echo "Look into experiment-output.csv for configuration and results of all trials"
-	echo "and benchmark.log for demo benchmark logs"
-	echo
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
@@ -202,9 +199,9 @@ function monitoring_demo_terminate() {
 	echo "#     Monitoring Demo Terminate       #"
 	echo "#######################################"
 	echo
-	pushd hpo >/dev/null
-		./deploy_hpo.sh -t -c ${CLUSTER_TYPE}
-		echo "ERROR: Failed to terminate hpo"
+	pushd autotune >/dev/null
+		./deploy_autotune.sh -t -c ${CLUSTER_TYPE}
+		echo "ERROR: Failed to terminate kruize monitoring"
 		echo
 	popd >/dev/null
 }
@@ -215,11 +212,6 @@ function monitoring_demo_cleanup() {
 	echo "#    Monitoring Demo setup cleanup    #"
 	echo "#######################################"
 	echo
-	pushd autotune >/dev/null
-		./deploy_autotune.sh -t -c ${CLUSTER_TYPE}
-		echo "ERROR: Failed to terminate autotune"
-		echo
-	popd >/dev/null
 
 	delete_repos autotune
 	minikube_delete

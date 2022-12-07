@@ -107,12 +107,10 @@ def list_recommendations(experiment_name, deployment_name, namespace):
     response = requests.get(url = url, params = PARAMS)
     print("Response status code = ", response.status_code)
 
-
     print("\n************************************************************")
     print(response.text)
     print("\n************************************************************")
     print(response.json())
-
     
-    return response
+    return response.json()
 
