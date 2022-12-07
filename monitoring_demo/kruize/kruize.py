@@ -111,4 +111,8 @@ def list_recommendations(experiment_name, deployment_name, namespace):
     print("\n************************************************************")
     print(response.text)
     print("\n************************************************************")
+    print(response.json())
+
+    
+    return response
 

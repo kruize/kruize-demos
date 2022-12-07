@@ -45,7 +45,6 @@ def main(argv):
     print("Deployment name = ", json_data[0]['deployment_name'])
     print("Namespace = ", json_data[0]['namespace'])
 
-    num_exps = 10
 
     try:
         opts, args = getopt.getopt(argv,"hi:r:n:c:")
@@ -71,24 +70,28 @@ def main(argv):
     form_kruize_url(cluster_type)
 
     # Create experiment using the specified json
+    num_exps = 1
     for i in range(num_exps):
-        json_file = "/tmp/input.json"
-        generate_json(find, input_json_file, json_file, i)
+        json_file = "./input.json"
+        #json_file = "/tmp/input.json"
+        #generate_json(find, input_json_file, json_file, i)
         create_experiment(json_file)
 
     # Post the experiment results
-    for i in range(num_exps):
-        json_file = "/tmp/result.json"
-        generate_json(find, result_json_file, json_file, i)
+    recommendations_json_arr = []
+    num_exps = 37
+    for i in range(1, num_exps):
+        #json_file = "/tmp/result.json"
+        json_file = "./json_files/result_" + str(i) + ".json"
+        #generate_json(find, result_json_file, json_file, i)
         update_results(json_file)
     
-    # Get the recommendations
-    for i in range(num_exps):
         experiment_name = find[0] + "_" + str(i)
         deployment_name = find[1] + "_" + str(i)
         namespace = find[2] + "_" + str(i)
-        list_recommendations(experiment_name, deployment_name, namespace)
-
+        reco = list_recommendations(experiment_name, deployment_name, namespace)
+       
+        print("************************************ response json")
 
 if __name__ == '__main__':
-	main(sys.argv[1:])
+    main(sys.argv[1:])
