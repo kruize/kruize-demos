@@ -114,3 +114,14 @@ def list_recommendations(experiment_name, deployment_name, namespace):
     
     return response.json()
 
+def combine_jsons(result_json, reco_json):
+
+    input_json = open(result_json, "r")
+    data = json.loads(input_json.read())
+
+    exp = "quarkus-resteasy-autotune-min-http-response-time-db"
+
+    combined_data = {"recommendations": reco_json[exp]}
+    data[0].update(combined_data)
+
+    return data

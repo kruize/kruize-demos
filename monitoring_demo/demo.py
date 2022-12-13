@@ -91,8 +91,8 @@ def main(argv):
         namespace = find[2] + "_" + str(i)
         reco = list_recommendations(experiment_name, deployment_name, namespace)
 
-        recommendations_json_arr.append(reco)
-
+        combined_json = combine_jsons(json_file, reco)
+        recommendations_json_arr.append(combined_json)
 
     print("Print all recommendations...")
     print(recommendations_json_arr)
