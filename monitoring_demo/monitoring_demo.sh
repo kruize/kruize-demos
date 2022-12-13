@@ -149,6 +149,31 @@ function monitoring_experiments() {
 	python demo.py -c "${CLUSTER_TYPE}"
 }
 
+function display_data_on_grafana() {
+	combined_data_json=$1
+	rm -rf "pronosana"
+
+	echo ""
+	echo "Cloning pronosana git repo..."
+	echo ""
+	git clone https://github.com/bharathappali/pronosana.git
+
+	echo ""
+	echo "Invoking pronosana cleanup..."
+	echo ""
+	pronosana/pronosana cleanup
+
+	echo ""
+	echo "Invoking pronosana init..."
+	echo ""
+	pronosana/pronosana init
+
+	echo ""
+	echo "Invoking pronosana backfill with ${combined_data_json} ..."
+	echo ""
+	pronosana/pronosana backfill --json "${combined_data_json}"
+}
+
 function monitoring_demo_start() {
 
 	minikube >/dev/null
@@ -190,6 +215,8 @@ function monitoring_demo_start() {
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
+
+	#display_data_on_grafana "${PWD}/combined_data.json"
 
 }
 

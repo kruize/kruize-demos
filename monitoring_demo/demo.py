@@ -17,6 +17,7 @@ limitations under the License.
 from kruize.kruize import *
 import sys, getopt
 import json
+import os
 
 def generate_json(find_arr, json_file, filename, i):
 
@@ -94,8 +95,14 @@ def main(argv):
         combined_json = combine_jsons(json_file, reco)
         recommendations_json_arr.append(combined_json)
 
-    print("Print all recommendations...")
-    print(recommendations_json_arr)
+    # Dump the combined jsons containing results & recommendations into a json file
+    with open('combined_data.json', 'w') as f:
+        json.dump(recommendations_json_arr, f)
+
+
+    # Invoke pronosona to push this data to prometheus and display it on grafana
+    json_file = os.getcwd() + "/combined_data.json"
+    display_data_on_grafana(json_file)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

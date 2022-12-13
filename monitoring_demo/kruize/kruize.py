@@ -20,6 +20,7 @@ import requests
 import json
 import os
 import time
+import shutil
 
 def form_kruize_url(cluster_type):
     global URL
@@ -114,6 +115,8 @@ def list_recommendations(experiment_name, deployment_name, namespace):
     
     return response.json()
 
+# Description: This function combines the metric results and recommendations into a single json
+# Input parameters: result json file, recommendations json
 def combine_jsons(result_json, reco_json):
 
     input_json = open(result_json, "r")
@@ -124,4 +127,32 @@ def combine_jsons(result_json, reco_json):
     combined_data = {"recommendations": reco_json[exp]}
     data[0].update(combined_data)
 
-    return data
+    return data[0]
+
+
+def display_data_on_grafana(combined_json_file):
+    PRONOSANA_DIR = os.getcwd() + "/pronosana"
+    PRONOSANA_EXE = os.getcwd() + "/pronosana/pronosana"
+
+    print("PRONOSANA_DIR = ", PRONOSANA_DIR)
+
+    if os.path.exists(PRONOSANA_DIR):
+        print("remove dir")
+        shutil.rmtree(PRONOSANA_DIR, ignore_errors=True)
+
+    p = subprocess.run(["git", "clone", "https://github.com/bharathappali/pronosana.git"], stdout=subprocess.PIPE)
+    print(p.stdout.decode('utf-8'))
+
+    p = subprocess.run(["python3", "-m", "pip", "install", "typer==0.7.0"], stdout=subprocess.PIPE)
+    print(p.stdout.decode('utf-8'))
+
+    p = subprocess.run([PRONOSANA_EXE, "cleanup"], stdout=subprocess.PIPE)
+    print(p.stdout.decode('utf-8'))
+
+    time.sleep(5)
+
+    p = subprocess.run([PRONOSANA_EXE, "init"], stdout=subprocess.PIPE)
+    print(p.stdout.decode('utf-8'))
+
+    p = subprocess.run([PRONOSANA_EXE, "backfill", "--json", combined_json_file], stdout=subprocess.PIPE)
+    print(p.stdout.decode('utf-8'))
