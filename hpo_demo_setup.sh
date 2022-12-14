@@ -133,16 +133,16 @@ function hpo_install() {
 
 # Function to get the URL to access HPO
 function getURL() {
-  if [[ ${CLUSTER_TYPE} == "operate-first" ]]; then
-    url="http://hpo-openshift-tuning.apps.smaug.na.operate-first.cloud"
+	if [[ ${CLUSTER_TYPE} == "operate-first" ]]; then
+		url="http://hpo-openshift-tuning.apps.smaug.na.operate-first.cloud"
 	else
-    if [[ ${CLUSTER_TYPE} == "native" ]] || [[ ${CLUSTER_TYPE} == "docker" ]]; then
-      service_msg="Access REST Service at"
-    else
-      service_msg="Access HPO at"
-    fi
-	  url=`awk '/'"${service_msg}"'/{print $NF}' "${LOGFILE}" | tail -1`
-  fi
+		if [[ ${CLUSTER_TYPE} == "native" ]] || [[ ${CLUSTER_TYPE} == "docker" ]]; then
+			service_msg="Access REST Service at"
+		else
+			service_msg="Access HPO at"
+		fi
+		url=`awk '/'"${service_msg}"'/{print $NF}' "${LOGFILE}" | tail -1`
+	fi
 	echo ${url}
 }
 
@@ -175,8 +175,8 @@ function hpo_experiments() {
 	## Step 1 : Start a new experiment with provided search space.
 	http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}')
 	if [ "$http_response" != "200" ]; then
-	  err_exit "Error:" $(cat response.txt)
-  fi
+		err_exit "Error:" $(cat response.txt)
+	fi
 
 	## Looping through trials of an experiment
 	echo
@@ -223,8 +223,8 @@ function hpo_experiments() {
 		echo "Send the benchmark results for trial ${i}"
 		http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "trial_number": '"${i}"', "trial_result": "'"${trial_state}"'", "result_value_type": "double", "result_value": '"${obj_result}"', "operation" : "EXP_TRIAL_RESULT"}')
 		if [ "$http_response" != "200" ]; then
-      err_exit "Error:" $(cat response.txt)
-    fi
+			err_exit "Error:" $(cat response.txt)
+		fi
 		echo
 		sleep 5
 		## Step 5 : Generate a subsequent trial
@@ -234,8 +234,8 @@ function hpo_experiments() {
 			echo "Generate subsequent trial of ${i}"
 			http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{"experiment_name" : "'"${ename}"'", "operation" : "EXP_TRIAL_GENERATE_SUBSEQUENT"}')
 			if [ "$http_response" != "200" ]; then
-        err_exit "Error:" $(cat response.txt)
-      fi
+				err_exit "Error:" $(cat response.txt)
+		fi
 			echo
 		fi
 	done
@@ -273,14 +273,14 @@ function hpo_start() {
 		benchmarks_install
 	fi
 #	Check for pre-requisites to run the demo benchmark with HPO.
-  prereq_check ${CLUSTER_TYPE}
+	prereq_check ${CLUSTER_TYPE}
 #  HPO is already running on operate-first. So, no need to install again.
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		hpo_install
 		sleep 10
 	fi
 
-  hpo_experiments
+	hpo_experiments
 
 	echo
 	end_time=$(get_date)
