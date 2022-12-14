@@ -84,12 +84,13 @@ def main(argv):
     for i in range(1, num_exps):
         #json_file = "/tmp/result.json"
         json_file = "./json_files/result_" + str(i) + ".json"
+        print(json_file)
         #generate_json(find, result_json_file, json_file, i)
         update_results(json_file)
     
-        experiment_name = find[0] + "_" + str(i)
-        deployment_name = find[1] + "_" + str(i)
-        namespace = find[2] + "_" + str(i)
+        experiment_name = find[0]
+        deployment_name = find[1]
+        namespace = find[2]
         reco = list_recommendations(experiment_name, deployment_name, namespace)
 
         combined_json = combine_jsons(json_file, reco)
