@@ -202,12 +202,13 @@ function monitoring_demo_start() {
 	echo "#           Demo Setup                #"
 	echo "#######################################"
 	echo
-	echo "--> Clone Repos"
+	echo "--> Clone Required Repos"
 	echo "--> Setup minikube"
 	echo "--> Installs Prometheus"
-	echo "--> Installs TFB benchmark"
+	echo "--> Installs Pronosana"
 	echo "--> Creates kruize monitoring experiments & updates TFB results"
 	echo "--> Posts the recommendations from kruize to thanos"
+	echo "--> Launches grafana in the web browser"
 	echo
 
 	if [ ${monitoring_restart} -eq 0 ]; then
@@ -217,7 +218,6 @@ function monitoring_demo_start() {
 		git clone https://github.com/bharathappali/pronosana.git
 		minikube_start
 		prometheus_install
-		benchmarks_install
 		pronosana_init
 	fi
 
@@ -225,7 +225,6 @@ function monitoring_demo_start() {
 	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 	prereq_check ${CLUSTER_TYPE}
 
-	pronosana_init
 	autotune_install
 
 	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
@@ -242,6 +241,10 @@ function monitoring_demo_start() {
 
 	pronosana_backfill "${PWD}/combined_data.json"
 
+	echo ""
+	echo "Grafana is launched in the web browser, login into it and search for pronosana dashboard to view the recommendations"
+	echo "If there are any issues with launching the browser, you can manually open this link - http://localhost:3000/login"
+	echo ""
 }
 
 function monitoring_demo_terminate() {
