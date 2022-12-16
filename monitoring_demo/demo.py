@@ -100,10 +100,5 @@ def main(argv):
     with open('combined_data.json', 'w') as f:
         json.dump(recommendations_json_arr, f)
 
-
-    # Invoke pronosona to push this data to prometheus and display it on grafana
-    json_file = os.getcwd() + "/combined_data.json"
-    display_data_on_grafana(json_file)
-
 if __name__ == '__main__':
     main(sys.argv[1:])

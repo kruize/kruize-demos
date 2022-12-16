@@ -43,11 +43,11 @@ function usage() {
 function prereq_check() {
 	# Python is required only to run the monitoring experiment 
 	python3 --version >/dev/null 2>/dev/null
-	check_err "ERROR: python3 not installed. Required to start HPO. Check if all dependencies (python3,minikube,php,java11,wget,curl,zip,bc,jq) are installed."
+	check_err "ERROR: python3 not installed. Required to start the demo. Check if all dependencies (python3,minikube,java11) are installed."
 
 	## Requires minikube to run the demo benchmark for experiments
 	minikube >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
+	check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (java11,git) are installed."
 	kubectl get pods >/dev/null 2>/dev/null
 	check_err "ERROR: minikube not running. Required for running benchmark"
 	## Check if prometheus is running for valid benchmark results.
@@ -62,24 +62,6 @@ function prereq_check() {
 	if [[ ${JAVA_VERSION} < "11" ]]; then
 		err_exit "ERROR: Java 11 is required."
 	fi
-	## Requires wget
-	wget --version >/dev/null 2>/dev/null
-	check_err "ERROR: wget not installed. Required for running benchmark. Check if all other dependencies (php,curl,zip,bc,jq) are installed."
-	## Requires curl
-	curl --version >/dev/null 2>/dev/null
-	check_err "ERROR: curl not installed. Required for running benchmark. Check if all other dependencies (php,zip,bc,jq) are installed."
-	## Requires bc
-	bc --version >/dev/null 2>/dev/null
-	check_err "ERROR: bc not installed. Required for running benchmark. Check if all other dependencies (php,zip,jq) are installed."
-	## Requires jq
-	jq --version >/dev/null 2>/dev/null
-	check_err "ERROR: jq not installed. Required for running benchmark. Check if all other dependencies (php,zip) are installed."
-	## Requires zip
-	zip --version >/dev/null 2>/dev/null
-	check_err "ERROR: zip not installed. Required for running benchmark. Check if other dependencies (php) are installed."
-	## Requires php
-	php --version >/dev/null 2>/dev/null
-	check_err "ERROR: php not installed. Required for running benchmark."
 }
 
 ###########################################
@@ -149,29 +131,64 @@ function monitoring_experiments() {
 	python demo.py -c "${CLUSTER_TYPE}"
 }
 
-function display_data_on_grafana() {
+function pronosana_backfill() {
 	combined_data_json=$1
-	rm -rf "pronosana"
-
-	echo ""
-	echo "Cloning pronosana git repo..."
-	echo ""
-	git clone https://github.com/bharathappali/pronosana.git
-
-	echo ""
-	echo "Invoking pronosana cleanup..."
-	echo ""
-	pronosana/pronosana cleanup
-
-	echo ""
-	echo "Invoking pronosana init..."
-	echo ""
-	pronosana/pronosana init
 
 	echo ""
 	echo "Invoking pronosana backfill with ${combined_data_json} ..."
 	echo ""
-	pronosana/pronosana backfill --json "${combined_data_json}"
+	pushd pronosana > /dev/null
+		./pronosana backfill --json "${combined_data_json}"
+	popd > /dev/null
+}
+
+
+function check_pronosana_setup() {
+	echo ""
+	echo "Check if pronosana volume is created"
+	docker volume ls | grep pronosana-volume
+	check_err "ERROR: docker volume pronosana-volume is not created, exiting"
+
+	echo ""
+	echo "Check if pronosana network is created"
+	docker network ls | grep pronosana-network
+	check_err "ERROR: docker network pronosana-network is not created, exiting"
+
+	echo ""
+	echo "Checking if all the pronosana containers are running"
+	containers=("pronosana-thanos-sidecar" "pronosana-thanos-querier" "pronosana-prom" "pronosana-grafana")
+	for container in ${containers[@]}
+	do
+		echo "container = $container"
+		result=$(docker inspect -f '{{.State.Running}}' ${container})
+		if [[ $result == "true" ]]; then
+			echo "${container} Container is running"
+		else
+			echo ""
+			echo "ERROR - ${container} Container is not running, exiting"
+			echo ""
+			exit 1
+		fi
+	done
+}
+
+###########################################
+#   Pronosana Init
+###########################################
+function pronosana_init() {
+	echo
+	echo "#######################################"
+	pushd pronosana >/dev/null
+		python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+		echo "6. Initializing pronosana"
+		./pronosana cleanup
+		sleep 10
+		./pronosana init
+		sleep 10
+		check_pronosana_setup
+	popd >/dev/null
+	echo "#######################################"
+	echo
 }
 
 function monitoring_demo_start() {
@@ -195,16 +212,23 @@ function monitoring_demo_start() {
 
 	if [ ${monitoring_restart} -eq 0 ]; then
 		clone_repos autotune
+		#clone_repos pronosana
+		rm -rf pronosana
+		git clone https://github.com/bharathappali/pronosana.git
 		minikube_start
 		prometheus_install
 		benchmarks_install
+		pronosana_init
 	fi
 
-	# Check for pre-requisites to run the demo benchmark with HPO.
+	# Check for pre-requisites to run the demo
+	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 	prereq_check ${CLUSTER_TYPE}
 
+	pronosana_init
 	autotune_install
-	
+
+	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
 	monitoring_experiments
 
 	echo
@@ -216,7 +240,7 @@ function monitoring_demo_start() {
 		expose_prometheus
 	fi
 
-	#display_data_on_grafana "${PWD}/combined_data.json"
+	pronosana_backfill "${PWD}/combined_data.json"
 
 }
 
@@ -227,9 +251,20 @@ function monitoring_demo_terminate() {
 	echo "#######################################"
 	echo
 	pushd autotune >/dev/null
-		./deploy_autotune.sh -t -c ${CLUSTER_TYPE}
+		./deploy.sh -t -c ${CLUSTER_TYPE}
 		echo "ERROR: Failed to terminate kruize monitoring"
 		echo
+	popd >/dev/null
+}
+
+function pronosana_terminate() {
+	echo
+	echo "#######################################"
+	echo "#          Pronosana Terminate        #"
+	echo "#######################################"
+	echo
+	pushd pronosana >/dev/null
+		pronosana cleanup
 	popd >/dev/null
 }
 
@@ -241,6 +276,7 @@ function monitoring_demo_cleanup() {
 	echo
 
 	delete_repos autotune
+	delete_repos pronosana
 	minikube_delete
 	
 	echo "Success! Monitoring Demo setup cleanup completed."
@@ -286,5 +322,6 @@ if [ ${start_demo} -eq 1 ]; then
 	monitoring_demo_start
 else
 	monitoring_demo_terminate
+	pronosana_terminate
 	monitoring_demo_cleanup
 fi
