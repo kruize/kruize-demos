@@ -97,7 +97,7 @@ def update_results(result_json_file):
     return response
 
 # Description: This function obtains the recommendations from Kruize Autotune using listRecommendations API
-# Input Parameters: experiment input json
+# Input Parameters: experiment name, deployment name and namespace
 def list_recommendations(experiment_name, deployment_name, namespace):
 
     print("\nListing the recommendations...")
@@ -106,6 +106,23 @@ def list_recommendations(experiment_name, deployment_name, namespace):
 
     PARAMS = {'experiment_name': experiment_name, 'deployment_name': deployment_name, 'namespace': namespace}
     response = requests.get(url = url, params = PARAMS)
+    print("Response status code = ", response.status_code)
+
+    print("\n************************************************************")
+    print(response.text)
+    print("\n************************************************************")
+    print(response.json())
+    
+    return response.json()
+
+# Description: This function obtains the experiments and result metrics from Kruize Autotune using listExperiments API
+def list_experiments():
+
+    print("\nListing the experiments...")
+    url = URL + "/listExperiments"
+    print("URL = ", url)
+
+    response = requests.get(url = url)
     print("Response status code = ", response.status_code)
 
     print("\n************************************************************")

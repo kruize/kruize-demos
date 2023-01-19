@@ -138,38 +138,51 @@ function pronosana_backfill() {
 	echo "Invoking pronosana backfill with ${combined_data_json} ..."
 	echo ""
 	pushd pronosana > /dev/null
-		./pronosana backfill --json "${combined_data_json}"
+		./pronosana backfill ${CLUSTER_TYPE}
 	popd > /dev/null
 }
 
 
 function check_pronosana_setup() {
 	echo ""
-	echo "Check if pronosana volume is created"
-	docker volume ls | grep pronosana-volume
-	check_err "ERROR: docker volume pronosana-volume is not created, exiting"
-
-	echo ""
-	echo "Check if pronosana network is created"
-	docker network ls | grep pronosana-network
-	check_err "ERROR: docker network pronosana-network is not created, exiting"
-
-	echo ""
 	echo "Checking if all the pronosana containers are running"
-	containers=("pronosana-thanos-sidecar" "pronosana-thanos-querier" "pronosana-prom" "pronosana-grafana")
-	for container in ${containers[@]}
+	check_pod="pronosana-deployment"
+	echo "Info: Waiting for ${check_pod} to come up....."
+	err_wait=0
+	counter=0
+	kubectl_cmd="kubectl -n pronosana"
+	while true;
 	do
-		echo "container = $container"
-		result=$(docker inspect -f '{{.State.Running}}' ${container})
-		if [[ $result == "true" ]]; then
-			echo "${container} Container is running"
-		else
-			echo ""
-			echo "ERROR - ${container} Container is not running, exiting"
-			echo ""
-			exit 1
-		fi
+		sleep 2
+		${kubectl_cmd} get pods | grep ${check_pod}
+		pod_stat=$(${kubectl_cmd} get pods | grep ${check_pod} | awk '{ print $3 }')
+		case "${pod_stat}" in
+			"Running")
+				echo "Info: ${check_pod} deploy succeeded: ${pod_stat}"
+				err=0
+				break;
+				;;
+			"Error")
+				# On Error, wait for 10 seconds before exiting.
+				err_wait=$(( err_wait + 1 ))
+				if [ ${err_wait} -gt 5 ]; then
+					echo "Error: ${check_pod} deploy failed: ${pod_stat}"
+					err=-1
+					break;
+				fi
+				;;
+			*)
+				sleep 2
+				if [ $counter == 200 ]; then
+					${kubectl_cmd} describe pod ${scheck_pod}
+					echo "ERROR: Prometheus Pods failed to come up!"
+					exit -1
+				fi
+				((counter++))
+				;;
+		esac
 	done
+
 }
 
 ###########################################
@@ -181,10 +194,10 @@ function pronosana_init() {
 	pushd pronosana >/dev/null
 		python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 		echo "6. Initializing pronosana"
-		./pronosana cleanup
-		sleep 10
-		./pronosana init
-		sleep 10
+		./pronosana cleanup ${CLUSTER_TYPE}
+		sleep 30
+		./pronosana init ${CLUSTER_TYPE}
+		sleep 30
 		check_pronosana_setup
 	popd >/dev/null
 	echo "#######################################"
@@ -225,6 +238,7 @@ function monitoring_demo_start() {
 	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 	prereq_check ${CLUSTER_TYPE}
 
+	pronosana_init
 	autotune_install
 
 	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
@@ -267,7 +281,7 @@ function pronosana_terminate() {
 	echo "#######################################"
 	echo
 	pushd pronosana >/dev/null
-		pronosana cleanup
+		./pronosana cleanup ${CLUSTER_TYPE}
 	popd >/dev/null
 }
 
