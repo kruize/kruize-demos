@@ -28,9 +28,11 @@ CLUSTER_TYPE="minikube"
 DURATION=60
 PY_CMD="python3"
 LOGFILE="${PWD}/monitoring.log"
+target="crc"
+visualize=0
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o autotune-image] [-r] [-c cluster-type] [-d]"
+	echo "Usage: $0 [-s|-t] [-o autotune-image] [-r] [-c cluster-type] [-d] --visualize"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "c = supports minikube and openshift cluster-type"
@@ -86,7 +88,7 @@ function autotune_install() {
 		YAML_TEMPLATE="./manifests/autotune-operator-deployment.yaml_template"
 		YAML_TEMPLATE_OLD="./manifests/autotune-operator-deployment.yaml_template.old"
 
-		./deploy.sh -c minikube -t 2>/dev/null
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t 2>/dev/null
 		sleep 5
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
@@ -96,7 +98,7 @@ function autotune_install() {
 			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
 		echo
-		echo "Starting install with  ./deploy.sh -c minikube ${DOCKER_IMAGES}"
+		echo "Starting install with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES}"
 		echo
 
 		if [ ${EXPERIMENT_START} -eq 0 ]; then
@@ -112,7 +114,7 @@ function autotune_install() {
 			fi
 		fi
 
-		./deploy.sh -c minikube ${DOCKER_IMAGES}
+		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
 		check_err "ERROR: Autotune failed to start, exiting"
 
 		if [ ${EXPERIMENT_START} -eq 0 ]; then
@@ -218,27 +220,38 @@ function monitoring_demo_start() {
 	echo "--> Clone Required Repos"
 	echo "--> Setup minikube"
 	echo "--> Installs Prometheus"
-	echo "--> Installs Pronosana"
+
+	if [ ${visualize} -eq 1 ]; then
+		echo "--> Installs Pronosana"
+	fi
 	echo "--> Creates kruize monitoring experiments & updates TFB results"
-	echo "--> Posts the recommendations from kruize to thanos"
-	echo "--> Launches grafana in the web browser"
+	echo "--> Fetches the recommendations from Kruize"
+	if [ ${visualize} -eq 1 ]; then
+		echo "--> Posts the recommendations from kruize to thanos"
+		echo "--> Launches grafana in the web browser"
+	fi
 	echo
 
 	if [ ${monitoring_restart} -eq 0 ]; then
 		clone_repos autotune
-		#clone_repos pronosana
-		rm -rf pronosana
-		git clone https://github.com/bharathappali/pronosana.git
 		minikube_start
+		echo "Calling prometheus_install"
 		prometheus_install
-		pronosana_init
+		echo "Calling prometheus_install done"
+
+		if [ ${visualize} -eq 1 ]; then
+			#clone_repos pronosana
+			rm -rf pronosana
+			git clone https://github.com/bharathappali/pronosana.git
+			echo "visualize = $visualize"
+			pronosana_init
+		fi
 	fi
 
 	# Check for pre-requisites to run the demo
 	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 	prereq_check ${CLUSTER_TYPE}
 
-	pronosana_init
 	autotune_install
 
 	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
@@ -253,12 +266,16 @@ function monitoring_demo_start() {
 		expose_prometheus
 	fi
 
-	pronosana_backfill "${PWD}/combined_data.json"
+	if [ ${visualize} -eq 1 ]; then
+		pronosana_backfill "${PWD}/combined_data.json"
 
-	echo ""
-	echo "Grafana is launched in the web browser, login into it and search for pronosana dashboard to view the recommendations"
-	echo "If there are any issues with launching the browser, you can manually open this link - http://localhost:3000/login"
-	echo ""
+		sleep 20
+		echo ""
+		echo "Grafana is launched in the web browser, login into it and search for pronosana dashboard to view the recommendations"
+		echo "If there are any issues with launching the browser, you can manually open this link - http://localhost:3000/login"
+		echo ""
+	fi
+	
 }
 
 function monitoring_demo_terminate() {
@@ -306,31 +323,46 @@ monitoring_restart=0
 start_demo=1
 EXPERIMENT_START=0
 # Iterate through the commandline options
-while getopts o:c:d:prst gopts
+while getopts o:c:d:prst:-: gopts
 do
-	case "${gopts}" in
-		o)
-			AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
-			;;
-		p)
-			prometheus=1
-			;;
-		r)
-			monitoring_restart=1
-			;;
-		s)
-			start_demo=1
-			;;
-		t)
-			start_demo=0
-			;;
-		c)
-			CLUSTER_TYPE="${OPTARG}"
-			;;
-		d)
-			DURATION="${OPTARG}"
-			;;
-		*)
+
+	 case ${gopts} in
+         -)
+                case "${OPTARG}" in
+                        visualize)
+                                visualize=1
+                                ;;
+                        *)
+                                if [ "${OPTERR}" == 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
+                                        echo "Unknown option --${OPTARG}" >&2
+                                        usage
+                                fi
+                                ;;
+                esac
+                ;;
+
+	o)
+		AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
+		;;
+	p)
+		prometheus=1
+		;;
+	r)
+		monitoring_restart=1
+		;;
+	s)
+		start_demo=1
+		;;
+	t)
+		start_demo=0
+		;;
+	c)
+		CLUSTER_TYPE="${OPTARG}"
+		;;
+	d)
+		DURATION="${OPTARG}"
+		;;
+	*)
 			usage
 	esac
 done
@@ -339,6 +371,8 @@ if [ ${start_demo} -eq 1 ]; then
 	monitoring_demo_start
 else
 	monitoring_demo_terminate
-	pronosana_terminate
+	if [ ${visualize} -eq 1 ]; then
+		pronosana_terminate
+	fi
 	monitoring_demo_cleanup
 fi

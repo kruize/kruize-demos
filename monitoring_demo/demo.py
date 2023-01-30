@@ -34,16 +34,13 @@ def generate_json(find_arr, json_file, filename, i):
 def main(argv):
     cluster_type = "minikube"
     input_json_file = "input.json"
+    find = []
 
     json_data = json.load(open(input_json_file))
 
-    experiment_name = json_data[0]['experiment_name']
-    deployment_name = json_data[0]['deployment_name']
-    namespace = json_data[0]['namespace']
-
-    print("Experiment name = ", experiment_name)
-    print("Deployment name = ", deployment_name)
-    print("Namespace = ", namespace)
+    find.append(json_data[0]['experiment_name'])
+    find.append(json_data[0]['deployment_name'])
+    find.append(json_data[0]['namespace'])
 
     try:
         opts, args = getopt.getopt(argv,"h:c:")
@@ -62,15 +59,28 @@ def main(argv):
     # Form the kruize url
     form_kruize_url(cluster_type)
 
-    # Create experiment using the specified json
+    # Create experiments using the specified json
     num_exps = 1
     for i in range(num_exps):
-        create_experiment(input_json_file)
+        json_file = "/tmp/input.json"
+        generate_json(find, input_json_file, json_file, i)
+        create_experiment(json_file)
+
+        if i == 0:
+            json_data = json.load(open(input_json_file))
+
+            experiment_name = json_data[0]['experiment_name']
+            deployment_name = json_data[0]['deployment_name']
+            namespace = json_data[0]['namespace']
+
+            print("Experiment name = ", experiment_name)
+            print("Deployment name = ", deployment_name)
+            print("Namespace = ", namespace)
 
     # Post the experiment results
     recommendations_json_arr = []
-    num_exps = 37
-    for i in range(1, num_exps):
+    num_exp_res = 37
+    for i in range(1, num_exp_res):
         json_file = "./json_files/result_" + str(i) + ".json"
         update_results(json_file)
 
@@ -78,13 +88,12 @@ def main(argv):
         recommendations_json_arr.append(reco)
 
     # Dump the results & recommendations into json files
-    with open('reco.json', 'w') as f:
+    with open('recommendations.json', 'w') as f:
         json.dump(recommendations_json_arr, f)
 
     list_exp_json = list_experiments()
     with open('list_exps.json', 'w') as f:
         json.dump(list_exp_json, f)
-
 
 
 if __name__ == '__main__':
