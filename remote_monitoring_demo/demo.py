@@ -18,6 +18,7 @@ from kruize.kruize import *
 import sys, getopt
 import json
 import os
+import time
 
 def generate_json(find_arr, json_file, filename, i):
 
@@ -33,10 +34,10 @@ def generate_json(find_arr, json_file, filename, i):
 
 def main(argv):
     cluster_type = "minikube"
-    input_json_file = "input.json"
+    create_exp_json_file = "create_exp.json"
     find = []
 
-    json_data = json.load(open(input_json_file))
+    json_data = json.load(open(create_exp_json_file))
 
     find.append(json_data[0]['experiment_name'])
     find.append(json_data[0]['deployment_name'])
@@ -60,14 +61,14 @@ def main(argv):
     form_kruize_url(cluster_type)
 
     # Create experiments using the specified json
-    num_exps = 1
+    num_exps = 10
     for i in range(num_exps):
-        json_file = "/tmp/input.json"
-        generate_json(find, input_json_file, json_file, i)
-        create_experiment(json_file)
+        tmp_create_exp_json_file = "/tmp/create_exp.json"
+        generate_json(find, create_exp_json_file, tmp_create_exp_json_file, i)
+        create_experiment(tmp_create_exp_json_file)
 
         if i == 0:
-            json_data = json.load(open(input_json_file))
+            json_data = json.load(open(create_exp_json_file))
 
             experiment_name = json_data[0]['experiment_name']
             deployment_name = json_data[0]['deployment_name']
@@ -81,8 +82,10 @@ def main(argv):
     recommendations_json_arr = []
     num_exp_res = 37
     for i in range(1, num_exp_res):
-        json_file = "./json_files/result_" + str(i) + ".json"
+        json_file = "./resource_usage_metrics_data/result_" + str(i) + ".json"
         update_results(json_file)
+
+        # Sleep 
 
         reco = list_recommendations(experiment_name, deployment_name, namespace)
         recommendations_json_arr.append(reco)
@@ -92,7 +95,7 @@ def main(argv):
         json.dump(recommendations_json_arr, f)
 
     list_exp_json = list_experiments()
-    with open('list_exps.json', 'w') as f:
+    with open('experiments_data.json', 'w') as f:
         json.dump(list_exp_json, f)
 
 

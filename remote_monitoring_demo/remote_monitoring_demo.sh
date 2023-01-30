@@ -88,6 +88,7 @@ function autotune_install() {
 		YAML_TEMPLATE="./manifests/autotune-operator-deployment.yaml_template"
 		YAML_TEMPLATE_OLD="./manifests/autotune-operator-deployment.yaml_template.old"
 
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t 2>/dev/null"
 		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t 2>/dev/null
 		sleep 5
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
@@ -98,7 +99,7 @@ function autotune_install() {
 			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
 		echo
-		echo "Starting install with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES}"
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
 		echo
 
 		if [ ${EXPERIMENT_START} -eq 0 ]; then
