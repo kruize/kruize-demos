@@ -34,7 +34,7 @@ def generate_json(find_arr, json_file, filename, i):
 
 def main(argv):
     cluster_type = "minikube"
-    create_exp_json_file = "create_exp.json"
+    create_exp_json_file = "./json_files/create_exp.json"
     find = []
 
     json_data = json.load(open(create_exp_json_file))
@@ -59,6 +59,10 @@ def main(argv):
 
     # Form the kruize url
     form_kruize_url(cluster_type)
+
+    # Create the performance profile
+    perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
+    create_performance_profile(perf_profile_json_file)
 
     # Create experiments using the specified json
     num_exps = 10
@@ -85,17 +89,18 @@ def main(argv):
         json_file = "./resource_usage_metrics_data/result_" + str(i) + ".json"
         update_results(json_file)
 
-        # Sleep 
+        # Sleep
+        time.sleep(5)
 
         reco = list_recommendations(experiment_name, deployment_name, namespace)
         recommendations_json_arr.append(reco)
 
     # Dump the results & recommendations into json files
-    with open('recommendations.json', 'w') as f:
+    with open('recommendations_data.json', 'w') as f:
         json.dump(recommendations_json_arr, f)
 
     list_exp_json = list_experiments()
-    with open('experiments_data.json', 'w') as f:
+    with open('usage_data.json', 'w') as f:
         json.dump(list_exp_json, f)
 
 

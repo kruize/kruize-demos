@@ -32,12 +32,13 @@ target="crc"
 visualize=0
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o autotune-image] [-r] [-c cluster-type] [-d] --visualize"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
+	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
 
@@ -47,36 +48,31 @@ function prereq_check() {
 	python3 --version >/dev/null 2>/dev/null
 	check_err "ERROR: python3 not installed. Required to start the demo. Check if all dependencies (python3,minikube,java11) are installed."
 
-	## Requires minikube to run the demo benchmark for experiments
-	minikube >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (java11,git) are installed."
-	kubectl get pods >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not running. Required for running benchmark"
-	## Check if prometheus is running for valid benchmark results.
-	prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
-	if [ "${prometheus_pod_running}" == "" ]; then
-		err_exit "Install prometheus for valid results from benchmark."
-	fi
-	## Requires java 11
-	java -version >/dev/null 2>/dev/null
-	check_err "Error: java is not found. Requires Java 11 for running benchmark."
-	JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-	if [[ ${JAVA_VERSION} < "11" ]]; then
-		err_exit "ERROR: Java 11 is required."
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		## Requires minikube to run the demo benchmark for experiments
+		minikube >/dev/null 2>/dev/null
+		check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (java11,git) are installed."
+		kubectl get pods >/dev/null 2>/dev/null
+		check_err "ERROR: minikube not running. Required for running benchmark"
+		## Check if prometheus is running for valid benchmark results.
+		prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+		if [ "${prometheus_pod_running}" == "" ]; then
+			err_exit "Install prometheus for valid results from benchmark."
+		fi
 	fi
 }
 
 ###########################################
-#   Autotune Install
+#   Kruize Install
 ###########################################
-function autotune_install() {
+function kruize_install() {
 	echo
 	echo "#######################################"
-	echo "6. Installing Autotune"
+	echo "6. Installing Kruize"
 	if [ ! -d autotune ]; then
 		echo "ERROR: autotune dir not found."
 		if [ ${autotune_restart} -eq 1 ]; then
-			echo "ERROR: autotune not running. Wrong use of restart command"
+			echo "ERROR: Kruize not running. Wrong use of restart command"
 		fi
 		exit -1
 	fi
@@ -88,8 +84,8 @@ function autotune_install() {
 		YAML_TEMPLATE="./manifests/autotune-operator-deployment.yaml_template"
 		YAML_TEMPLATE_OLD="./manifests/autotune-operator-deployment.yaml_template.old"
 
-		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t 2>/dev/null"
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t 2>/dev/null
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t
 		sleep 5
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
@@ -135,13 +131,15 @@ function monitoring_experiments() {
 }
 
 function pronosana_backfill() {
-	combined_data_json=$1
+	usage_data_json=$1
+	recommendations_data_json=$1
 
 	echo ""
-	echo "Invoking pronosana backfill with ${combined_data_json} ..."
+	echo "Invoking pronosana backfill using the below command..."
 	echo ""
 	pushd pronosana > /dev/null
-		./pronosana backfill ${CLUSTER_TYPE}
+		echo "./pronosana backfill ${CLUSTER_TYPE} --usage-data-json=${PWD}/usage_data.json --recommendation-data-json=${PWD}/recommendations_data.json"
+		./pronosana backfill ${CLUSTER_TYPE} --usage-data-json=${PWD}/usage_data.json --recommendation-data-json=${PWD}/recommendations_data.json
 	popd > /dev/null
 }
 
@@ -219,13 +217,18 @@ function monitoring_demo_start() {
 	echo "#######################################"
 	echo
 	echo "--> Clone Required Repos"
-	echo "--> Setup minikube"
-	echo "--> Installs Prometheus"
+
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		echo "--> Setup minikube"
+		echo "--> Installs Prometheus"
+	fi
 
 	if [ ${visualize} -eq 1 ]; then
 		echo "--> Installs Pronosana"
 	fi
-	echo "--> Creates kruize monitoring experiments & updates TFB results"
+	echo "--> Installs Kruize"
+	echo "--> Creates experiments in remote monitoring mode"
+	echo "--> Updates resource usage metrics for one of the experiments"
 	echo "--> Fetches the recommendations from Kruize"
 	if [ ${visualize} -eq 1 ]; then
 		echo "--> Posts the recommendations from kruize to thanos"
@@ -235,13 +238,16 @@ function monitoring_demo_start() {
 
 	if [ ${monitoring_restart} -eq 0 ]; then
 		clone_repos autotune
-		minikube_start
-		echo "Calling prometheus_install"
-		prometheus_install
-		echo "Calling prometheus_install done"
+
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			minikube_start
+			echo "Calling prometheus_install"
+			prometheus_install
+			echo "Calling prometheus_install done"
+		fi
 
 		if [ ${visualize} -eq 1 ]; then
-			#clone_repos pronosana
+			# clone_repos pronosana
 			rm -rf pronosana
 			git clone https://github.com/bharathappali/pronosana.git
 			echo "visualize = $visualize"
@@ -253,7 +259,7 @@ function monitoring_demo_start() {
 	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 	prereq_check ${CLUSTER_TYPE}
 
-	autotune_install
+	kruize_install
 
 	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
 	monitoring_experiments
@@ -311,8 +317,14 @@ function monitoring_demo_cleanup() {
 	echo
 
 	delete_repos autotune
-	delete_repos pronosana
-	minikube_delete
+
+	if [ ${visualize} -eq 1 ]; then
+		delete_repos pronosana
+	fi
+
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		minikube_delete
+	fi
 	
 	echo "Success! Monitoring Demo setup cleanup completed."
 	echo
@@ -324,7 +336,7 @@ monitoring_restart=0
 start_demo=1
 EXPERIMENT_START=0
 # Iterate through the commandline options
-while getopts o:c:d:prst:-: gopts
+while getopts o:c:d:prst-: gopts
 do
 
 	 case ${gopts} in
