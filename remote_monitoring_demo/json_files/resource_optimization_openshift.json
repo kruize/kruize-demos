@@ -1,9 +1,5 @@
 {
-    "apiVersion": "recommender.com/v1",
-    "kind": "KruizePerformanceProfile",
-    "metadata": {
-        "name": "resource-optimization-openshift"
-    },
+    "name": "resource-optimization-openshift",
     "profile_version": 1,
     "k8s_type": "openshift",
     "slo": {

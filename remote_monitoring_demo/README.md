@@ -6,29 +6,31 @@ The goal of this demo is to demonstrate the workflow of Kruize in Remote monitor
 ## Steps
 This demo does the following:
 - Clones the required git repositories
-- Installs minikube and prometheus
+- Installs minikube and prometheus (If the cluster type is minikube)
 - Installs kruize and initializes the thanos and grafana containers
 - Creates an experiment by posting the input json to Kruize Monitoring REST APIs, updates the results for the experiments and fetches the Kruize recommendations
 - Metric results along with the recommendations are backfilled in thanos and launches grafana in the browser
 - User can login to grafana and search for pronosana-dashboard to view the cpu and memory recommendations provided by Kruize
 
+Note: The thanos and grafana related steps above will be invoked only on specifying --visualize option, which is yet to be implemented completely.
+
 ## Pre-req
-It expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
+To run the test on minikube cluster, it expects minikube to be installed with atleast 8 CPUs and 16384MB Memory.
 **WARNING:** The script deletes any existing minikube cluster.
 
 ## How do I run it?
 
 ```
 # Run the Kruize monitoring demo using the below command:
-$ ./monitoring_demo.sh
+$ ./remote_monitoring_demo.sh
 
 Where values for demo.py are:
-usage: ./monitoring_demo.sh [ -c ] : cluster type. Supported types - minikube, default is minikube
+usage: ./remote_monitoring_demo.sh [ -c ] : cluster type. Supported types - minikube, openshift. Default is minikube
                             [ -o ] : Kruize docker image, optional
                             
 # If you want to restart only kruize with the specified docker image
-$ ./monitoring_demo.sh -r -o [kruize image]
+$ ./remote_monitoring_demo.sh -r -o [kruize image]
 
 # To terminate the demo
-$ ./monitoring_demo.sh -t
+$ ./remote_monitoring_demo.sh -t
 

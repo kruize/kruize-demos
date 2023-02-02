@@ -31,9 +31,10 @@
        "cpuUsage": {
          "results": {
            "general_info": {
+             "sum": 2.14,
+             "min": 0.14,
              "max": 0.84,
              "avg": 0.12,
-             "min": 0.2,
              "units": "cores"
            }
          }
@@ -41,6 +42,8 @@
        "cpuThrottle": {
          "results": {
            "general_info": {
+             "sum": 0.19,
+             "max": 0.09,
              "avg": 0.045,
              "units": "cores"
            }
@@ -67,9 +70,10 @@
        "memoryUsage": {
          "results": {
            "general_info": {
+             "min": 50.6,
              "max": 198.50,
+             "sum": 198.50,
              "avg": 40.1,
-             "min": 20.1,
              "units": "MiB"
            }
          }
@@ -77,9 +81,10 @@
        "memoryRSS": {
          "results": {
            "general_info": {
+             "min": 50.6,
              "max": 123.6,
+             "sum": 123.6,
              "avg": 31.91,
-             "min": 20.5,
              "units": "MiB"
            }
          }
