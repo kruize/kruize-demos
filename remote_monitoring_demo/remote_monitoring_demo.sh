@@ -81,8 +81,6 @@ function kruize_install() {
 		git checkout mvp_demo
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
-		YAML_TEMPLATE="./manifests/autotune-operator-deployment.yaml_template"
-		YAML_TEMPLATE_OLD="./manifests/autotune-operator-deployment.yaml_template.old"
 
 		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
 		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t
@@ -99,8 +97,6 @@ function kruize_install() {
 		echo
 
 		if [ ${EXPERIMENT_START} -eq 0 ]; then
-			cp ${YAML_TEMPLATE} ${YAML_TEMPLATE_OLD}
-			sed -e "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" ${YAML_TEMPLATE_OLD} > ${YAML_TEMPLATE}
 			CURR_DRIVER=$(minikube config get driver 2>/dev/null)
 			if [ "${CURR_DRIVER}" == "docker" ]; then
 				echo "Setting docker env"
@@ -112,11 +108,8 @@ function kruize_install() {
 		fi
 
 		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
-		check_err "ERROR: Autotune failed to start, exiting"
+		check_err "ERROR: kruize failed to start, exiting"
 
-		if [ ${EXPERIMENT_START} -eq 0 ]; then
-			cp ${YAML_TEMPLATE_OLD} ${YAML_TEMPLATE} 2>/dev/null
-		fi
 		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
 		sleep 30
 		echo "done"
