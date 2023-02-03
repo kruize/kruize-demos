@@ -81,10 +81,7 @@ def update_results(result_json_file):
     # read the json
     json_file = open(result_json_file, "r")
     result_json = json.loads(json_file.read())
-    #print("\n************************************************************")
-    #print(result_json)
-    #print("\n************************************************************")
-
+    
     # TO DO: Validate the result json
 
     print("\nUpdating the results...")
@@ -108,11 +105,6 @@ def list_recommendations(experiment_name, deployment_name, namespace):
     response = requests.get(url = url, params = PARAMS)
     print("Response status code = ", response.status_code)
 
-    #print("\n************************************************************")
-    #print(response.text)
-    #print("\n************************************************************")
-    #print(response.json())
-    
     return response.json()
 
 # Description: This function creates a performance profile using the Kruize createPerformanceProfile API
@@ -141,11 +133,6 @@ def list_experiments():
     response = requests.get(url = url)
     print("Response status code = ", response.status_code)
 
-    #print("\n************************************************************")
-    #print(response.text)
-    #print("\n************************************************************")
-    #print(response.json())
-    
     return response.json()
 
 # Description: This function combines the metric results and recommendations into a single json

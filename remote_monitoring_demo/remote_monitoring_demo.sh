@@ -26,8 +26,7 @@ CLUSTER_TYPE="minikube"
 
 # Default duration of benchmark warmup/measurement cycles in seconds.
 DURATION=60
-PY_CMD="python3"
-LOGFILE="${PWD}/monitoring.log"
+
 target="crc"
 visualize=0
 
@@ -35,6 +34,7 @@ function usage() {
 	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
+	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
@@ -46,14 +46,13 @@ function usage() {
 function prereq_check() {
 	# Python is required only to run the monitoring experiment 
 	python3 --version >/dev/null 2>/dev/null
-	check_err "ERROR: python3 not installed. Required to start the demo. Check if all dependencies (python3,minikube,java11) are installed."
+	check_err "ERROR: python3 not installed. Required to start the demo. Check if all dependencies (python3,minikube) are installed."
 
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		## Requires minikube to run the demo benchmark for experiments
 		minikube >/dev/null 2>/dev/null
-		check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (java11,git) are installed."
+		check_err "ERROR: minikube not installed."
 		kubectl get pods >/dev/null 2>/dev/null
-		check_err "ERROR: minikube not running. Required for running benchmark"
+		check_err "ERROR: minikube not running. "
 		## Check if prometheus is running for valid benchmark results.
 		prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
 		if [ "${prometheus_pod_running}" == "" ]; then
@@ -118,7 +117,7 @@ function kruize_install() {
 	echo
 }
 
-function monitoring_experiments() {
+function remote_monitoring_experiments() {
 	echo "Running demo.py..."
 	python demo.py -c "${CLUSTER_TYPE}"
 }
@@ -198,7 +197,7 @@ function pronosana_init() {
 	echo
 }
 
-function monitoring_demo_start() {
+function remote_monitoring_demo_start() {
 
 	minikube >/dev/null
 	check_err "ERROR: minikube not installed"
@@ -255,7 +254,7 @@ function monitoring_demo_start() {
 	kruize_install
 
 	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
-	monitoring_experiments
+	remote_monitoring_experiments
 
 	echo
 	end_time=$(get_date)
@@ -278,7 +277,7 @@ function monitoring_demo_start() {
 	
 }
 
-function monitoring_demo_terminate() {
+function remote_monitoring_demo_terminate() {
 	echo
 	echo "#######################################"
 	echo "#     Monitoring Demo Terminate       #"
@@ -302,7 +301,7 @@ function pronosana_terminate() {
 	popd >/dev/null
 }
 
-function monitoring_demo_cleanup() {
+function remote_monitoring_demo_cleanup() {
 	echo
 	echo "#######################################"
 	echo "#    Monitoring Demo setup cleanup    #"
@@ -374,11 +373,11 @@ do
 done
 
 if [ ${start_demo} -eq 1 ]; then
-	monitoring_demo_start
+	remote_monitoring_demo_start
 else
-	monitoring_demo_terminate
+	remote_monitoring_demo_terminate
 	if [ ${visualize} -eq 1 ]; then
 		pronosana_terminate
 	fi
-	monitoring_demo_cleanup
+	remote_monitoring_demo_cleanup
 fi
