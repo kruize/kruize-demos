@@ -56,7 +56,8 @@ function prereq_check() {
 	minikube_ver=$(minikube version | grep "version" | sed 's/minikube version: v\([0-9]\+\).\([0-9]\+\).\([0-9]\+\).*/\1\2\3/')
 	if [ "$minikube_ver" -gt "1261" ]; then
 		echo "Current minikube version not supported:"; 
-    		echo $(minikube version);
+    		echo "$(minikube version)";
+			echo "Supported Version 1.26.1 or less";
     		exit 1;
 	fi
 	
