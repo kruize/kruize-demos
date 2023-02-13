@@ -55,8 +55,7 @@ function prereq_check() {
 	## Check version of minikube to be <= 1.26.1 for support of Prometheus version 0.8.0
 	minikube_ver=$(minikube version | grep "version" | sed 's/minikube version: v\([0-9]\+\).\([0-9]\+\).\([0-9]\+\).*/\1\2\3/')
 	if [ "$minikube_ver" -gt "1261" ]; then
-		echo "Current minikube version not supported:"; 
-    		echo "$(minikube version)";
+		echo "Current minikube version not supported: $(minikube version)"
 		echo "Supported Version 1.26.1 or less";
     		exit 1;
 	fi
