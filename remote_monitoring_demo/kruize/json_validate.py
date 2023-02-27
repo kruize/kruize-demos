@@ -31,7 +31,7 @@ exp_input_schema = {
             "experiment_name": {"type": "string"},
             "deployment_name": {"type": "string"},
             "namespace": {"type": "string"},
-            "performanceProfile": {"type": "string"},
+            "performance_profile": {"type": "string"},
             "slo": {
                 "type": "object",
                 "properties": {
@@ -42,7 +42,7 @@ exp_input_schema = {
                 "additionalProperties": False
             },
             "mode": {"type": "string"},
-            "targetCluster": {"type": "string"},
+            "target_cluster": {"type": "string"},
             "containers": {
                 "type": "array",
                 "items": {

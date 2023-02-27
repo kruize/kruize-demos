@@ -40,8 +40,10 @@ def main(argv):
     json_data = json.load(open(create_exp_json_file))
 
     find.append(json_data[0]['experiment_name'])
-    find.append(json_data[0]['deployment_name'])
-    find.append(json_data[0]['namespace'])
+    find.append(json_data[0]['kubernetes_objects'][0]['name'])
+    find.append(json_data[0]['kubernetes_objects'][0]['namespace'])
+
+    print(find)
 
     try:
         opts, args = getopt.getopt(argv,"h:c:")
@@ -75,8 +77,8 @@ def main(argv):
             json_data = json.load(open(create_exp_json_file))
 
             experiment_name = json_data[0]['experiment_name']
-            deployment_name = json_data[0]['deployment_name']
-            namespace = json_data[0]['namespace']
+            deployment_name = json_data[0]['kubernetes_objects'][0]['name']
+            namespace = json_data[0]['kubernetes_objects'][0]['namespace']
 
             print("Experiment name = ", experiment_name)
             print("Deployment name = ", deployment_name)
