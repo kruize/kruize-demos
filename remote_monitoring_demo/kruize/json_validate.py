@@ -24,69 +24,104 @@ JSON_NULL_VALUES = ("is not of type 'string'", "is not of type 'integer'", "is n
 VALUE_MISSING = " cannot be empty or null!"
 
 exp_input_schema = {
-    "type": "array",
-    "items": {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "string"
+      },
+      "experiment_name": {
+        "type": "string"
+      },
+      "cluster_name": {
+        "type": "string"
+      },
+      "performance_profile": {
+        "type": "string"
+      },
+      "mode": {
+        "type": "string"
+      },
+      "target_cluster": {
+        "type": "string"
+      },
+      "kubernetes_objects": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "namespace": {
+              "type": "string"
+            },
+            "containers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "container_image_name": {
+                    "type": "string"
+                  },
+                  "container_name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "container_image_name",
+                  "container_name"
+                ]
+              }
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "namespace",
+            "containers"
+          ]
+        }
+      },
+      "trial_settings": {
         "type": "object",
         "properties": {
-            "experiment_name": {"type": "string"},
-            "deployment_name": {"type": "string"},
-            "namespace": {"type": "string"},
-            "performance_profile": {"type": "string"},
-            "slo": {
-                "type": "object",
-                "properties": {
-                    "slo_class": {"type": "string"},
-                    "direction": {"type": "string"}
-                },
-                "required": ["slo_class", "direction"],
-                "additionalProperties": False
-            },
-            "mode": {"type": "string"},
-            "target_cluster": {"type": "string"},
-            "containers": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "image": {"type": "string"},
-                        "container_name": {"type": "string"}
-                    },
-                    "required": ["image", "container_name"],
-                    "additionalProperties": False
-                }
-            },
-            "trial_settings": {
-                "type": "object",
-                "properties": {
-                    "measurement_duration": {"type": "string"}
-                },
-                "required": ["measurement_duration"],
-                "additionalProperties": False
-            },
-            "recommendation_settings": {
-                "type": "object",
-                "properties": {
-                    "threshold": {"type": "string"}
-                },
-                "required": ["threshold"],
-                "additionalProperties": False
-            },
-            "selector": {
-                "type": "object",
-                "properties": {
-                    "matchLabel": {"type": "string"},
-                    "matchLabelValue": {"type": "string"},
-                    "matchRoute": {"type": "string"},
-                    "matchURI": {"type": "string"},
-                    "matchService": {"type": "string"}
-                },
-                "required": ["matchLabel", "matchLabelValue"],
-                "additionalProperties": False
-             }
+          "measurement_duration": {
+            "type": "string"
+          }
         },
-        "required": ["experiment_name", "deployment_name", "namespace", "mode", "performanceProfile", "targetCluster", "containers", "trial_settings", "recommendation_settings"],
-        "additionalProperties": False
-    }
+        "required": [
+          "measurement_duration"
+        ]
+      },
+      "recommendation_settings": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "threshold"
+        ]
+      }
+    },
+    "required": [
+      "version",
+      "experiment_name",
+      "cluster_name",
+      "performance_profile",
+      "mode",
+      "target_cluster",
+      "kubernetes_objects",
+      "trial_settings",
+      "recommendation_settings"
+    ]
+  }
 }
 
 def validate_exp_input_json(exp_input_json):

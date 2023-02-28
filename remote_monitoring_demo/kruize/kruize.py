@@ -59,7 +59,6 @@ def create_experiment(input_json_file):
     # Validate the json
     print("\nValidating the input json...")
     isInvalid = validate_exp_input_json(input_json)
-    isInvalid=""
     if isInvalid:
         print(isInvalid)
         print("Input Json is invalid")
