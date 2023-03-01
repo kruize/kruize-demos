@@ -74,7 +74,7 @@ def main(argv):
         create_experiment(tmp_create_exp_json_file)
 
         if i == 0:
-            json_data = json.load(open(create_exp_json_file))
+            json_data = json.load(open(tmp_create_exp_json_file))
 
             experiment_name = json_data[0]['experiment_name']
             deployment_name = json_data[0]['kubernetes_objects'][0]['name']
