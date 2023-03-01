@@ -99,16 +99,16 @@ def main(argv):
         # Sleep
         time.sleep(5)
 
-        reco = list_recommendations(experiment_name, deployment_name, namespace)
+        reco = list_recommendations(experiment_name)
         recommendations_json_arr.append(reco)
 
     # Dump the results & recommendations into json files
     with open('recommendations_data.json', 'w') as f:
-        json.dump(recommendations_json_arr, f)
+        json.dump(recommendations_json_arr, f, indent=4)
 
     list_exp_json = list_experiments()
     with open('usage_data.json', 'w') as f:
-        json.dump(list_exp_json, f)
+        json.dump(list_exp_json, f, indent=4)
 
 
 if __name__ == '__main__':
