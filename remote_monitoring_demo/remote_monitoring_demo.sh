@@ -30,6 +30,8 @@ DURATION=60
 target="crc"
 visualize=0
 
+PYTHON_CMD=python3
+
 function usage() {
 	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
@@ -45,8 +47,8 @@ function usage() {
 ## Checks for the pre-requisites to run the monitoring demo
 function prereq_check() {
 	# Python is required only to run the monitoring experiment 
-	python3 --version >/dev/null 2>/dev/null
-	check_err "ERROR: python3 not installed. Required to start the demo. Check if all dependencies (python3,minikube) are installed."
+	"${PYTHON_CMD}" --version >/dev/null 2>/dev/null
+	check_err "ERROR: "${PYTHON_CMD}" not installed. Required to start the demo. Check if all dependencies ("${PYTHON_CMD}", minikube) are installed."
 
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube >/dev/null 2>/dev/null
@@ -76,13 +78,15 @@ function kruize_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
-		# Checkout the mvp_demo branch for now
-		git checkout mvp_demo
+		# Checkout mvp_demo to get the latest mvp_demo release version
+		git checkout mvp_demo >/dev/null 2>/dev/null
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
+		# Checkout the tag related to the last published mvp_demo version
+		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
 
 		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
 		sleep 5
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
@@ -119,7 +123,7 @@ function kruize_install() {
 
 function remote_monitoring_experiments() {
 	echo "Running demo.py..."
-	python demo.py -c "${CLUSTER_TYPE}"
+	"${PYTHON_CMD}" demo.py -c "${CLUSTER_TYPE}"
 }
 
 function pronosana_backfill() {
@@ -185,7 +189,7 @@ function pronosana_init() {
 	echo
 	echo "#######################################"
 	pushd pronosana >/dev/null
-		python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+		"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
 		echo "6. Initializing pronosana"
 		./pronosana cleanup ${CLUSTER_TYPE}
 		sleep 30
@@ -248,7 +252,7 @@ function remote_monitoring_demo_start() {
 	fi
 
 	# Check for pre-requisites to run the demo
-	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+	"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
 	prereq_check ${CLUSTER_TYPE}
 
 	kruize_install
