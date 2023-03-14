@@ -18,9 +18,7 @@ from . json_validate import validate_exp_input_json
 import subprocess
 import requests
 import json
-import os
-import time
-import shutil
+
 
 def form_kruize_url(cluster_type):
     global URL
@@ -43,14 +41,17 @@ def form_kruize_url(cluster_type):
         print("IP = ", SERVER_IP)
 
     URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
-    print ("\nKRUIZE AUTOTUNE URL = ", URL)
+    print (f"\nKRUIZE AUTOTUNE URL = {URL}")
 
 
-# Description: This function validates the input json and posts the experiment using createExperiment API to Kruize
-# Input Parameters: experiment input json
 def create_experiment(input_json_file):
+    """
+    Description: This function validates the input json and posts 
+    the experiment using createExperiment API to Kruize
+    Input Parameters: experiment input json
+    """
 
-    json_file = open(input_json_file, "r")
+    json_file = open(input_json_file)
     input_json = json.loads(json_file.read())
     print("\n************************************************************")
     print(input_json)
@@ -68,15 +69,18 @@ def create_experiment(input_json_file):
         print("\nCreating the experiment...")
 
         url = URL + "/createExperiment"
-        print("URL = ", url)
+        print(f"URL = {url}")
 
         response = requests.post(url, json=input_json)
-        print("Response status code = ", response.status_code)
+        print(f"Response status code = {response.status_code}")
         print(response.text)
 
-# Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
-# Input Parameters: resource usage metrics json
 def update_results(result_json_file):
+    """
+    Description: This function validates the result json and 
+    posts the experiment results using updateResults API to Kruize
+    Input Parameters: resource usage metrics json
+    """
 
     # read the json
     json_file = open(result_json_file, "r")
@@ -86,60 +90,72 @@ def update_results(result_json_file):
 
     print("\nUpdating the results...")
     url = URL + "/updateResults"
-    print("URL = ", url)
+    print(f"URL = {url}")
 
     response = requests.post(url, json=result_json)
-    print("Response status code = ", response.status_code)
+    print(f"Response status code = {response.status_code}")
     print(response.text)
     return response
 
-# Description: This function obtains the recommendations from Kruize using listRecommendations API
-# Input Parameters: experiment name
-def list_recommendations(experiment_name):
+def list_recommendations(experiment_name, deployment_name, namespace):
+    """
+    Description: This function obtains the recommendations 
+    from Kruize using listRecommendations API
+    Input Parameters: experiment name, deployment name and namespace
+    """
 
     print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
-    print("URL = ", url)
+    print(f"URL = {url}")
 
-    PARAMS = {'experiment_name': experiment_name}
+    PARAMS = {'experiment_name': experiment_name, 'deployment_name': deployment_name, 'namespace': namespace}
     response = requests.get(url = url, params = PARAMS)
-    print("Response status code = ", response.status_code)
+    print(f"Response status code = {response.status_code}")
 
     return response.json()
 
-# Description: This function creates a performance profile using the Kruize createPerformanceProfile API
-# Input Parameters: performance profile json
 def create_performance_profile(perf_profile_json_file):
+    """
+    Description: This function creates a performance profile
+    using the Kruize createPerformanceProfile API
+    Input Parameters: performance profile json
+    """
 
-    json_file = open(perf_profile_json_file, "r")
+    json_file = open(perf_profile_json_file)
     perf_profile_json = json.loads(json_file.read())
 
     print("\nCreating performance profile...")
     url = URL + "/createPerformanceProfile"
-    print("URL = ", url)
+    print(f"URL = {url}")
 
     response = requests.post(url, json=perf_profile_json)
-    print("Response status code = ", response.status_code)
+    print(f"Response status code = {response.status_code}")
     print(response.text)
     return response
 
-# Description: This function obtains the experiments and result metrics from Kruize using listExperiments API
 def list_experiments():
+    """
+    Description: This function obtains the experiments and
+    result metrics from Kruize using listExperiments API
+    """
 
     print("\nListing the experiments...")
     url = URL + "/listExperiments"
-    print("URL = ", url)
+    print(f"URL = {url}")
 
     response = requests.get(url = url)
-    print("Response status code = ", response.status_code)
+    print(f"Response status code = {response.status_code}")
 
     return response.json()
 
-# Description: This function combines the metric results and recommendations into a single json
-# Input parameters: result json file, recommendations json
 def combine_jsons(result_json, reco_json):
+    """
+    Description: This function combines the metric
+    results and recommendations into a single json
+    Input parameters: result json file, recommendations json
+    """
 
-    input_json = open(result_json, "r")
+    input_json = open(result_json)
     data = json.loads(input_json.read())
 
     exp = "quarkus-resteasy-autotune-min-http-response-time-db"
