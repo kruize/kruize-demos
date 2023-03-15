@@ -39,8 +39,11 @@ def main(argv):
     json_data = json.load(open(create_exp_json_file))
 
     find.append(json_data[0]['experiment_name'])
-    find.append(json_data[0]['deployment_name'])
-    find.append(json_data[0]['namespace'])
+    find.append(json_data[0]['kubernetes_objects'][0]['name'])
+    find.append(json_data[0]['kubernetes_objects'][0]['namespace'])
+
+    print(find)
+
 
     try:
         opts, _ = getopt.getopt(argv,"h:c:")
@@ -71,11 +74,11 @@ def main(argv):
         create_experiment(tmp_create_exp_json_file)
 
         if i == 0:
-            json_data = json.load(open(create_exp_json_file))
+            json_data = json.load(open(tmp_create_exp_json_file))
 
             experiment_name = json_data[0]['experiment_name']
-            deployment_name = json_data[0]['deployment_name']
-            namespace = json_data[0]['namespace']
+            deployment_name = json_data[0]['kubernetes_objects'][0]['name']
+            namespace = json_data[0]['kubernetes_objects'][0]['namespace']
 
             print("Experiment name = ", experiment_name)
             print("Deployment name = ", deployment_name)
@@ -96,16 +99,16 @@ def main(argv):
         # Sleep
         time.sleep(5)
 
-        reco = list_recommendations(experiment_name, deployment_name, namespace)
+        reco = list_recommendations(experiment_name)
         recommendations_json_arr.append(reco)
 
     # Dump the results & recommendations into json files
     with open('recommendations_data.json', 'w') as f:
-        json.dump(recommendations_json_arr, f)
+        json.dump(recommendations_json_arr, f, indent=4)
 
     list_exp_json = list_experiments()
     with open('usage_data.json', 'w') as f:
-        json.dump(list_exp_json, f)
+        json.dump(list_exp_json, f, indent=4)
 
 
 if __name__ == '__main__':

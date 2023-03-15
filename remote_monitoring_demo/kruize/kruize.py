@@ -97,7 +97,7 @@ def update_results(result_json_file):
     print(response.text)
     return response
 
-def list_recommendations(experiment_name, deployment_name, namespace):
+def list_recommendations(experiment_name):
     """
     Description: This function obtains the recommendations 
     from Kruize using listRecommendations API
@@ -108,7 +108,7 @@ def list_recommendations(experiment_name, deployment_name, namespace):
     url = URL + "/listRecommendations"
     print(f"URL = {url}")
 
-    PARAMS = {'experiment_name': experiment_name, 'deployment_name': deployment_name, 'namespace': namespace}
+    PARAMS = {'experiment_name': experiment_name}
     response = requests.get(url = url, params = PARAMS)
     print(f"Response status code = {response.status_code}")
 
