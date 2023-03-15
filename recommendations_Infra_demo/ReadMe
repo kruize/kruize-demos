@@ -1,0 +1,14 @@
+
+## Usage
+#
+# Runs the recommendations demo with existing data 
+./recommendations_demo.sh -c minikube --dataDrivenRecommendations
+
+# Runs the demo by deploying the benchmark and monitor recommendations
+./recommendations_demo.sh -c minikube --monitorRecommendations
+
+# Runs the demo by monitoring the mentioned k8Object and generate the recommendations
+./recommendations_demo.sh -c minikube --monitorRecommendations --k8ObjectName="tfb-qrh" --k8ObjectType="deployment"
+
+# Runs the demo to compare the recommendations of diff recommendation logics for a given data
+./recommendations_demo.sh -c minikube --compareRecommendations

@@ -1,0 +1,27 @@
+[{
+  "version": "1.0",
+  "experiment_name": "tfb-qrh",
+  "cluster_name": "aliaslab-e23",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "tfb-qrh",
+      "namespace": "autotune-tfb",
+      "containers": [
+        {
+          "container_image_name": "kruize/tfb-qrh:2.1.9.F",
+          "container_name": "tfb-server"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
