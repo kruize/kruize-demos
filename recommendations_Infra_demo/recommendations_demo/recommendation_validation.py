@@ -17,9 +17,9 @@ def validate_recomm():
     for json_data in data:
         for kubernetes_object in json_data[0]["kubernetes_objects"]:
             for container in kubernetes_object["containers"]:
-                for time_zone in container["recommendations"]:
-                    for duration_type in container["recommendations"][time_zone]["duration_based"]:
-                        recommendations = container["recommendations"][time_zone]
+                for time_zone in container["recommendations"]["data"]:
+                    for duration_type in container["recommendations"]["data"][time_zone]["duration_based"]:
+                        recommendations = container["recommendations"]["data"][time_zone]
                         if "config" in recommendations["duration_based"][duration_type]:
                             cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
                             memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)
@@ -57,9 +57,9 @@ def recomm_csv():
             for kubernetes_object in json_data[0]["kubernetes_objects"]:
                 for container in kubernetes_object["containers"]:
                     container_json = container["container_name"]
-                    for time_zone in container["recommendations"]:
-                        for duration_type in container["recommendations"][time_zone]["duration_based"]:
-                            recommendations = container["recommendations"][time_zone]
+                    for time_zone in container["recommendations"]["data"]:
+                        for duration_type in container["recommendations"]["data"][time_zone]["duration_based"]:
+                            recommendations = container["recommendations"]["data"][time_zone]
                             if "config" in recommendations["duration_based"][duration_type]:
                                 cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
                                 memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)

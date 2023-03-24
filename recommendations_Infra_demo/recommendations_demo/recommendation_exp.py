@@ -19,6 +19,7 @@ import sys, getopt
 import json
 import os
 import time
+import csv
 
 def main(argv):
     cluster_type = "minikube"
@@ -64,11 +65,29 @@ def main(argv):
     print("Updating results for one of the experiments and fetching recommendations from Kruize...")
     print("*************************************************************************************\n")
 
-    json_file = "./recommendations_demo/results/results.json"
-    update_results(json_file)
-
-    # Sleep
-    time.sleep(120)
+    # Create json using each row of a csv and update results
+    #python3 ${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
+    with open(resultscsv, newline='') as csvfile:    
+        reader = csv.reader(csvfile)    
+        header = next(reader)    
+        for row in reader:
+            if not any(row):
+                continue        
+            with open('intermediate.csv', mode='w', newline='') as outfile:
+                writer = csv.writer(outfile)
+                writer.writerow(header)
+                writer.writerow(row)
+                #${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
+            try:
+                subprocess.run(['python3', './recommendations_demo/csv2json.py', './intermediate.csv', './recommendations_demo/results/results.json'])
+            except subprocess.CalledProcessError as e:
+                output = e.output
+                
+            json_file = "./recommendations_demo/results/results.json"
+            update_results(json_file)
+            
+            # Sleep
+            time.sleep(40)
 
     reco = list_recommendations(experiment_name)
     recommendations_json_arr.append(reco)
@@ -83,6 +102,7 @@ def main(argv):
 
 perf_profile_json_file = sys.argv[1]
 tmp_create_exp_json_file = sys.argv[2]
+resultscsv = sys.argv[3]
 
 if __name__ == '__main__':
     main(sys.argv[1:])

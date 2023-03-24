@@ -30,7 +30,7 @@ function run_benchmark() {
 }
 
 # Converts the results csv from benchmark into json
-function get_results_json() {
+function get_tfb_results_json() {
 
 	# Generate the json from the results of the benchmark. Uses TFB benchmark data for this demo.
 	# Convert the results of last 6 hrs into json. (simulated to 1 hr for now). 
@@ -55,8 +55,9 @@ function get_results_json() {
 
 # Creates, updates and generates recommendations for an experiment
 function run_monitoring_exp() {
+	resultsFile=$1
 	## Generate recommendations for the csv
-	python3 ${SCRIPTS_REPO}/recommendation_exp.py ./recommendations_demo/json_files/resource_optimization_openshift.json ./recommendations_demo/json_files/create_exp.json
+	python3 ${SCRIPTS_REPO}/recommendation_exp.py ./recommendations_demo/json_files/resource_optimization_openshift.json ./recommendations_demo/json_files/create_exp.json ${resultsFile}
 }
 
 # Generates recommendations along with the benchmark run in parallel
@@ -79,7 +80,7 @@ function monitoring_recommendations_demo_with_benchmark() {
 		# Check if the time difference is less than or equal to 3600 seconds (1 hour)
 		if [ $time_diff -le $interval ]; then
 			echo "$file was modified in the last $interval seconds"
-			get_results_json 4 $latest_dir
+			get_tfb_results_json 4 $latest_dir
 			run_monitoring_exp
 			
 		else
@@ -105,14 +106,14 @@ function monitoring_recommendations_demo_for_k8object() {
 	#Todo
 	# Use clsuter , namespace , object name details for monitor metrics
 	# Monitor metrics for that object
+	# Below function save data in clusterresults.csv
 	monitor_metrics
+
 	# Sleep for 15m to ensure it starts collecting some data.
 	sleep 15m
 
 	# Assuming, monitor_metrics collects the data in 
-
-        # Get the latest directory in the "results" folder
-        BENCHMARK_RESULTS_DIR="${SCRIPTS_REPO}/results-${k8_object_type}-${k8_object}"
+        #BENCHMARK_RESULTS_DIR="${SCRIPTS_REPO}/results-${k8_object_type}-${k8_object}"
 
         # Get the current time in Unix timestamp format
         now=$(date +%s)
@@ -122,15 +123,22 @@ function monitoring_recommendations_demo_for_k8object() {
 	numoflines = $interval / 900
         while true; do
                 iterations_without_update=0
-                file="$BENCHMARK_RESULTS_DIR"/cpu_metrics.csv
+                #file="$BENCHMARK_RESULTS_DIR"/cpu_metrics.csv
+		file=clusterresults.csv
                 modified_time=$(date -r "$file" +%s)
                 # Calculate the time difference between the current time and the file's modification time
                 time_diff=$((now - modified_time))
                 # Check if the time difference is less than or equal to 3600 seconds (1 hour)
                 if [ $time_diff -le $interval ]; then
                         echo "$file was modified in the last $interval seconds"
-                        get_results_json ${numoflines} $BENCHMARK_RESULTS_DIR
-                        run_monitoring_exp
+			## TODO: Below aggregateWorkloadMetrics aggregates for the whole file. Instead we can do it for specific interval.	
+			python3 recommendations_demo/aggregateWorkloadMetrics.py $file	
+			#Get the last lines to send to Kruize updateresults API
+			# Assumption only 1 application is running.
+			{ head -n 1 $file; tail -n ${numoflines} $file; } > ${SCRIPTS_REPO}/results/metrics.csv
+			${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
+				
+                        run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
 
                 else
                         echo "$file was not modified in the $interval seconds"
@@ -150,18 +158,33 @@ function monitoring_recommendations_demo_for_k8object() {
 function monitoring_recommendations_demo_with_data() {
 	#BENCHMARK_RESULTS_DIR="./tfb-results"
 	BENCHMARK_RESULTS_DIR=$1
+	MODE=$2
+	echo "Results Dir is ... ${BENCHMARK_RESULTS_DIR}"
+	echo "MODE is $MODE"
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
 	fi
 
-        split_csvs $BENCHMARK_RESULTS_DIR
+	# Commenting this out as we may not require now as updating multiple results are not supported.
+        #split_csvs $BENCHMARK_RESULTS_DIR
 
-	for file in "$BENCHMARK_RESULTS_DIR"/splitfiles/*.csv; do
+	#for file in "$BENCHMARK_RESULTS_DIR"/splitfiles/*.csv; do
+	for file in "$BENCHMARK_RESULTS_DIR"/*.csv; do
+		echo "File is found.... $file"
 		if [ -s "$file" ] && [ $(wc -l < "$file") -gt 1 ]; then
-			${SCRIPTS_REPO}/replaceheaders.sh $file
-			## Convert the csv into json
-			python3 ${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
-			run_monitoring_exp
+			if [ ${MODE} == "crc" ];then
+				echo "Running the results of crc mode.........................."
+				# metrics.csv is generated with aggregated data for a k8 object.
+				python3 recommendations_demo/aggregateWorkloadMetrics.py $file
+				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
+				#python3 ${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
+				run_monitoring_exp metrics.csv
+			else
+				${SCRIPTS_REPO}/replaceheaders.sh $file
+				## Convert the csv into json
+				#python3 ${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
+				run_monitoring_exp $file
+			fi
 	#		validate_recommendations recommendation_data.json
 			sleep 1s
 		fi
@@ -203,6 +226,24 @@ function comparing_recommendations_demo_with_data() {
 }
 
 function monitor_metrics() {
-	./monitor_metrics_promql.sh
+	#./monitor_metrics_promql.sh
+	# Below function save data in clusterresults.csv by default. Provide -r for custom csvfileName.
+	nohup python metrics_promql.py -c minikube -s localhost &
+
+}
+
+function getUniquek8Objects() {
+	inputcsvfile=$1
+	column_name = 'k8ObjectName'
+	
+	# Read the CSV file and get the unique values of the specified column
+	unique_values = set()
+
+	with open(inputcsvfile, 'r') as csv_file:
+           csv_reader = csv.DictReader(csv_file)
+       	   for row in csv_reader:
+	      unique_values.add(row[column_name])
+	      
+	return unique_values
 }
 

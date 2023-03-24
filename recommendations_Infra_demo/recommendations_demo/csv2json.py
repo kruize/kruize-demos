@@ -7,8 +7,13 @@ import getopt
 
 
 def convert_date_format(input_date_str):
-    input_date = datetime.datetime.strptime(input_date_str, "%a %b %d %H:%M:%S UTC %Y")
-    output_date_str = input_date.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    try:
+        input_date = datetime.datetime.strptime(input_date_str, "%a %b %d %H:%M:%S UTC %Y")
+    except ValueError:
+        time_obj = datetime.datetime.strptime(input_date_str, '%Y-%m-%dT%H:%M:%S.%f')
+        input_date = time_obj.astimezone(datetime.timezone.utc)
+    
+    output_date_str = input_date.strftime('%Y-%m-%dT%H:%M:%S.000Z')
     return output_date_str
 
 
@@ -29,7 +34,7 @@ def create_json_from_csv(csv_file_path):
             container_metrics_all = {}
             container_metrics = []
 
-	## Hardcoding for now. Will automate
+	## Hardcoding for tfb-results. Will automate
             row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
             row["container_name"] = "tfb-server"
             row["k8_object_type"] = "deployment"

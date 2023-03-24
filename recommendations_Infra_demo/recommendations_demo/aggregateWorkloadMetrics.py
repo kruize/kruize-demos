@@ -69,7 +69,10 @@ for key, group in grouped:
 # Extract the header row
 header_row = df.columns.tolist()
 agg_df = pd.DataFrame(columns=header_row)
-columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
+columns_to_ignore = ['pod', 'owner_name', 'node']
+if 'resource_id' in df.columns:
+    columns_to_ignore.append('resource_id')
+#columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
 
 for filename in os.listdir(output_dir):
     if filename.endswith('.csv'):

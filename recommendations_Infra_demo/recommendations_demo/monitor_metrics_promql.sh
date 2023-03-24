@@ -197,6 +197,11 @@ function load_metrics()
 
 }
 
+# Get the namespaces / projects from the cluster
+function getProjects() {
+	"(kube_pod_owner{container!='', container!='POD', pod!='', namespace!='', namespace!~'kube-.*|openshift|openshift-.*'} * on(pod) group_left(container) max by (container, pod) (kube_pod_container_info{container!='', container!='POD', pod!='', namespace!='', namespace!~'kube-.*|openshift|openshift-.*'})) * on(pod) group_left(workload, workload_type) max by(pod, workload, workload_type) (namespace_workload_pod:kube_pod_owner:relabel{pod!='', namespace!='', namespace!~'kube-.*|openshift|openshift-.*'})"
+}
+
 function getversion()
 {
 	echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; 
