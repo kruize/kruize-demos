@@ -161,15 +161,22 @@ function monitoring_demo_start() {
 
 	# Deploy benchmarks. Create an experiment, update results and fetch recommendations using Kruize REST APIs
 	if [ ${dataDrivenRecommendations} -eq 1 ]; then
+		echo "Passing rsultsDir as ${resultsDir}"
 		echo "#######################################"
-		echo "Running the recommendation Infra demo with the existing data..."
-		monitoring_recommendations_demo_with_data ./recommendations_demo/tfb-results
+		# crc mode considers the individual data. Else, it considers the aggregated data.
+		if [ ${mode} == "crc" ]; then
+			echo "Running the recommendation Infra demo with the existing data in crc mode..."
+			monitoring_recommendations_demo_with_data ${resultsDir} crc
+		else
+			echo "Running the recommendation Infra demo with the existing data..."
+			monitoring_recommendations_demo_with_data ${resultsDir}
+		fi
 		echo
 		echo "Completed"
 		echo "#######################################"
 		echo ""
 		echo "Use output.csv to generate visualizations for the generated recommendations."
-	elif [ ${monitorRecommendations} -eq 1 ]; then
+	elif [[ ${monitorRecommendations} -eq 1 ]]; then
 		if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
 			echo "No k8 objects mentioned. Running with demo benchmark"
                         monitoring_recommendations_demo_with_benchmark
@@ -251,19 +258,20 @@ do
 			compareRecommendations)
 				compareRecommendations=1
 				;;
-			k8ObjectName)
-				k8ObjectName="${OPTARG}"
+			k8ObjectName=*)
+				k8ObjectName=${OPTARG#*=}
 				;;
-			k8ObjectType)
-				k8ObjectType="${OPTARG}"
+			k8ObjectType=*)
+				k8ObjectType=${OPTARG#*=}
+				;;
+			mode=*)
+				mode=${OPTARG#*=}
+				;;
+			dataDir=*)
+				resultsDir=${OPTARG#*=}
 				;;
 
                         *)
-                                if [ "${OPTERR}" == 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
-                                        echo "Unknown option --${OPTARG}" >&2
-                                        usage
-                                fi
-                                ;;
                 esac
                 ;;
 
