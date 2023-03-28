@@ -32,17 +32,22 @@ def form_kruize_url(cluster_type):
         ip = subprocess.run(['minikube ip'], shell=True, stdout=subprocess.PIPE)
         SERVER_IP=ip.stdout.decode('utf-8').strip('\n')
 
+        URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
+
     elif (cluster_type == "openshift"):
-        port = subprocess.run(['kubectl -n openshift-tuning get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)
+        #port = subprocess.run(['kubectl -n openshift-tuning get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)
 
-        AUTOTUNE_PORT=port.stdout.decode('utf-8').strip('\n')
-        print("PORT = ", AUTOTUNE_PORT)
+        #AUTOTUNE_PORT=port.stdout.decode('utf-8').strip('\n')
+        #print("PORT = ", AUTOTUNE_PORT)
 
-        ip = subprocess.run(['kubectl get pods -l=app=kruize -o wide -n openshift-tuning -o=custom-columns=NODE:.spec.nodeName --no-headers'], shell=True, stdout=subprocess.PIPE)
-        SERVER_IP=ip.stdout.decode('utf-8').strip('\n')
-        print("IP = ", SERVER_IP)
+        #ip = subprocess.run(['kubectl get pods -l=app=kruize -o wide -n openshift-tuning -o=custom-columns=NODE:.spec.nodeName --no-headers'], shell=True, stdout=subprocess.PIPE)
+        #SERVER_IP=ip.stdout.decode('utf-8').strip('\n')
+        #print("IP = ", SERVER_IP)
+        port = subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
+        kruize_URL = subprocess.run(['oc status -n openshift-tuning | grep "svc/kruize" | cut -d " " -f1'], shell=True, stdout=subprocess.PIPE)
+        URL = kruize_URL.stdout.decode('utf-8').strip('\n')
 
-    URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
+#    URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
     print ("\nKRUIZE AUTOTUNE URL = ", URL)
 
 

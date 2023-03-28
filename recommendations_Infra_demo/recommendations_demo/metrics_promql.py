@@ -141,13 +141,20 @@ def parse_results(results_map):
     return rows
 
 def write_header_to_csv():
-    with open('results.csv', 'a') as f:
+    with open(clusterResults, 'w') as f:
         writer = csv.DictWriter(f, fieldnames=csv_headers)
         writer.writeheader()
+
 
 def write_results_to_csv(rows):
     with open(clusterResults, 'a') as f:
         writer = csv.DictWriter(f, fieldnames=csv_headers)
+        for row in rows:
+            if row['cpu_usage_container_avg'] is not None:
+               writer.writerow(row)
+    with open("intervalResults.csv", 'w') as f:
+        writer = csv.DictWriter(f, fieldnames=csv_headers)
+        writer.writeheader()
         for row in rows:
             if row['cpu_usage_container_avg'] is not None:
                writer.writerow(row)

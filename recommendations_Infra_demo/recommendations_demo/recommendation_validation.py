@@ -3,15 +3,11 @@ import json
 import csv
 import sys
 
-filename = sys.argv[1]
-
-# Load the JSON data
-with open(filename, 'r') as f:
-    data = json.load(f)
-
-
 # Validate the recommendations generated to the csv created by scripts(which contains the recommendation logic)
-def validate_recomm():
+def validate_recomm(filename):
+    # Load the JSON data
+    with open(filename, 'r') as f:
+       data = json.load(f)
     df = pd.read_csv('recommendation_check.csv')
     # Compare the data for each time zone
     for json_data in data:
@@ -42,12 +38,15 @@ def validate_recomm():
 
 
 # Convert the recommendations json to csv to visualize the data manually.
-def recomm_csv():
+def update_recomm_csv(filename):
+    # Load the JSON data
+    with open(filename, 'r') as f:
+      data = json.load(f)
     # Open a CSV file for writing
-    with open('output.csv', 'w', newline='') as f:
+    with open('recommendationsOutput.csv', 'a', newline='') as f:
         writer = csv.writer(f)
         # Write the headers to the CSV file
-        writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
+        #writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
 
         # Compare the data for each time zone
         for json_data in data:
@@ -69,5 +68,23 @@ def recomm_csv():
                                 writer.writerow([cluster_json, exp_name_json, container_json, time_zone, duration_type, cpu_requests_json, memory_requests_json, cpu_limits_json, memory_limits_json])
 
 
+def create_recomm_csv():
+    # Open a CSV file for writing
+    with open('recommendationsOutput.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        # Write the headers to the CSV file
+        writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
 
-recomm_csv()
+def getUniquek8Objects(inputcsvfile):
+    column_name = 'k8ObjectName'
+    # Read the CSV file and get the unique values of the specified column
+    unique_values = set()
+    
+    with open(inputcsvfile, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            unique_values.add(row[column_name])
+            
+    return unique_values
+}
+

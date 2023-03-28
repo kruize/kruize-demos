@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 from kruize.kruize import *
+from recommendation_validation import *
 import sys, getopt
 import json
 import os
@@ -22,10 +23,10 @@ import time
 import csv
 
 def main(argv):
-    cluster_type = "minikube"
+#    cluster_type = "minikube"
 
     try:
-        opts, args = getopt.getopt(argv,"h:c:")
+        opts, args = getopt.getopt(argv,"h:c:p:e:r:")
     except getopt.GetoptError:
         print("demo.py -c <cluster type>")
         sys.exit(2)
@@ -35,6 +36,15 @@ def main(argv):
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
+        elif opt == '-p':
+            perf_profile_json_file = arg
+        elif opt == '-e':
+            tmp_create_exp_json_file = arg
+        elif opt == '-r':
+            resultscsv = arg
+    # Default duration to 6 hours if not passed.
+    if '-r' not in sys.argv:
+        resultscsv = 'metrics.csv'
 
     print("Cluster type = ", cluster_type)
 
@@ -89,20 +99,25 @@ def main(argv):
             # Sleep
             time.sleep(40)
 
-    reco = list_recommendations(experiment_name)
-    recommendations_json_arr.append(reco)
+            reco = list_recommendations(experiment_name)
+            recommendations_json_arr.append(reco)
 
-    # Dump the results & recommendations into json files
-    with open('recommendations_data.json', 'w') as f:
-        json.dump(recommendations_json_arr, f, indent=4)
+            # Dump the results & recommendations into json files
+            with open('recommendations_data.json', 'w') as f:
+               json.dump(recommendations_json_arr, f, indent=4)
 
-    list_exp_json = list_experiments()
-    with open('usage_data.json', 'w') as f:
-        json.dump(list_exp_json, f, indent=4)
+            list_exp_json = list_experiments()
+            with open('usage_data.json', 'w') as f:
+               json.dump(list_exp_json, f, indent=4)
 
-perf_profile_json_file = sys.argv[1]
-tmp_create_exp_json_file = sys.argv[2]
-resultscsv = sys.argv[3]
+            try:
+                update_recomm_csv("recommendations_data.json")
+            except subprocess.CalledProcessError as e:
+                output = e.output
+
+#perf_profile_json_file = sys.argv[1]
+#tmp_create_exp_json_file = sys.argv[2]
+#resultscsv = sys.argv[3]
 
 if __name__ == '__main__':
     main(sys.argv[1:])

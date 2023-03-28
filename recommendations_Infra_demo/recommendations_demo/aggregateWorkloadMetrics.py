@@ -5,6 +5,10 @@ import sys
 # Get filename from command line argument
 filename = sys.argv[1]
 
+# Save the output to
+outputResults = sys.argv[2]
+
+
 # Load the CSV file into a pandas DataFrame
 df = pd.read_csv(filename)
 
@@ -97,7 +101,7 @@ for filename in os.listdir(output_dir):
         df = df.drop_duplicates(subset=[col for col in df.columns if col not in columns_to_ignore])
         agg_df = agg_df.append(df)
 
-agg_df.to_csv('final.csv', index=False)
+agg_df.to_csv('./final.csv', index=False)
 
 #columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
 # Drop the columns like mentioned as they are only one of the value for a workload type.
@@ -105,4 +109,4 @@ agg_df.to_csv('final.csv', index=False)
 df1 = pd.read_csv('final.csv')
 df1.drop(columns_to_ignore, axis=1, inplace=True)
 
-df1.to_csv('metrics.csv', index=False)
+df1.to_csv(outputResults, index=False)

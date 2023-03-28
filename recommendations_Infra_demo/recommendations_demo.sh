@@ -21,6 +21,8 @@ source ${current_dir}/recommendations_demo/recommendation_helper.sh
 # Default docker image repos
 AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
 
+echo "${current_dir}/recommendations_demo/recommendation_helper.sh"
+
 # Default cluster
 CLUSTER_TYPE="openshift"
 
@@ -35,7 +37,7 @@ function usage() {
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
-	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
+	echo "visualize = Visualize the recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
 
@@ -116,8 +118,8 @@ function kruize_install() {
 
 function monitoring_demo_start() {
 
-	minikube >/dev/null
-	check_err "ERROR: minikube not installed"
+	#minikube >/dev/null
+	#check_err "ERROR: minikube not installed"
 	# Start all the installs
 	start_time=$(get_date)
 	echo
@@ -134,7 +136,7 @@ function monitoring_demo_start() {
 
 	echo "--> Installs Kruize"
 	echo "--> Creates experiments in monitoring mode"
-	echo "--> Updates resource usage metrics for one of the experiments"
+	echo "--> Updates the results into Kruize"
 	echo "--> Fetches the recommendations from Kruize"
 	echo
 
@@ -145,9 +147,13 @@ function monitoring_demo_start() {
 	#		echo "Starting minikube"		
 	#		minikube_start
 			if [[ ${monitorRecommendations} == 1 ]]; then
-				echo "Calling prometheus_install"
-				prometheus_install
-				echo "Calling prometheus_install done"
+				## Check if prometheus is running for valid benchmark results.
+		                prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+                		if [ "${prometheus_pod_running}" == "" ]; then
+					echo "Calling prometheus_install"
+					prometheus_install
+					echo "Calling prometheus_install done"
+				fi
 			fi
 		fi
 
@@ -160,11 +166,11 @@ function monitoring_demo_start() {
 	kruize_install
 
 	# Deploy benchmarks. Create an experiment, update results and fetch recommendations using Kruize REST APIs
-	if [ ${dataDrivenRecommendations} -eq 1 ]; then
+	if [[ ${dataDrivenRecommendations} -eq 1 ]]; then
 		echo "Passing rsultsDir as ${resultsDir}"
 		echo "#######################################"
 		# crc mode considers the individual data. Else, it considers the aggregated data.
-		if [ ${mode} == "crc" ]; then
+		if [[ ${mode} == "crc" ]]; then
 			echo "Running the recommendation Infra demo with the existing data in crc mode..."
 			monitoring_recommendations_demo_with_data ${resultsDir} crc
 		else
@@ -175,15 +181,17 @@ function monitoring_demo_start() {
 		echo "Completed"
 		echo "#######################################"
 		echo ""
-		echo "Use output.csv to generate visualizations for the generated recommendations."
+		echo "Use recommendationsOutput.csv to generate visualizations for the generated recommendations."
 	elif [[ ${monitorRecommendations} -eq 1 ]]; then
-		if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
-			echo "No k8 objects mentioned. Running with demo benchmark"
+		#if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
+		if [[ ${demoBenchmark} -eq 1 ]]; then
+			echo "Running the monitoring mode  with demo benchmark"
                         monitoring_recommendations_demo_with_benchmark
 		else
+			echo "Running the monitoring mode on a cluster"
 			monitoring_recommendations_demo_for_k8object
 		fi
-	elif [ ${compareRecommendations} -eq 1 ]; then
+	elif [[ ${compareRecommendations} -eq 1 ]]; then
                 comparing_recommendations_demo_with_data ./recommendations_demo/tfb-results/splitfiles
 	fi
 
@@ -258,6 +266,9 @@ do
 			compareRecommendations)
 				compareRecommendations=1
 				;;
+			demoBenchmark)
+				demoBenchmark=1
+				;;
 			k8ObjectName=*)
 				k8ObjectName=${OPTARG#*=}
 				;;
@@ -269,6 +280,9 @@ do
 				;;
 			dataDir=*)
 				resultsDir=${OPTARG#*=}
+				;;
+			clusterName=*)
+				CLUSTER_NAME=${OPTARG#*=}
 				;;
 
                         *)
@@ -308,6 +322,11 @@ done
 # Monitor the metrics in a cluster to generate recommendations
 
 # Benchmark specific recommendations
+
+# Copy the previous recommendationsOutput.csv into another for future purpose.
+if [ -e "recommendationsOutput.csv" ]; then
+	mv recommendationsOutput.csv recommendationsOutput-$(date +%Y%m%d).csv
+fi
 
 if [ ${start_demo} -eq 1 ]; then
 	monitoring_demo_start

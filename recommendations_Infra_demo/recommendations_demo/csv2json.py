@@ -7,14 +7,18 @@ import getopt
 
 
 def convert_date_format(input_date_str):
-    try:
-        input_date = datetime.datetime.strptime(input_date_str, "%a %b %d %H:%M:%S UTC %Y")
-    except ValueError:
-        time_obj = datetime.datetime.strptime(input_date_str, '%Y-%m-%dT%H:%M:%S.%f')
-        input_date = time_obj.astimezone(datetime.timezone.utc)
     
-    output_date_str = input_date.strftime('%Y-%m-%dT%H:%M:%S.000Z')
-    return output_date_str
+    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y", "%Y-%m-%dT%H:%M:%S.%f", "%a %b %d %H:%M:%S UTC %Y"]
+    
+    for date_format in DATE_FORMATS:
+        try:
+            dt = datetime.datetime.strptime(input_date_str, date_format)
+            dt_utc = dt.astimezone(datetime.timezone.utc)
+            output_date_str = dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            return output_date_str
+        except ValueError:
+            continue
+    raise ValueError(f"Unrecognized date format: {input_date}")
 
 
 def create_json_from_csv(csv_file_path):
@@ -34,12 +38,16 @@ def create_json_from_csv(csv_file_path):
             container_metrics_all = {}
             container_metrics = []
 
-	## Hardcoding for tfb-results. Will automate
-            row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
-            row["container_name"] = "tfb-server"
-            row["k8_object_type"] = "deployment"
-            row["k8_object_name"] = "tfb-qrh"
-            row["namespace"] = "autotune-tfb"
+	## Hardcoding for tfb-results and demo benchmark. Updating them only if these columns are not available.
+        ## Keep this until the metrics queries are fixed in benchmark to get the below column data
+            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" ]
+            for col in columns_tocheck:
+               if col not in row:
+                  row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
+                  row["container_name"] = "tfb-server"
+                  row["k8_object_type"] = "deployment"
+                  row["k8_object_name"] = "tfb-qrh"
+                  row["namespace"] = "autotune-tfb"
 		
             if row["cpu_request_container_avg"]:
                 container_metrics.append({

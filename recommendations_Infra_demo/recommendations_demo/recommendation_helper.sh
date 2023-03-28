@@ -1,35 +1,45 @@
 #!/bin/bash
 
 CLUSTER_TYPE=$1
+CLUSTER_NAME=$2
 current_dir="$(dirname "$0")"
 SCRIPTS_REPO=$current_dir/recommendations_demo
 
+
 # Run the benchmark
 function run_benchmark() {
-	BENCHMARK_SERVER="bm.example.com"
-	RESULTS_DIR="results"
-	TFB_IMAGE="kusumach/tfb-qrh:2.9.0.F_mm"
-	DB_TYPE="STANDALONE"
-	DB_HOST="e23-h37-740xd.alias.bos.scalelab.redhat.com"
-	NAMESPACE="autotune-tfb"
-	MODE="monitoring"
-	cpu_request=3
-	cpu_limit=8
-	memory_request=2048
-	memory_limit=4096
-	BENCHMARK_LOGFILE="benchmark.log"
-	DURATION=345600
-	
-	# Clone benchmarks (queries has monitoring mode enabled)
-	git clone https://github.com/kusumachalasani/benchmarks.git -b queries
-	
-	# For this demo, start only TFB benchmark.
-	# Command to run the TFB benchmark in monitoring mode with fixed loads
-	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s "${BENCHMARK_SERVER}" -e ${RESULTS_DIR} -g "${TFB_IMAGE}" --dbtype="${DB_TYPE}" --dbhost="${DB_HOST}" --mode="${MODE}" -r -d ${DURATION} -i 1 -n "${NAMESPACE}"  --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_limit} --memlim=${memory_limit}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}  &
+        RESULTS_DIR="results"
+        TFB_IMAGE="kusumach/tfb-qrh:2.9.0.F_mm"
+        DB_TYPE="docker"
+        NAMESPACE="recommendation-tests"
+        MODE="monitoring"
+        cpu_request=3
+        cpu_limit=8
+        memory_request=2048
+        memory_limit=4096
+        BENCHMARK_LOGFILE="benchmark.log"
+        DURATION=345600
+
+        # Clone benchmarks (queries has monitoring mode enabled)
+	if [ ! -d benchmarks ]; then
+		git clone https://github.com/kusumachalasani/benchmarks.git -b queries
+	else
+		pushd benchmarks >/dev/null
+                # Checkout the queries branch for now
+                git checkout queries
+		popd >/dev/null
+	fi
+
+
+        #git clone https://github.com/kusumachalasani/benchmarks.git -b queries
+
+        # For this demo, start only TFB benchmark.
+        # Command to run the TFB benchmark in monitoring mode with fixed loads
+        ./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s "${CLUSTER_NAME}" -e ${RESULTS_DIR} -g "${TFB_IMAGE}" --dbtype="${DB_TYPE}" --mode="${MODE}" -r -d ${DURATION} -i 1 -n "${NAMESPACE}"  --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_limit} --memlim=${memory_limit}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}  &
 
 }
 
-# Converts the results csv from benchmark into json
+
 function get_tfb_results_json() {
 
 	# Generate the json from the results of the benchmark. Uses TFB benchmark data for this demo.
@@ -49,7 +59,7 @@ function get_tfb_results_json() {
         ${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
 
         ## Convert the csv into json
-        python3 ${SCRIPTS_REPO}/csv2json.py ${SCRIPTS_REPO}/results/metrics.csv ${SCRIPTS_REPO}/results/results.json
+        #python3 ${SCRIPTS_REPO}/csv2json.py ${SCRIPTS_REPO}/results/metrics.csv ${SCRIPTS_REPO}/results/results.json
 
 }
 
@@ -57,13 +67,19 @@ function get_tfb_results_json() {
 function run_monitoring_exp() {
 	resultsFile=$1
 	## Generate recommendations for the csv
-	python3 ${SCRIPTS_REPO}/recommendation_exp.py ./recommendations_demo/json_files/resource_optimization_openshift.json ./recommendations_demo/json_files/create_exp.json ${resultsFile}
+	python3 ${SCRIPTS_REPO}/recommendation_exp.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${resultsFile}
 }
 
 # Generates recommendations along with the benchmark run in parallel
 function monitoring_recommendations_demo_with_benchmark() {
 
-        # Get the latest directory in the "results" folder
+        echo "Running the benchmark demo...."
+	run_benchmark
+
+	echo "Sleep for 15 mins before gathering the results"
+	sleep 15m
+	echo "Gathering the results..."
+	# Get the latest directory in the "results" folder
         BENCHMARK_RESULTS_DIR="./benchmarks/techempower/results"
         latest_dir=$(find $BENCHMARK_RESULTS_DIR -type d -printf '%T@ %p\n' | sort -n | tail -1 | awk '{print $2}')
 
@@ -71,8 +87,11 @@ function monitoring_recommendations_demo_with_benchmark() {
 	now=$(date +%s)
 	max_iterations_without_update=3
 	interval=900
+	iterations_without_update=0
 	while true; do
-		iterations_without_update=0
+		# Clean up any intermediate files
+		rm -rf ${SCRIPTS_REPO}/results/* aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv
+
 		file="$latest_dir"/cpu_metrics.csv
 		modified_time=$(date -r "$file" +%s)
 		# Calculate the time difference between the current time and the file's modification time
@@ -80,20 +99,20 @@ function monitoring_recommendations_demo_with_benchmark() {
 		# Check if the time difference is less than or equal to 3600 seconds (1 hour)
 		if [ $time_diff -le $interval ]; then
 			echo "$file was modified in the last $interval seconds"
-			get_tfb_results_json 4 $latest_dir
-			run_monitoring_exp
+			get_tfb_results_json 1 $latest_dir
+			run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
 			
 		else
 			echo "$file was not modified in the $interval seconds"
+			# Increment the counter and exit the loop if it exceeds the threshold
+                	iterations_without_update=$(( iterations_without_update + 1 ))
+	                if [[ $iterations_without_update -gt $max_iterations_without_update ]]; then
+        	                echo "No updates in the last 3 intervals. Exiting loop."
+                	        exit 0
+                	fi
 		fi
 		now=$(date +%s)
 		sleep ${interval}s
-		# Increment the counter and exit the loop if it exceeds the threshold
-		iterations_without_update=$(( iterations_without_update + 1 ))
-		if [[ $iterations_without_update -gt $max_iterations_without_update ]]; then
-			echo "No updates in the last 3 intervals. Exiting loop."
-			exit 0
-		fi
 	done
 }
 
@@ -107,50 +126,62 @@ function monitoring_recommendations_demo_for_k8object() {
 	# Use clsuter , namespace , object name details for monitor metrics
 	# Monitor metrics for that object
 	# Below function save data in clusterresults.csv
+	echo "Running monitor metrics..."
 	monitor_metrics
 
+	echo "Sleeping for 15 mins...."
 	# Sleep for 15m to ensure it starts collecting some data.
-	sleep 15m
+	sleep 2m
 
 	# Assuming, monitor_metrics collects the data in 
         #BENCHMARK_RESULTS_DIR="${SCRIPTS_REPO}/results-${k8_object_type}-${k8_object}"
+
+        if [ ! -d "${SCRIPTS_REPO}/results" ]; then
+                mkdir -p ${SCRIPTS_REPO}/results
+        fi
+
+	# Create the headers for recommendationsOutput.csv
+	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
 
         # Get the current time in Unix timestamp format
         now=$(date +%s)
         max_iterations_without_update=3
 	# Updates the results for every 15 mins.
 	interval=900
-	numoflines = $interval / 900
+	numoflines=$((interval/900))
+	iterations_without_update=0
         while true; do
-                iterations_without_update=0
-                #file="$BENCHMARK_RESULTS_DIR"/cpu_metrics.csv
+		# Cleanup any previous temporary files
+		rm -rf ${SCRIPTS_REPO}/results/* aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv
 		file=clusterresults.csv
-                modified_time=$(date -r "$file" +%s)
-                # Calculate the time difference between the current time and the file's modification time
-                time_diff=$((now - modified_time))
-                # Check if the time difference is less than or equal to 3600 seconds (1 hour)
-                if [ $time_diff -le $interval ]; then
+ 		intervalResultsFile=intervalResults.csv
+		fileModifiedIn15mins=`find $file -type f -mmin -15`
+		if [[ ${fileModifiedIn15mins} == "clusterresults.csv" ]]; then
                         echo "$file was modified in the last $interval seconds"
-			## TODO: Below aggregateWorkloadMetrics aggregates for the whole file. Instead we can do it for specific interval.	
-			python3 recommendations_demo/aggregateWorkloadMetrics.py $file	
+			echo "Aggregating the metrics from the cluster.."
+			python3 recommendations_demo/aggregateWorkloadMetrics.py $intervalResultsFile aggregateClusterResults.csv
 			#Get the last lines to send to Kruize updateresults API
 			# Assumption only 1 application is running.
-			{ head -n 1 $file; tail -n ${numoflines} $file; } > ${SCRIPTS_REPO}/results/metrics.csv
+			{ head -n 1 aggregateClusterResults.csv; tail -n ${numoflines} aggregateClusterResults.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
 			${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
 				
                         run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
+			sleep 10
+	#		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 
                 else
                         echo "$file was not modified in the $interval seconds"
+			# Increment the counter and exit the loop if it exceeds the threshold
+			iterations_without_update=$(( iterations_without_update + 1 ))
+	                if [[ $iterations_without_update -gt $max_iterations_without_update ]]; then
+        	                echo "No updates in the last 3 intervals. Exiting loop."
+                	        exit 0
+                	fi
+
                 fi
-                now=$(date +%s)
+		echo "Sleeping for ${interval}s"
                 sleep ${interval}s
-                # Increment the counter and exit the loop if it exceeds the threshold
-                iterations_without_update=$(( iterations_without_update + 1 ))
-                if [[ $iterations_without_update -gt $max_iterations_without_update ]]; then
-                        echo "No updates in the last 3 intervals. Exiting loop."
-                        exit 0
-                fi
+		echo "Came out of sleep...."
         done
 }
 
@@ -164,32 +195,33 @@ function monitoring_recommendations_demo_with_data() {
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
 	fi
-
+	# Create headers for recommendationsOutput.csv
+	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
 	# Commenting this out as we may not require now as updating multiple results are not supported.
         #split_csvs $BENCHMARK_RESULTS_DIR
 
 	#for file in "$BENCHMARK_RESULTS_DIR"/splitfiles/*.csv; do
 	for file in "$BENCHMARK_RESULTS_DIR"/*.csv; do
 		echo "File is found.... $file"
+		# Cleanup of previous temporary scripts
+		rm -rf ${SCRIPTS_REPO}/results/* metrics.csv
 		if [ -s "$file" ] && [ $(wc -l < "$file") -gt 1 ]; then
-			if [ ${MODE} == "crc" ];then
+			if [[ ${MODE} == "crc" ]];then
 				echo "Running the results of crc mode.........................."
 				# metrics.csv is generated with aggregated data for a k8 object.
-				python3 recommendations_demo/aggregateWorkloadMetrics.py $file
+				python3 recommendations_demo/aggregateWorkloadMetrics.py $file metrics.csv
 				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
-				#python3 ${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
 				run_monitoring_exp metrics.csv
 			else
 				${SCRIPTS_REPO}/replaceheaders.sh $file
 				## Convert the csv into json
-				#python3 ${SCRIPTS_REPO}/csv2json.py $file ${SCRIPTS_REPO}/results/results.json
 				run_monitoring_exp $file
 			fi
-	#		validate_recommendations recommendation_data.json
+#			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 			sleep 1s
 		fi
 	done
-	validate_recommendations recommendations_data.json
+	#validate_recommendations recommendations_data.json
 }
 
 # Split the csv data into multiple files of 6 hr data.
@@ -217,7 +249,7 @@ function split_csvs() {
 
 function validate_recommendations() {
 	recommendation_json=$1
-	python ${SCRIPTS_REPO}/recommendation_validation.py $recommendation_json
+	python3 ${SCRIPTS_REPO}/recommendation_validation.py $recommendation_json
 }
 
 # Compare the recommendations for different versions for a data
@@ -228,22 +260,8 @@ function comparing_recommendations_demo_with_data() {
 function monitor_metrics() {
 	#./monitor_metrics_promql.sh
 	# Below function save data in clusterresults.csv by default. Provide -r for custom csvfileName.
-	nohup python metrics_promql.py -c minikube -s localhost &
+	echo "Running the metrics monitor script as python3 metrics_promql.py -c ${CLUSTER_TYPE} -s ${CLUSTER_NAME}"
+	nohup python3 ${SCRIPTS_REPO}/metrics_promql.py -c ${CLUSTER_TYPE} -s ${CLUSTER_NAME} &
 
-}
-
-function getUniquek8Objects() {
-	inputcsvfile=$1
-	column_name = 'k8ObjectName'
-	
-	# Read the CSV file and get the unique values of the specified column
-	unique_values = set()
-
-	with open(inputcsvfile, 'r') as csv_file:
-           csv_reader = csv.DictReader(csv_file)
-       	   for row in csv_reader:
-	      unique_values.add(row[column_name])
-	      
-	return unique_values
 }
 
