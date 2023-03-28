@@ -86,5 +86,4 @@ def getUniquek8Objects(inputcsvfile):
             unique_values.add(row[column_name])
             
     return unique_values
-}
 
