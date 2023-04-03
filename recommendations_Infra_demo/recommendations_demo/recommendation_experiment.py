@@ -26,45 +26,51 @@ import csv
 def match_experiments(listexperimentsjson,inputcsv):
     with open(listexperimentsjson, 'r') as jsonfile:
         data = json.load(jsonfile)
-       
+    experiments = 0
+    counter = 0
     if not data:
-        print("No experiments found!")
+            print("No experiments found!")
     else:
-        for key, value in data.items():
-            if "experiment_name" in value:
-                experiment_name = value["experiment_name"]
-            if "deployments" in value:
-                for k,v in value["deployments"].items():
-                    if "name" in v:
-                        k8ObjectName = v["name"]
-                    if "namespace" in v:
-                        namespace = v["namespace"]
-                    if "type" in v:
-                        k8ObjectType = v["type"]
-                    if "containers" in v:
-                        for k1,v1 in v["containers"].items():
-                            if "container_name" in v1:
-                                containerName = v1["container_name"]
-                                
-            with open(inputcsv, 'r') as csvfile:
+            with  open(inputcsv, 'r') as csvfile:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
-                    #print(row)
-                    if row["k8_object_name"] == k8ObjectName and row["namespace"] == namespace and row["k8_object_type"].lower() == k8ObjectType.lower() and row["container_name"] == containerName:
-                        print("The experiment exists with the same name, type, namespace and container")
-                    elif row["k8_object_name"] == k8ObjectName and row["namespace"] == namespace and row["k8_object_type"].lower() == k8ObjectType.lower():
-                        print("The experiment exists with the same name, type, namespace. Container is different.")
-                    elif row["k8_object_name"] == k8ObjectName and row["namespace"] == namespace and row["container_name"] == containerName:
-                        print("The experiment exists with the same name, namespace and container. But the type is different")
-                    elif row["k8_object_name"] == k8ObjectName and row["k8_object_type"].lower() == k8ObjectType.lower() and row["container_name"] == containerName:
-                        print("The experiment exists with the same name, type, container. But on a different namespace")
-                    elif row["k8_object_name"] == k8ObjectName:
-                        print("The experiment exists with the same name")
-                    else:
-                        print("The experiment is not matching with any existing ones")
-                    print("Experiment details from experiment.json : name= ",k8ObjectName,"; Type= ",k8ObjectType," ; Container= ",containerName, "Namespace=", namespace)
-                    print("Experiment details from results : name= ",row["k8_object_name"],"; Type= ",row["k8_object_type"]," ; Container= ",row["container_name"], "Namespace=", row["namespace"]) 
+                    for key, value in data.items():
+                        if "experiment_name" in value:
+                           experiment_name = value["experiment_name"]
+                           experiments += 1
+                   # Assuming single kubernetes object
+                        if "kubernetes_objects" in value:
+                           kobj = value["kubernetes_objects"][0]
+                           containerNames=[]
+                           for k,v in kobj.items():
+                               if "name" in k:
+                                  k8ObjectName = kobj["name"]
+                               if "namespace" in k:
+                                  namespace = kobj["namespace"]
+                               if "type" in k:
+                                  k8ObjectType = kobj["type"]
+                               if "containers" in k:
+                                  for container in kobj["containers"].values():
+                                      containerName = container["container_name"]
+                                      containerNames.append(containerName)
+                        print("Experiment details from experiment.json : name= ",k8ObjectName,"; Type= ",k8ObjectType," ; Container= ",containerNames, "Namespace=", namespace)
 
+                        if row["k8_object_name"] == k8ObjectName and row["namespace"] == namespace and row["k8_object_type"].lower() == k8ObjectType.lower():
+                           if row["container_name"] in containerNames:
+                              print("The experiment exists with the same name, type, namespace and container")
+                              break
+                           else:
+                              print("The experiment exists with the same name, type, namespace. Container is different.")
+                              break
+                        elif row["k8_object_name"] == k8ObjectName:
+                           print("The experiment exists with the same name.But, type and namespace might be different.")
+                           break
+                        else:
+                           counter += 1
+                           continue
+                    print("Experiment details from results : name= ",row["k8_object_name"],"; Type= ",row["k8_object_type"]," ; Container= ",row["container_name"], "Namespace=", row["namespace"])
+            if experiments == counter:
+               print("The experiment is not matching with any existing ones.")
 
 
 def create_expjson(clustername,filename):
