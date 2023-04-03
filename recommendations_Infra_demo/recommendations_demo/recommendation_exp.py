@@ -22,6 +22,55 @@ import os
 import time
 import csv
 
+def updateResults(resultscsv):
+    # Create json using each row of a csv and update results
+    with open(resultscsv, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        header = next(reader)
+        for row in reader:
+            if not any(row):
+                continue
+            with open('intermediate.csv', mode='w', newline='') as outfile:
+                writer = csv.writer(outfile)
+                writer.writerow(header)
+                writer.writerow(row)
+            try:
+                subprocess.run(['python3', './recommendations_demo/csv2json.py', './intermediate.csv', './recommendations_demo/results/results.json'])
+            except subprocess.CalledProcessError as e:
+                output = e.output
+
+            print("Get list experiments before starting to update results")
+            list_exp_json = list_experiments()
+            with open('list_experiments_data.json', 'w') as f:
+               json.dump(list_exp_json, f, indent=4)
+
+            print("SLeeping for 1 min to debug")
+            time.sleep(60)
+
+            json_file = "./recommendations_demo/results/results.json"
+            update_results(json_file)
+
+            # Sleep
+            time.sleep(40)
+
+            reco = list_recommendations(experiment_name)
+            recommendations_json_arr.append(reco)
+
+            # Dump the results & recommendations into json files
+            with open('recommendations_data.json', 'w') as f:
+               json.dump(recommendations_json_arr, f, indent=4)
+
+            list_exp_json = list_experiments()
+            with open('usage_data.json', 'w') as f:
+               json.dump(list_exp_json, f, indent=4)
+
+            try:
+                update_recomm_csv("recommendations_data.json")
+            except subprocess.CalledProcessError as e:
+                output = e.output
+
+
+
 def main(argv):
 #    cluster_type = "minikube"
 
@@ -61,11 +110,13 @@ def main(argv):
 
     json_data = json.load(open(tmp_create_exp_json_file))
     experiment_name = json_data[0]['experiment_name']
-    deployment_name = json_data[0]['kubernetes_objects'][0]['name']
+    k8ObjectName = json_data[0]['kubernetes_objects'][0]['name']
+    k8ObjectType = json_data[0]['kubernetes_objects'][0]['type']
     namespace = json_data[0]['kubernetes_objects'][0]['namespace']
 
     print("Experiment name = ", experiment_name)
-    print("Deployment name = ", deployment_name)
+    print("K8 Object name = ", k8ObjectName)
+    print("K8 Object type = ",k8ObjectType
     print("Namespace = ", namespace)
 
     # Post the experiment results
@@ -92,6 +143,15 @@ def main(argv):
                 subprocess.run(['python3', './recommendations_demo/csv2json.py', './intermediate.csv', './recommendations_demo/results/results.json'])
             except subprocess.CalledProcessError as e:
                 output = e.output
+
+            print("Get list experiments before starting to update results")
+            list_exp_json = list_experiments()
+            with open('list_experiments_data.json', 'w') as f:
+               json.dump(list_exp_json, f, indent=4)
+
+            print("SLeeping for 1 min to debug")
+            time.sleep(60)
+
                 
             json_file = "./recommendations_demo/results/results.json"
             update_results(json_file)

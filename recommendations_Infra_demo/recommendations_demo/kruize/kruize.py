@@ -73,10 +73,8 @@ def create_experiment(input_json_file):
         print("\nCreating the experiment...")
 
         url = URL + "/createExperiment"
-        print("URL = ", url)
-
         response = requests.post(url, json=input_json)
-        print("Response status code = ", response.status_code)
+        print("URL = ", url, "   Response status code = ", response.status_code)
         print(response.text)
 
 # Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
@@ -91,10 +89,8 @@ def update_results(result_json_file):
 
     print("\nUpdating the results...")
     url = URL + "/updateResults"
-    print("URL = ", url)
-
     response = requests.post(url, json=result_json)
-    print("Response status code = ", response.status_code)
+    print("URL = ", url, "  Response status code = ", response.status_code)
     print(response.text)
     return response
 
@@ -104,11 +100,9 @@ def list_recommendations(experiment_name):
 
     print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
-    print("URL = ", url)
-
     PARAMS = {'experiment_name': experiment_name}
     response = requests.get(url = url, params = PARAMS)
-    print("Response status code = ", response.status_code)
+    print("URL = ", url, "  Response status code = ", response.status_code)
 
     return response.json()
 
@@ -121,10 +115,8 @@ def create_performance_profile(perf_profile_json_file):
 
     print("\nCreating performance profile...")
     url = URL + "/createPerformanceProfile"
-    print("URL = ", url)
-
     response = requests.post(url, json=perf_profile_json)
-    print("Response status code = ", response.status_code)
+    print("URL = ", url , "   Response status code = ", response.status_code)
     print(response.text)
     return response
 
@@ -133,10 +125,8 @@ def list_experiments():
 
     print("\nListing the experiments...")
     url = URL + "/listExperiments"
-    print("URL = ", url)
-
     response = requests.get(url = url)
-    print("Response status code = ", response.status_code)
+    print("URL = ", url, "   Response status code = ", response.status_code)
 
     return response.json()
 

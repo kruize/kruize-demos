@@ -167,7 +167,6 @@ function monitoring_demo_start() {
 
 	# Deploy benchmarks. Create an experiment, update results and fetch recommendations using Kruize REST APIs
 	if [[ ${dataDrivenRecommendations} -eq 1 ]]; then
-		echo "Passing rsultsDir as ${resultsDir}"
 		echo "#######################################"
 		# crc mode considers the individual data. Else, it considers the aggregated data.
 		if [[ ${mode} == "crc" ]]; then

@@ -20,7 +20,8 @@ function run_benchmark() {
         BENCHMARK_LOGFILE="benchmark.log"
         DURATION=345600
 
-        # Clone benchmarks (queries has monitoring mode enabled)
+	# Only until the PR #54 is merged
+	# Clone benchmarks (queries has monitoring mode enabled)
 	if [ ! -d benchmarks ]; then
 		git clone https://github.com/kusumachalasani/benchmarks.git -b queries
 	else
@@ -53,10 +54,15 @@ function get_tfb_results_json() {
                 mkdir -p ${SCRIPTS_REPO}/results
         fi
 
+	#Clean up if any old results exists
+	rm -rf ${SCRIPTS_REPO}/results/metrics.csv
+
 	#echo "find $latest_dir -name "*.csv" -type f -exec paste -d ',' {} +"
 	find $latest_dir -name "*.csv" -type f -exec paste -d ',' {} + > merged.csv
-        { head -n 1 merged.csv; tail -n ${get_lines} merged.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
-        ${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
+	if [[ $(wc -l < merged.csv) -gt 1 ]]; then
+	        { head -n 1 merged.csv; tail -n ${get_lines} merged.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
+        	${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
+	fi
 
         ## Convert the csv into json
         #python3 ${SCRIPTS_REPO}/csv2json.py ${SCRIPTS_REPO}/results/metrics.csv ${SCRIPTS_REPO}/results/results.json
@@ -67,7 +73,7 @@ function get_tfb_results_json() {
 function run_monitoring_exp() {
 	resultsFile=$1
 	## Generate recommendations for the csv
-	python3 ${SCRIPTS_REPO}/recommendation_exp.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${resultsFile}
+	python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${resultsFile}
 }
 
 # Generates recommendations along with the benchmark run in parallel
@@ -91,7 +97,6 @@ function monitoring_recommendations_demo_with_benchmark() {
 	while true; do
 		# Clean up any intermediate files
 		rm -rf ${SCRIPTS_REPO}/results/* aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv
-
 		file="$latest_dir"/cpu_metrics.csv
 		modified_time=$(date -r "$file" +%s)
 		# Calculate the time difference between the current time and the file's modification time
@@ -100,7 +105,9 @@ function monitoring_recommendations_demo_with_benchmark() {
 		if [ $time_diff -le $interval ]; then
 			echo "$file was modified in the last $interval seconds"
 			get_tfb_results_json 1 $latest_dir
-			run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
+			if [[ -f ${SCRIPTS_REPO}/results/metrics.csv ]]; then
+				run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
+			fi
 			
 		else
 			echo "$file was not modified in the $interval seconds"
@@ -159,10 +166,13 @@ function monitoring_recommendations_demo_for_k8object() {
 		if [[ ${fileModifiedIn15mins} == "clusterresults.csv" ]]; then
                         echo "$file was modified in the last $interval seconds"
 			echo "Aggregating the metrics from the cluster.."
-			python3 recommendations_demo/aggregateWorkloadMetrics.py $intervalResultsFile aggregateClusterResults.csv
+			#python3 recommendations_demo/aggregateWorkloadMetrics.py $intervalResultsFile aggregateClusterResults.csv
+			python -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(intervalResultsFile, "aggregateClusterResults.csv")"
 			#Get the last lines to send to Kruize updateresults API
 			# Assumption only 1 application is running.
-			{ head -n 1 aggregateClusterResults.csv; tail -n ${numoflines} aggregateClusterResults.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
+			#{ head -n 1 aggregateClusterResults.csv; tail -n ${numoflines} aggregateClusterResults.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
+			#COnsidering all apps except openshift specific
+			cp aggregateClusterResults.csv ${SCRIPTS_REPO}/results/metrics.csv
 			${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
 				
                         run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
@@ -191,7 +201,6 @@ function monitoring_recommendations_demo_with_data() {
 	BENCHMARK_RESULTS_DIR=$1
 	MODE=$2
 	echo "Results Dir is ... ${BENCHMARK_RESULTS_DIR}"
-	echo "MODE is $MODE"
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
 	fi
@@ -202,14 +211,15 @@ function monitoring_recommendations_demo_with_data() {
 
 	#for file in "$BENCHMARK_RESULTS_DIR"/splitfiles/*.csv; do
 	for file in "$BENCHMARK_RESULTS_DIR"/*.csv; do
-		echo "File is found.... $file"
 		# Cleanup of previous temporary scripts
 		rm -rf ${SCRIPTS_REPO}/results/* metrics.csv
 		if [ -s "$file" ] && [ $(wc -l < "$file") -gt 1 ]; then
 			if [[ ${MODE} == "crc" ]];then
 				echo "Running the results of crc mode.........................."
 				# metrics.csv is generated with aggregated data for a k8 object.
-				python3 recommendations_demo/aggregateWorkloadMetrics.py $file metrics.csv
+				#python3 recommendations_demo/aggregateWorkloadMetrics.py $file metrics.csv
+				echo "Running python3 script for for recommendations_demo.recommendation_validation.aggregateWorkloads(file,metrics.csv)"
+				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
 				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
 				run_monitoring_exp metrics.csv
 			else

@@ -2,6 +2,10 @@ import pandas as pd
 import json
 import csv
 import sys
+import os
+import datetime
+import getopt
+
 
 # Validate the recommendations generated to the csv created by scripts(which contains the recommendation logic)
 def validate_recomm(filename):
@@ -84,6 +88,294 @@ def getUniquek8Objects(inputcsvfile):
         csv_reader = csv.DictReader(csv_file)
         for row in csv_reader:
             unique_values.add(row[column_name])
-            
     return unique_values
+
+
+def aggregateWorkloads(filename, outputResults):
+
+    print("filename is..")
+    print(filename)
+    print(outputResults)
+
+    # Load the CSV file into a pandas DataFrame
+    df = pd.read_csv(filename)
+
+    #Remove the rows if there is no owner_kind, owner_name and workload
+    # Expected to ignore rows which can be pods / invalid
+    columns_to_check = ['owner_kind', 'owner_name', 'workload', 'workload_type']
+    df = df.dropna(subset=columns_to_check, how='any')
+
+    # Create a column with k8_object_type
+    # Based on the data observed, these are the assumptions:
+    # If owner_kind is 'ReplicaSet' and workload is '<none>', actual workload_type is ReplicaSet
+    # If owner_kind is 'ReplicationCOntroller' and workload is '<none>', actual workload_type is ReplicationController
+    # If owner_kind and workload has some names, workload_type is same as derived through queries.
+
+    df['k8_object_type'] = ''
+    for i, row in df.iterrows():
+        if row['owner_kind'] == 'ReplicaSet' and row['workload'] == '<none>':
+            df.at[i, 'k8_object_type'] = 'replicaset'
+        elif row['owner_kind'] == 'ReplicationController' and row['workload'] == '<none>':
+            df.at[i, 'k8_object_type'] = 'replicationcontroller'
+        else:
+            df.at[i, 'k8_object_type'] = row['workload_type']
+
+    # Update k8_object_name based on the type and workload.
+    # If the workload is <none> (which indicates ReplicaSet and ReplicationCOntroller - ignoring pods/invalid cases), the name of the k8_object can be owner_name.
+    # If the workload has some other name, the k8_object_name is same as workload. In this case, owner_name cannot be used as there can be multiple owner_names for the same deployment(considering there are multiple replicasets)
+
+    df['k8_object_name'] = ''
+    for i, row in df.iterrows():
+        if row['workload'] != '<none>':
+            df.at[i, 'k8_object_name'] = row['workload']
+        else:
+            df.at[i, 'k8_object_name'] = row['owner_name']
+
+    df.to_csv('cop-withobjType.csv', index=False)
+
+    # Specify the columns to sort by
+    # Sort and grpup the data based on below columns to get a container for a workload and for an interval.
+    # Each file generated is for a single timestamp and a container for a workload and will be aggregated to a single metrics value.
+    #sort_columns = ['namespace', 'k8_object_type', 'owner_name', 'image_name', 'container_name', 'interval_start']
+    sort_columns = ['namespace', 'k8_object_type', 'workload', 'container_name', 'interval_start']
+    sorted_df = df.sort_values(sort_columns)
+
+    # Group the rows by the unique values
+    grouped = sorted_df.groupby(sort_columns)
+
+    # Create a directory to store the output CSV files
+    output_dir = 'output'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Write each group to a separate CSV file
+    counter = 0
+    for key, group in grouped:
+        counter += 1
+        filename = f"file_{counter}.csv"
+        #    filename = '_'.join(str(x) for x in key) + '.csv'
+        filepath = os.path.join(output_dir, filename)
+        group.to_csv(filepath, index=False)
+
+    #Create a temporary file with a header to append the aggregate data from multiple files.
+    # Extract the header row
+    header_row = df.columns.tolist()
+    agg_df = pd.DataFrame(columns=header_row)
+    columns_to_ignore = ['pod', 'owner_name', 'node']
+    if 'resource_id' in df.columns:
+        columns_to_ignore.append('resource_id')
+        #columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
+
+    for filename in os.listdir(output_dir):
+        if filename.endswith('.csv'):
+            filepath = os.path.join(output_dir, filename)
+            df = pd.read_csv(filepath)
+
+            # Calculate the average and minimum values for specific columns
+            for column in df.columns:
+                if column.endswith('avg'):
+                    avg = df[column].mean()
+                    df[column] = avg
+                elif column.endswith('min'):
+                    minimum = df[column].min()
+                    df[column] = minimum
+                elif column.endswith('max'):
+                    maximum = df[column].max()
+                    df[column] = maximum
+                elif column.endswith('sum'):
+                    total = df[column].sum()
+                    df[column] = total
+
+            df = df.drop_duplicates(subset=[col for col in df.columns if col not in columns_to_ignore])
+            agg_df = agg_df.append(df)
+
+    agg_df.to_csv('./final.csv', index=False)
+    #columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
+    # Drop the columns like mentioned as they are only one of the value for a workload type.
+    # For a deployment work_type, only one pod value is picked irrespective of multiple pods as the metrics are aggregated. This is optional
+
+    df1 = pd.read_csv('final.csv')
+    df1.drop(columns_to_ignore, axis=1, inplace=True)
+    df1.to_csv(outputResults, index=False)
+
+
+def convert_date_format(input_date_str):
+
+    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y", "%Y-%m-%dT%H:%M:%S.%f", "%a %b %d %H:%M:%S UTC %Y"]
+
+    for date_format in DATE_FORMATS:
+        try:
+            dt = datetime.datetime.strptime(input_date_str, date_format)
+            dt_utc = dt.astimezone(datetime.timezone.utc)
+            output_date_str = dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            return output_date_str
+        except ValueError:
+            continue
+    raise ValueError(f"Unrecognized date format: {input_date}")
+
+
+def create_json_from_csv(csv_file_path, outputjsonfile):
+
+    # Check if output file already exists. If yes, delete that.
+    ## TODO: Recheck if this is necessary
+    if os.path.exists(outputjsonfile):
+        os.remove(outputjsonfile)
+
+    # Define the list that will hold the final JSON data
+    json_data = []
+
+    # Create an empty list to hold the deployments
+    deployments = []
+    mebibyte = 1048576
+
+    # Open the CSV file
+    with open(csv_file_path, 'r') as csvfile:
+        # Create a CSV reader object
+        csvreader = csv.DictReader(csvfile)
+
+        for row in csvreader:
+            container_metrics_all = {}
+            container_metrics = []
+
+	## Hardcoding for tfb-results and demo benchmark. Updating them only if these columns are not available.
+        ## Keep this until the metrics queries are fixed in benchmark to get the below column data
+            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" ]
+            for col in columns_tocheck:
+               if col not in row:
+                  row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
+                  row["container_name"] = "tfb-server"
+                  row["k8_object_type"] = "deployment"
+                  row["k8_object_name"] = "tfb-qrh"
+                  row["namespace"] = "autotune-tfb"
+
+            if row["cpu_request_container_avg"]:
+                container_metrics.append({
+			"name": "cpuRequest",
+                        "results": {
+                            "aggregation_info": {
+                                "sum": float(row["cpu_request_container_sum"]),
+                                "avg": float(row["cpu_request_container_avg"]),
+                                "units": "cores"
+                                }
+                            }
+			})
+            if row["cpu_limit_container_avg"]:
+                container_metrics.append({
+			"name" : "cpuLimit",
+                        "results": {
+                            "aggregation_info": {
+                                "sum": float(row["cpu_limit_container_sum"]),
+                                "avg": float(row["cpu_limit_container_avg"]),
+                                "units": "cores"
+                                }
+                            }
+                        })
+            if row["cpu_throttle_container_max"]:
+                container_metrics.append({
+			"name" : "cpuThrottle",
+                        "results": {
+                            "aggregation_info": {
+                                "sum": float(row["cpu_throttle_container_sum"]),
+                                "max": float(row["cpu_throttle_container_max"]),
+                                "avg": float(row["cpu_throttle_container_avg"]),
+                                "units": "cores"
+                                }
+                            }
+                        })
+            container_metrics.append({
+		    "name" : "cpuUsage",
+                    "results": {
+                        "aggregation_info": {
+                            "sum": float(row["cpu_usage_container_sum"]),
+                            "min": float(row["cpu_usage_container_min"]),
+                            "max": float(row["cpu_usage_container_max"]),
+                            "avg": float(row["cpu_usage_container_avg"]),
+                            "units": "cores"
+                            }
+                        }
+                    })
+            if row["memory_request_container_avg"]:
+                container_metrics.append({
+			"name" : "memoryRequest",
+                        "results": {
+                            "aggregation_info": {
+                                "sum": float(row["memory_request_container_sum"])/mebibyte,
+                                "avg": float(row["memory_request_container_avg"])/mebibyte,
+                                "units": "MiB"
+                                }
+                            }
+                        })
+            if row["memory_limit_container_avg"]:
+                container_metrics.append({
+			"name" : "memoryLimit",
+                        "results": {
+                            "aggregation_info": {
+                                "sum": float(row["memory_limit_container_sum"])/mebibyte,
+                                "avg": float(row["memory_limit_container_avg"])/mebibyte,
+                                "units": "MiB"
+                                }
+                            }
+                        })
+            container_metrics.append({
+		    "name" : "memoryUsage",
+                    "results": {
+                        "aggregation_info": {
+                            "min": float(row["memory_usage_container_min"])/mebibyte,
+                            "max": float(row["memory_usage_container_max"])/mebibyte,
+                            "sum": float(row["memory_usage_container_sum"])/mebibyte,
+                            "avg": float(row["memory_usage_container_avg"])/mebibyte,
+                            "units": "MiB"
+                        }
+                    }
+                })
+            container_metrics.append({
+		    "name" : "memoryRSS",
+                    "results": {
+                        "aggregation_info": {
+                            "min": float(row["memory_rss_usage_container_min"])/mebibyte,
+                            "max": float(row["memory_rss_usage_container_max"])/mebibyte,
+                            "sum": float(row["memory_rss_usage_container_sum"])/mebibyte,
+                            "avg": float(row["memory_rss_usage_container_avg"])/mebibyte,
+                            "units": "MiB"
+                        }
+                    }
+                })
+
+            #if container_metrics:
+            #    container_metrics_all["metrics"].update(container_metrics)
+
+            # Create a dictionary to hold the container information
+            container = {
+                "container_image_name": row["image_name"],
+                "container_name": row["container_name"],
+                "metrics": container_metrics
+            }
+
+            # Create a list to hold the containers
+            containers = [container]
+
+            # Create a dictionary to hold the deployment information
+            kubernetes_object = {
+                "type": row["k8_object_type"],
+                "name": row["k8_object_name"],
+                "namespace": row["namespace"],
+                "containers": containers
+            }
+            kubernetes_objects = [kubernetes_object]
+
+            # Create a dictionary to hold the experiment data
+            experiment = {
+                "version": "1.0",
+                "experiment_name": row["k8_object_name"],
+                "start_timestamp": convert_date_format(row["start_timestamp"]),
+                "end_timestamp": convert_date_format(row["end_timestamp"]),
+                "kubernetes_objects": kubernetes_objects
+            }
+
+            json_data.append(experiment)
+
+    # Write the final JSON data to the output file
+    with open(outputjsonfile, "w") as json_file:
+        json.dump(json_data, json_file)
+
 
