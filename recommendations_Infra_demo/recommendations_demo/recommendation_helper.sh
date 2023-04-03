@@ -167,7 +167,7 @@ function monitoring_recommendations_demo_for_k8object() {
                         echo "$file was modified in the last $interval seconds"
 			echo "Aggregating the metrics from the cluster.."
 			#python3 recommendations_demo/aggregateWorkloadMetrics.py $intervalResultsFile aggregateClusterResults.csv
-			python -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(intervalResultsFile, "aggregateClusterResults.csv")"
+			python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$intervalResultsFile\", \"aggregateClusterResults.csv\")"
 			#Get the last lines to send to Kruize updateresults API
 			# Assumption only 1 application is running.
 			#{ head -n 1 aggregateClusterResults.csv; tail -n ${numoflines} aggregateClusterResults.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
