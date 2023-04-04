@@ -25,7 +25,7 @@ def generate_result_jsons(result_json, data_csvfile):
         print(reader)
 
         j = 1
-        i = 1 
+        i = 1
         n = 1
         single_row_data = []
         complete_data = []
@@ -69,15 +69,15 @@ def generate_result_jsons(result_json, data_csvfile):
                 container_metrics["results"]["aggregation_info"]["avg"] = float(row["mem_usage_avg_container"])/mebibyte
                 container_metrics["results"]["aggregation_info"]["max"] = float(row["mem_usage_max_container"])/mebibyte
                 container_metrics["results"]["aggregation_info"]["sum"] = float(row["mem_usage_sum_container"])/mebibyte
-        
+
             if container_metrics["name"] == "memoryRSS":
                 container_metrics["results"]["aggregation_info"]["min"] = float(row["mem_rss_min_container"])/mebibyte
                 container_metrics["results"]["aggregation_info"]["avg"] = float(row["mem_rss_avg_container"])/mebibyte
                 container_metrics["results"]["aggregation_info"]["max"] = float(row["mem_rss_max_container"])/mebibyte
                 container_metrics["results"]["aggregation_info"]["sum"] = float(row["mem_rss_sum_container"])/mebibyte
 
-            data[0]["start_timestamp"] = convert_date_format(row["start_timestamp"])
-            data[0]["end_timestamp"] = convert_date_format(row["end_timestamp"])
+            data[0]["interval_start_time"] = convert_date_format(row["interval_start_time"])
+            data[0]["interval_end_time"] = convert_date_format(row["interval_end_time"])
 
             single_row_data.append(data[0])
 
@@ -86,7 +86,7 @@ def generate_result_jsons(result_json, data_csvfile):
                 with open(json_file, "w") as final:
                     json.dump(single_row_data, final, indent = 4)
                 j += 1
-                i = 1 
+                i = 1
                 single_row_data = []
             else:
                 i += 1
@@ -113,4 +113,3 @@ def main(argv):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
-
