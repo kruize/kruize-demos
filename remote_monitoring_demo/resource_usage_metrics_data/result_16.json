@@ -2,8 +2,8 @@
     {
         "version": "1.0",
         "experiment_name": "quarkus-resteasy-kruize-min-http-response-time-db_0",
-        "start_timestamp": "2022-12-20T19:25:09.000Z",
-        "end_timestamp": "2022-12-20T19:40:09.000Z",
+        "interval_start_time": "2022-12-20T19:25:09.000Z",
+        "interval_end_time": "2022-12-20T19:40:09.000Z",
         "kubernetes_objects": [
             {
                 "type": "deployment",
