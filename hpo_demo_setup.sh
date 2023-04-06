@@ -41,7 +41,7 @@ function usage() {
 	exit 1
 }
 
-## Checks for the pre-requisites to run the demo benchmark with HPO.
+## Checks for the pre-requisites to run the demo.
 function prereq_check() {
 	# Python is required only if we're installing the app as a 'Native'
 	if [ "$1" == "native" ]; then
@@ -51,7 +51,7 @@ function prereq_check() {
 	fi
 	## Requires minikube to run the demo benchmark for experiments
 	minikube >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
+	check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (kubectl,php,java11,git,wget,curl,zip,bc,jq) are installed."
 	## Check version of minikube to be <= 1.26.1 for support of Prometheus version 0.8.0
 	minikube_ver=$(minikube version | grep "version" | sed 's/minikube version: v\([0-9]\+\).\([0-9]\+\).\([0-9]\+\).*/\1\2\3/')
 	if [ "$minikube_ver" -gt "1261" ]; then
@@ -59,21 +59,17 @@ function prereq_check() {
 		echo "Supported Version 1.26.1 or less";
     		exit 1;
 	fi
-	
-	kubectl get pods >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not running. Required for running benchmark"
-	## Check if prometheus is running for valid benchmark results.
-	prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
-	if [ "${prometheus_pod_running}" == "" ]; then
-		err_exit "Install prometheus for valid results from benchmark."
-	fi
+	## Requires kubectl to run the demo benchmark for experiments
+	kubectl >/dev/null 2>/dev/null
+	check_err "ERROR: kubectl not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
 	## Requires java 11
 	java -version >/dev/null 2>/dev/null
 	check_err "Error: java is not found. Requires Java 11 for running benchmark."
-	JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-	if [[ ${JAVA_VERSION} < "11" ]]; then
-		err_exit "ERROR: Java 11 is required."
-	fi
+	# Check the version of Java
+  JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+  if [[ "$(printf '%s\n' "$JAVA_VERSION" "11" | sort -V | head -n1)" != "11" ]]; then
+          err_exit "ERROR: Java 11 is required."
+  fi
 	## Requires wget
 	wget --version >/dev/null 2>/dev/null
 	check_err "ERROR: wget not installed. Required for running benchmark. Check if all other dependencies (php,curl,zip,bc,jq) are installed."
@@ -92,6 +88,17 @@ function prereq_check() {
 	## Requires php
 	php --version >/dev/null 2>/dev/null
 	check_err "ERROR: php not installed. Required for running benchmark."
+}
+
+## Checks for the pre-requisites to run the demo benchmark with HPO.
+function prereq_check_pod() {
+  kubectl get pods >/dev/null 2>/dev/null
+	check_err "ERROR: minikube not running. Required for running benchmark"
+	## Check if prometheus is running for valid benchmark results.
+	prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+	if [ "${prometheus_pod_running}" == "" ]; then
+		err_exit "Install prometheus for valid results from benchmark."
+	fi
 }
 
 ###########################################
@@ -257,8 +264,8 @@ function hpo_experiments() {
 
 function hpo_start() {
 
-	minikube >/dev/null
-	check_err "ERROR: minikube not installed"
+#	Check for pre-requisites to run the demo.
+	prereq_check ${CLUSTER_TYPE}
 	# Start all the installs
 	start_time=$(get_date)
 	echo
@@ -281,7 +288,7 @@ function hpo_start() {
 		benchmarks_install
 	fi
 #	Check for pre-requisites to run the demo benchmark with HPO.
-	prereq_check ${CLUSTER_TYPE}
+	prereq_check_pod ${CLUSTER_TYPE}
 #  HPO is already running on operate-first. So, no need to install again.
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		hpo_install
