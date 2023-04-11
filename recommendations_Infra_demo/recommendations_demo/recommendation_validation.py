@@ -61,15 +61,16 @@ def update_recomm_csv(filename):
                 for container in kubernetes_object["containers"]:
                     container_json = container["container_name"]
                     for time_zone in container["recommendations"]["data"]:
-                        for duration_type in container["recommendations"]["data"][time_zone]["duration_based"]:
-                            recommendations = container["recommendations"]["data"][time_zone]
-                            if "config" in recommendations["duration_based"][duration_type]:
-                                cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
-                                memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)
-                                cpu_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["cpu"]["amount"], 4)
-                                memory_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["memory"]["amount"], 4)
-
-                                writer.writerow([cluster_json, exp_name_json, container_json, time_zone, duration_type, cpu_requests_json, memory_requests_json, cpu_limits_json, memory_limits_json])
+                        for recommendation_engine in container["recommendations"]["data"][time_zone]:
+                            for duration_type in container["recommendations"]["data"][time_zone][recommendation_engine]:
+                                recommendations = container["recommendations"]["data"][time_zone]
+                                if "config" in recommendations["duration_based"][duration_type]:
+                                    cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
+                                    memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)
+                                    cpu_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["cpu"]["amount"], 4)
+                                    memory_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["memory"]["amount"], 4)
+                                    
+                                    writer.writerow([cluster_json, exp_name_json, container_json, time_zone, recommendation_engine, duration_type, cpu_requests_json, memory_requests_json, cpu_limits_json, memory_limits_json])
 
 
 def create_recomm_csv():
@@ -77,7 +78,7 @@ def create_recomm_csv():
     with open('recommendationsOutput.csv', 'w', newline='') as f:
         writer = csv.writer(f)
         # Write the headers to the CSV file
-        writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
+        writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'recommendation_engine', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
 
 def getUniquek8Objects(inputcsvfile):
     column_name = 'k8ObjectName'
@@ -367,8 +368,8 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
             experiment = {
                 "version": "1.0",
                 "experiment_name": row["k8_object_name"],
-                "start_timestamp": convert_date_format(row["start_timestamp"]),
-                "end_timestamp": convert_date_format(row["end_timestamp"]),
+                "interval_start_time": convert_date_format(row["start_timestamp"]),
+                "interval_end_time": convert_date_format(row["end_timestamp"]),
                 "kubernetes_objects": kubernetes_objects
             }
 

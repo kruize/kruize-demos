@@ -42,6 +42,9 @@ def match_experiments(listexperimentsjson,inputcsv):
                         if "kubernetes_objects" in value:
                            kobj = value["kubernetes_objects"][0]
                            containerNames=[]
+                           k8ObjectName = ""
+                           namespace = ""
+                           k8ObjectType = ""
                            for k,v in kobj.items():
                                if "name" in k:
                                   k8ObjectName = kobj["name"]
@@ -53,22 +56,23 @@ def match_experiments(listexperimentsjson,inputcsv):
                                   for container in kobj["containers"].values():
                                       containerName = container["container_name"]
                                       containerNames.append(containerName)
-                        print("Experiment details from experiment.json : name= ",k8ObjectName,"; Type= ",k8ObjectType," ; Container= ",containerNames, "Namespace=", namespace)
-
-                        if row["k8_object_name"] == k8ObjectName and row["namespace"] == namespace and row["k8_object_type"].lower() == k8ObjectType.lower():
-                           if row["container_name"] in containerNames:
-                              print("The experiment exists with the same name, type, namespace and container")
-                              break
+                           print("Experiment details from experiment.json : name= ",k8ObjectName,"; Type= ",k8ObjectType," ; Container= ",containerNames, "Namespace=", namespace)
+                           
+                           if row["k8_object_name"] == k8ObjectName and row["namespace"] == namespace and row["k8_object_type"].lower() == k8ObjectType.lower():
+                               if row["container_name"] in containerNames:
+                                   print("The experiment exists with the same name, type, namespace and container")
+                                   break
+                               else:
+                                   print("The experiment exists with the same name, type, namespace. Container is different.")
+                                   break
+                           elif row["k8_object_name"] == k8ObjectName:
+                               print("The experiment exists with the same name.But, type and namespace might be different.")
+                               break
                            else:
-                              print("The experiment exists with the same name, type, namespace. Container is different.")
-                              break
-                        elif row["k8_object_name"] == k8ObjectName:
-                           print("The experiment exists with the same name.But, type and namespace might be different.")
-                           break
-                        else:
-                           counter += 1
-                           continue
-                    print("Experiment details from results : name= ",row["k8_object_name"],"; Type= ",row["k8_object_type"]," ; Container= ",row["container_name"], "Namespace=", row["namespace"])
+                               counter += 1
+                               continue
+                           
+                           print("Experiment details from results : name= ",row["k8_object_name"],"; Type= ",row["k8_object_type"]," ; Container= ",row["container_name"], "Namespace=", row["namespace"])
             if experiments == counter:
                print("The experiment is not matching with any existing ones.")
 
@@ -149,7 +153,8 @@ def createExpAndupdateResults(clustername,resultscsv):
             update_results(json_file)
 
             # Sleep
-            time.sleep(40)
+            # Commenting 40 secs and change it to 5
+            time.sleep(5)
             print("\nGenerating the recommendations...")
             reco = list_recommendations(experiment_name)
             recommendations_json_arr.append(reco)
