@@ -106,6 +106,7 @@ function kruize_install() {
 		fi
 
 		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
+		#./deploy.sh -c minikube -i docker.io/kruize/autotune_operator:0.0.13_mvp -m crc
 		check_err "ERROR: kruize failed to start, exiting"
 
 		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."

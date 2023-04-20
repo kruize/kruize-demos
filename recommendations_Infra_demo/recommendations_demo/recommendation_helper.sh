@@ -217,8 +217,6 @@ function monitoring_recommendations_demo_with_data() {
 			if [[ ${MODE} == "crc" ]];then
 				echo "Running the results of crc mode.........................."
 				# metrics.csv is generated with aggregated data for a k8 object.
-				#python3 recommendations_demo/aggregateWorkloadMetrics.py $file metrics.csv
-				echo "Running python3 script for for recommendations_demo.recommendation_validation.aggregateWorkloads(file,metrics.csv)"
 				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
 				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
 				run_monitoring_exp metrics.csv

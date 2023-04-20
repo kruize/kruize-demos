@@ -202,7 +202,7 @@ def aggregateWorkloads(filename, outputResults):
 
 def convert_date_format(input_date_str):
 
-    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y", "%Y-%m-%dT%H:%M:%S.%f", "%a %b %d %H:%M:%S UTC %Y"]
+    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y", "%Y-%m-%dT%H:%M:%S.%f", "%a %b %d %H:%M:%S UTC %Y", "%Y-%m-%d %H:%M:%S %Z", "%Y-%m-%d %H:%M:%S %z %Z"]
 
     for date_format in DATE_FORMATS:
         try:
@@ -212,7 +212,7 @@ def convert_date_format(input_date_str):
             return output_date_str
         except ValueError:
             continue
-    raise ValueError(f"Unrecognized date format: {input_date}")
+    raise ValueError(f"Unrecognized date format: {input_date_str} ")
 
 
 def create_json_from_csv(csv_file_path, outputjsonfile):
@@ -370,6 +370,8 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                 "experiment_name": row["k8_object_name"],
                 "interval_start_time": convert_date_format(row["start_timestamp"]),
                 "interval_end_time": convert_date_format(row["end_timestamp"]),
+                #"interval_start_time": row["start_timestamp"],
+                #"interval_end_time": row["end_timestamp"],
                 "kubernetes_objects": kubernetes_objects
             }
 
@@ -379,4 +381,78 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
     with open(outputjsonfile, "w") as json_file:
         json.dump(json_data, json_file)
 
+
+## Get the metrics and recommendations data from listExperiments
+def getExperimentMetrics(filename):
+    # Load the JSON data
+    with open(filename, 'r') as f:
+      data = json.load(f)
+    if not data:
+        print("No experiments found!")
+    else:
+        with open('experimentMetrics.csv', 'w', newline='') as f:
+            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            # Write the headers to the CSV file
+            writer.writeheader()
+            #fieldnames = ['experiment_name', 'namespace', 'k8ObjectType','k8ObjectName', 'containerName', 'timezone']
+
+            
+            for key, value in data.items():
+                print(key)
+                if "experiment_name" in value:
+                    experiment_name = value["experiment_name"]
+                    
+                    for kobj in value["kubernetes_objects"]:
+                        print(kobj.keys())
+                        containerNames=[]
+                        k8ObjectName = ""
+                        namespace = ""
+                        k8ObjectType = ""
+                        k8ObjectName = kobj["name"]
+                        namespace = kobj["namespace"]
+                        k8ObjectType = kobj["type"]
+                        for container_name,container_data in kobj["containers"].items():
+                            containerName = container_data["container_name"]
+                            containerNames.append(containerName)
+                            for timezone, timezone_data in container_data["results"].items():
+                                kobj_dict = {
+                                'experiment_name': experiment_name,
+                                'type': kobj["type"],
+                                'name': kobj["name"],
+                                'namespace': kobj["namespace"],
+                                'container_name': container_data["container_name"],
+                                'timezone': timezone,
+                                }
+                                metric_dict = {}
+                                recomm_dict = {}
+                                for metric_name, metric_data in timezone_data["metrics"].items():
+                                    for agg_name, agg_value in metric_data["aggregation_info"].items():
+                                        metric_agg_var_name = metric_name + '_' + agg_name
+                                        metric_dict[metric_agg_var_name] = str(agg_value)
+                                for recomm_timezone, recomm_data in container_data["recommendations"]["data"].items():
+                                    if recomm_timezone == timezone:
+                                        for recomm_engine, recomm_enginedata in recomm_data.items():
+                                            for recomm_type, recomm_typedata in recomm_enginedata.items():
+                                                if "config" in recomm_typedata:
+                                                    for recomm_config, recomm_configmetrics in recomm_typedata["config"].items():
+                                                        for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                            recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
+                                                            recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                #print(recomm_dict)
+                                kobj_dict.update(metric_dict)
+                                kobj_dict.update(recomm_dict)
+                                writer.writerow(kobj_dict)
+        # Sort the data in chronological order of timezone
+        with open('experimentMetrics.csv', 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            Edata = list(reader)
+        data_sorted = sorted(Edata, key=lambda x: x['timezone'])
+        
+        # Write the sorted data back to the CSV file
+        with open('experimentOutput.csv', 'w', newline='') as csvfile:
+            fieldnames = reader.fieldnames
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data_sorted)
 
