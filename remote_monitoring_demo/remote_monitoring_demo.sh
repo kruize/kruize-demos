@@ -122,6 +122,8 @@ function kruize_install() {
 }
 
 function remote_monitoring_experiments() {
+	echo "Generating the jsons..."
+	"${PYTHON_CMD}" helpers/generate_json.py
 	echo "Running demo.py..."
 	"${PYTHON_CMD}" demo.py -c "${CLUSTER_TYPE}"
 }

@@ -86,7 +86,7 @@ def main(argv):
 
     # Post the experiment results
     recommendations_json_arr = []
-    num_exp_res = 37
+    num_exp_res = 120
 
     print("\n*************************************************************************************")
     print("Updating results for one of the experiments and fetching recommendations from Kruize...")
