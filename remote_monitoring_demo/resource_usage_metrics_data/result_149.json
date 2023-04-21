@@ -1,0 +1,79 @@
+[
+  {
+    "interval_start_time": "2023-04-02T13:00:00.000Z",
+    "interval_end_time": "2023-04-02T13:15:00.000Z",
+    "kubernetes_objects": [
+      {
+        "type": "deployment",
+        "name": "tfb-qrh-deployment_0",
+        "namespace": "default_0",
+        "containers": [
+          {
+            "container_image_name": "kruize/tfb-qrh:1.13.2.F_et17",
+            "container_name": "tfb-server-1",
+            "metrics": [
+              {
+                "name": "cpuLimit",
+                "results": {
+                  "aggregation_info": {
+                    "avg": 0.5,
+                    "sum": 2.0,
+                    "format": "cores"
+                  }
+                }
+              },
+              {
+                "name": "cpuUsage",
+                "results": {
+                  "aggregation_info": {
+                    "avg": 0.12,
+                    "sum": 0.84,
+                    "max": 2.45,
+                    "min": 0.01,
+                    "format": "cores"
+                  }
+                }
+              },
+              {
+                "name": "memoryLimit",
+                "results": {
+                  "aggregation_info": {
+                    "avg": 100.0,
+                    "sum": 500.0,
+                    "format": "MiB"
+                  }
+                }
+              },
+              {
+                "name": "memoryUsage",
+                "results": {
+                  "aggregation_info": {
+                    "max": 198.5,
+                    "min": 50.6,
+                    "avg": 80.12,
+                    "sum": 403.9,
+                    "format": "MiB"
+                  }
+                }
+              },
+              {
+                "name": "memoryRSS",
+                "results": {
+                  "aggregation_info": {
+                    "avg": 31.91,
+                    "max": 123.6,
+                    "min": 50.6,
+                    "sum": 123.6,
+                    "format": "MiB"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "version": "1.0",
+    "experiment_name": "quarkus-resteasy-kruize-min-http-response-time-db_0"
+  }
+]
