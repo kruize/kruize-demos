@@ -86,7 +86,7 @@ def main(argv):
 
     # Post the experiment results
     recommendations_json_arr = []
-    num_exp_res = 37
+    num_exp_res = 151
 
     print("\n*************************************************************************************")
     print("Updating results for one of the experiments and fetching recommendations from Kruize...")
@@ -97,7 +97,7 @@ def main(argv):
         update_results(json_file)
 
         # Sleep
-        time.sleep(5)
+        time.sleep(1)
 
         reco = list_recommendations(experiment_name)
         recommendations_json_arr.append(reco)
