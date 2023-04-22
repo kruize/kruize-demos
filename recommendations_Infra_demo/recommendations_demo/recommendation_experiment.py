@@ -86,7 +86,7 @@ def create_expjson(clustername,filename):
         reader = csv.DictReader(csvfile)
         for row in reader:
             replacements = {
-                    "EXP_NAME": row["k8_object_name"],
+                    "EXP_NAME": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
                     "CLUSTER_NAME": clustername,
                     "k8Object_TYPE": row["k8_object_type"],
                     "k8Object_NAME": row["k8_object_name"],
@@ -154,7 +154,7 @@ def createExpAndupdateResults(clustername,resultscsv):
 
             # Sleep
             # Commenting 40 secs and change it to 5
-            time.sleep(5)
+            #time.sleep(1)
             print("\nGenerating the recommendations...")
             reco = list_recommendations(experiment_name)
             recommendations_json_arr.append(reco)

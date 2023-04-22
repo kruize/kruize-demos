@@ -367,9 +367,11 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
             # Create a dictionary to hold the experiment data
             experiment = {
                 "version": "1.0",
-                "experiment_name": row["k8_object_name"],
+                "experiment_name": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
                 "interval_start_time": convert_date_format(row["start_timestamp"]),
                 "interval_end_time": convert_date_format(row["end_timestamp"]),
+                #"start_timestamp": convert_date_format(row["start_timestamp"]),
+                #"end_timestamp": convert_date_format(row["end_timestamp"]),
                 #"interval_start_time": row["start_timestamp"],
                 #"interval_end_time": row["end_timestamp"],
                 "kubernetes_objects": kubernetes_objects
