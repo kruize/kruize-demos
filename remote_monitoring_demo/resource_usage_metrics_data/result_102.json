@@ -1,7 +1,7 @@
 [
   {
-    "interval_start_time": "2023-04-02T01:15:00.000Z",
-    "interval_end_time": "2023-04-02T01:30:00.000Z",
+    "interval_start_time": "2023-04-02T01:15:00.305Z",
+    "interval_end_time": "2023-04-02T01:30:00.433Z",
     "kubernetes_objects": [
       {
         "type": "deployment",
