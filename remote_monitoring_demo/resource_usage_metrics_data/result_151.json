@@ -1,7 +1,7 @@
 [
   {
-    "interval_start_time": "2023-04-02T11:45:00.770Z",
-    "interval_end_time": "2023-04-02T12:00:00.770Z",
+    "interval_start_time": "2023-04-02T13:30:00.433Z",
+    "interval_end_time": "2023-04-02T13:45:00.344Z",
     "kubernetes_objects": [
       {
         "type": "deployment",
@@ -16,8 +16,8 @@
                 "name": "cpuRequest",
                 "results": {
                   "aggregation_info": {
-                    "avg": 5.37,
-                    "sum": 16.11,
+                    "avg": 1.00,
+                    "sum": 3.00,
                     "format": "cores"
                   }
                 }
@@ -26,8 +26,8 @@
                 "name": "cpuLimit",
                 "results": {
                   "aggregation_info": {
-                    "avg": 0.5,
-                    "sum": 2.0,
+                    "avg": 4.0,
+                    "sum": 6.0,
                     "format": "cores"
                   }
                 }
@@ -59,8 +59,8 @@
                 "name": "memoryRequest",
                 "results": {
                   "aggregation_info": {
-                    "avg": 50.21,
-                    "sum": 250.85,
+                    "avg": 512.00,
+                    "sum": 1024.00,
                     "format": "MiB"
                   }
                 }
@@ -69,8 +69,8 @@
                 "name": "memoryLimit",
                 "results": {
                   "aggregation_info": {
-                    "avg": 100.0,
-                    "sum": 500.0,
+                    "avg": 1024.00,
+                    "sum": 2048.00,
                     "format": "MiB"
                   }
                 }
