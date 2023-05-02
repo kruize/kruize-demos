@@ -256,7 +256,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "aggregation_info": {
                                 "sum": float(row["cpu_request_container_sum"]),
                                 "avg": float(row["cpu_request_container_avg"]),
-                                "units": "cores"
+                                "format": "cores"
                                 }
                             }
 			})
@@ -267,7 +267,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "aggregation_info": {
                                 "sum": float(row["cpu_limit_container_sum"]),
                                 "avg": float(row["cpu_limit_container_avg"]),
-                                "units": "cores"
+                                "format": "cores"
                                 }
                             }
                         })
@@ -279,7 +279,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                                 "sum": float(row["cpu_throttle_container_sum"]),
                                 "max": float(row["cpu_throttle_container_max"]),
                                 "avg": float(row["cpu_throttle_container_avg"]),
-                                "units": "cores"
+                                "format": "cores"
                                 }
                             }
                         })
@@ -291,7 +291,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "min": float(row["cpu_usage_container_min"]),
                             "max": float(row["cpu_usage_container_max"]),
                             "avg": float(row["cpu_usage_container_avg"]),
-                            "units": "cores"
+                            "format": "cores"
                             }
                         }
                     })
@@ -302,7 +302,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "aggregation_info": {
                                 "sum": float(row["memory_request_container_sum"])/mebibyte,
                                 "avg": float(row["memory_request_container_avg"])/mebibyte,
-                                "units": "MiB"
+                                "format": "MiB"
                                 }
                             }
                         })
@@ -313,7 +313,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "aggregation_info": {
                                 "sum": float(row["memory_limit_container_sum"])/mebibyte,
                                 "avg": float(row["memory_limit_container_avg"])/mebibyte,
-                                "units": "MiB"
+                                "format": "MiB"
                                 }
                             }
                         })
@@ -325,7 +325,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "max": float(row["memory_usage_container_max"])/mebibyte,
                             "sum": float(row["memory_usage_container_sum"])/mebibyte,
                             "avg": float(row["memory_usage_container_avg"])/mebibyte,
-                            "units": "MiB"
+                            "format": "MiB"
                         }
                     }
                 })
@@ -337,7 +337,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             "max": float(row["memory_rss_usage_container_max"])/mebibyte,
                             "sum": float(row["memory_rss_usage_container_sum"])/mebibyte,
                             "avg": float(row["memory_rss_usage_container_avg"])/mebibyte,
-                            "units": "MiB"
+                            "format": "MiB"
                         }
                     }
                 })
