@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 from kruize.kruize import *
-from helpers.utils import *
+from helpers.utils import create_json_from_csv
 import sys, getopt
 import json
 import os
