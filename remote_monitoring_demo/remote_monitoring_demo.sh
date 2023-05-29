@@ -113,8 +113,8 @@ function kruize_install() {
 		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
 		check_err "ERROR: kruize failed to start, exiting"
 
-		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
-		sleep 30
+		echo -n "Waiting 40 seconds for Autotune to sync with Prometheus..."
+		sleep 40
 		echo "done"
 	popd >/dev/null
 	echo "#######################################"
