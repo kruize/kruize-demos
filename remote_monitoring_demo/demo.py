@@ -17,12 +17,11 @@ limitations under the License.
 from kruize.kruize import *
 import sys, getopt
 import json
-import os
 import time
 
 def generate_json(find_arr, json_file, filename, i):
 
-    with open(json_file, 'r') as file:
+    with open(json_file) as file:
         data = file.read()
 
     for find in find_arr:
@@ -45,8 +44,9 @@ def main(argv):
 
     print(find)
 
+
     try:
-        opts, args = getopt.getopt(argv,"h:c:")
+        opts, _ = getopt.getopt(argv,"h:c:")
     except getopt.GetoptError:
         print("demo.py -c <cluster type>")
         sys.exit(2)
