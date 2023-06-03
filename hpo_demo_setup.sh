@@ -48,6 +48,12 @@ function prereq_check() {
 		## Requires python3 to start HPO
 		python3 --version >/dev/null 2>/dev/null
 		check_err "ERROR: python3 not installed. Required to start HPO. Check if all dependencies (python3,minikube,php,java11,wget,curl,zip,bc,jq) are installed."
+	    ## Check version of python required by the hpo script
+		ver=$(python3 -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/')
+		if [ "$ver" -lt "39" ]; then
+			echo "This script requires python version 3.9 or greater, current version: $(python3 --version)"
+			exit 1
+		fi
 	fi
 	## Requires minikube to run the demo benchmark for experiments
 	minikube >/dev/null 2>/dev/null
