@@ -46,6 +46,18 @@ def update_recomm_csv(filename):
     # Load the JSON data
     with open(filename, 'r') as f:
       data = json.load(f)
+
+#    experiment_name_exists = False
+#    for reco in data:
+#        if 'experiment_name' in reco:
+#            experiment_name_exists = True
+#            break
+    
+    # Exit the function if experiment_key doesn't exist
+#    if not experiment_name_exists:
+#        print("The experiment key doesn't exist in the JSON data.")
+#        return
+
     # Open a CSV file for writing
     with open('recommendationsOutput.csv', 'a', newline='') as f:
         writer = csv.writer(f)
@@ -65,10 +77,18 @@ def update_recomm_csv(filename):
                             for duration_type in container["recommendations"]["data"][time_zone][recommendation_engine]:
                                 recommendations = container["recommendations"]["data"][time_zone]
                                 if "config" in recommendations["duration_based"][duration_type]:
-                                    cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
-                                    memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)
-                                    cpu_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["cpu"]["amount"], 4)
-                                    memory_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["memory"]["amount"], 4)
+                                    cpu_limits_json = ''
+                                    memory_limits_json = ''
+                                    cpu_requests_json = ''
+                                    memory_requests_json = ''
+                                    if "cpu" in recommendations["duration_based"][duration_type]["config"]["limits"]:
+                                        cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
+                                    if "memory" in recommendations["duration_based"][duration_type]["config"]["limits"]:
+                                        memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)
+                                    if "cpu" in recommendations["duration_based"][duration_type]["config"]["requests"]:
+                                        cpu_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["cpu"]["amount"], 4)
+                                    if "memory" in recommendations["duration_based"][duration_type]["config"]["requests"]:
+                                        memory_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["memory"]["amount"], 4)
                                     
                                     writer.writerow([cluster_json, exp_name_json, container_json, time_zone, recommendation_engine, duration_type, cpu_requests_json, memory_requests_json, cpu_limits_json, memory_limits_json])
 
@@ -283,8 +303,9 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                                 }
                             }
                         })
-            container_metrics.append({
-		    "name" : "cpuUsage",
+            if row["cpu_usage_container_avg"]:
+                container_metrics.append({
+                    "name" : "cpuUsage",
                     "results": {
                         "aggregation_info": {
                             "sum": float(row["cpu_usage_container_sum"]),
@@ -317,30 +338,32 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                                 }
                             }
                         })
-            container_metrics.append({
-		    "name" : "memoryUsage",
-                    "results": {
-                        "aggregation_info": {
-                            "min": float(row["memory_usage_container_min"])/mebibyte,
-                            "max": float(row["memory_usage_container_max"])/mebibyte,
-                            "sum": float(row["memory_usage_container_sum"])/mebibyte,
-                            "avg": float(row["memory_usage_container_avg"])/mebibyte,
-                            "format": "MiB"
-                        }
-                    }
-                })
-            container_metrics.append({
-		    "name" : "memoryRSS",
-                    "results": {
-                        "aggregation_info": {
-                            "min": float(row["memory_rss_usage_container_min"])/mebibyte,
-                            "max": float(row["memory_rss_usage_container_max"])/mebibyte,
-                            "sum": float(row["memory_rss_usage_container_sum"])/mebibyte,
-                            "avg": float(row["memory_rss_usage_container_avg"])/mebibyte,
-                            "format": "MiB"
-                        }
-                    }
-                })
+            if row["memory_usage_container_avg"]:
+                container_metrics.append({
+                        "name" : "memoryUsage",
+                        "results": {
+                            "aggregation_info": {
+                                "min": float(row["memory_usage_container_min"])/mebibyte,
+                                "max": float(row["memory_usage_container_max"])/mebibyte,
+                                "sum": float(row["memory_usage_container_sum"])/mebibyte,
+                                "avg": float(row["memory_usage_container_avg"])/mebibyte,
+                                "format": "MiB"
+                                }
+                            }
+                        })   
+            if row["memory_usage_container_avg"]:
+                container_metrics.append({
+                        "name" : "memoryRSS",
+                        "results": {
+                            "aggregation_info": {
+                                "min": float(row["memory_rss_usage_container_min"])/mebibyte,
+                                "max": float(row["memory_rss_usage_container_max"])/mebibyte,
+                                "sum": float(row["memory_rss_usage_container_sum"])/mebibyte,
+                                "avg": float(row["memory_rss_usage_container_avg"])/mebibyte,
+                                "format": "MiB"
+                                }
+                            }
+                        }) 
 
             #if container_metrics:
             #    container_metrics_all["metrics"].update(container_metrics)
@@ -393,20 +416,17 @@ def getExperimentMetrics(filename):
         print("No experiments found!")
     else:
         with open('experimentMetrics.csv', 'w', newline='') as f:
-            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits']
+            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'cpuUsage_format', 'memoryRequest_format', 'memoryRSS_format', 'cpuThrottle_format', 'memoryLimit_format', 'cpuLimit_format', 'memoryUsage_format', 'cpuRequest_format']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             # Write the headers to the CSV file
             writer.writeheader()
-            #fieldnames = ['experiment_name', 'namespace', 'k8ObjectType','k8ObjectName', 'containerName', 'timezone']
 
-            
-            for key, value in data.items():
-                print(key)
-                if "experiment_name" in value:
-                    experiment_name = value["experiment_name"]
-                    
-                    for kobj in value["kubernetes_objects"]:
-                        print(kobj.keys())
+            datadict = data[0]
+            for key, value in datadict.items():
+                if key == "experiment_name":
+                    experiment_name = value
+                if key == "kubernetes_objects":
+                    for kobj in value:
                         containerNames=[]
                         k8ObjectName = ""
                         namespace = ""
@@ -452,7 +472,7 @@ def getExperimentMetrics(filename):
         data_sorted = sorted(Edata, key=lambda x: x['timezone'])
         
         # Write the sorted data back to the CSV file
-        with open('experimentOutput.csv', 'w', newline='') as csvfile:
+        with open('experimentOutput.csv', 'a', newline='') as csvfile:
             fieldnames = reader.fieldnames
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()

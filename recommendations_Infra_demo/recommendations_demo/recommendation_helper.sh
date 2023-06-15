@@ -177,7 +177,7 @@ function monitoring_recommendations_demo_for_k8object() {
 				
                         run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
 			sleep 10
-	#		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
+			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 
                 else
                         echo "$file was not modified in the $interval seconds"
@@ -208,9 +208,12 @@ function monitoring_recommendations_demo_with_data() {
 	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
 	# Commenting this out as we may not require now as updating multiple results are not supported.
         #split_csvs $BENCHMARK_RESULTS_DIR
-
 	#for file in "$BENCHMARK_RESULTS_DIR"/splitfiles/*.csv; do
-	for file in "$BENCHMARK_RESULTS_DIR"/*.csv; do
+	
+	# Sort files based on timestamp and update to Kruize APIs in chronological order
+	oldest_file=$(ls -t "$BENCHMARK_RESULTS_DIR"/*.csv | head -n 1)
+	for file in "$oldest_file" "$BENCHMARK_RESULTS_DIR"/*.csv; do
+	#for file in "$BENCHMARK_RESULTS_DIR"/*.csv; do
 		# Cleanup of previous temporary scripts
 		rm -rf ${SCRIPTS_REPO}/results/* metrics.csv
 		if [ -s "$file" ] && [ $(wc -l < "$file") -gt 1 ]; then
@@ -225,10 +228,11 @@ function monitoring_recommendations_demo_with_data() {
 				## Convert the csv into json
 				run_monitoring_exp $file
 			fi
-#			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
+			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 			sleep 1s
 		fi
 	done
+	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
 	#validate_recommendations recommendations_data.json
 }
 

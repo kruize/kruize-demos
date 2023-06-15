@@ -120,14 +120,15 @@ def createExpAndupdateResults(clustername,resultscsv):
                 writer = csv.writer(outfile)
                 writer.writerow(header)
                 writer.writerow(row)
-          
+         
+            # Commenting this for now to make run faster
             # TODO : Check if experiment exists  and update Results. Else createExp
-            print("\nGet list experiments before starting to update results")
-            list_exp_json = list_experiments()
-            with open('list_experiments_data.json', 'w') as f:
-               json.dump(list_exp_json, f, indent=4)
-            print("\nMatch if any experiment exists with the current row data.")
-            match_experiments("list_experiments_data.json","intermediate.csv")
+            #print("\nGet list experiments before starting to update results")
+            #list_exp_json = list_experiments()
+            #with open('list_experiments_data.json', 'w') as f:
+            #   json.dump(list_exp_json, f, indent=4)
+            #print("\nMatch if any experiment exists with the current row data.")
+            #match_experiments("list_experiments_data.json","intermediate.csv")
 
 
             ## Assuming there is one container for a template.
@@ -153,7 +154,7 @@ def createExpAndupdateResults(clustername,resultscsv):
             update_results(json_file)
 
             # Sleep
-            # Commenting 40 secs and change it to 5
+            # Commenting out sleep
             #time.sleep(1)
             print("\nGenerating the recommendations...")
             reco = list_recommendations(experiment_name)
@@ -163,12 +164,13 @@ def createExpAndupdateResults(clustername,resultscsv):
             with open('recommendations_data.json', 'w') as f:
                json.dump(recommendations_json_arr, f, indent=4)
                 
-            recommendation_validation.update_recomm_csv("recommendations_data.json")
+#            recommendation_validation.update_recomm_csv("recommendations_data.json")
 
         print("\nPrint the list of experiments after updating.")
-        list_exp_json = list_experiments()
-        with open('usage_data.json', 'w') as f:
-            json.dump(list_exp_json, f, indent=4)
+        #list_exp_json = list_experiments()
+        list_metricsrec_json = list_metrics_with_recommendations(experiment_name)
+        with open('metrics_recommendations_data.json', 'w') as f:
+            json.dump(list_metricsrec_json, f, indent=4)
 
 
 

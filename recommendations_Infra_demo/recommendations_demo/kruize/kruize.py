@@ -130,6 +130,15 @@ def list_experiments():
 
     return response.json()
 
+# Description: This function obtains the result metrics and recommendations from Kruize using listExperiments API for an experiment.
+def list_metrics_with_recommendations(experiment_name):
+    print("\nListing the experiments...")
+    url = URL + "/listExperiments"
+    PARAMS = {'results':'true','recommendations':'true','latest':'false','experiment_name':experiment_name}
+    response = requests.get(url = url, params = PARAMS)
+    print("URL = ", url, "   Response status code = ", response.status_code)
+    return response.json()
+
 # Description: This function combines the metric results and recommendations into a single json
 # Input parameters: result json file, recommendations json
 def combine_jsons(result_json, reco_json):
