@@ -198,6 +198,7 @@ function monitoring_recommendations_demo_for_k8object() {
 # Generates recommendations with the existing data
 function monitoring_recommendations_demo_with_data() {
 	#BENCHMARK_RESULTS_DIR="./tfb-results"
+	#CLUSTER_TYPE=$1
 	BENCHMARK_RESULTS_DIR=$1
 	MODE=$2
 	echo "Results Dir is ... ${BENCHMARK_RESULTS_DIR}"
@@ -232,7 +233,20 @@ function monitoring_recommendations_demo_with_data() {
 			sleep 1s
 		fi
 	done
-	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
+	names=$(cat expoutput.txt | tail -n 1)
+	cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+	# Convert the cleaned names into an array
+	IFS=',' read -ra expnames_array <<< "$cleaned_names"
+	echo "expnames_array os $expnames_array"
+
+	#experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
+	# Iterate over the names
+	for exp_name in ${expnames_array[@]}; do
+		echo "exp_name is $exp_name"
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+	done
 	#validate_recommendations recommendations_data.json
 }
 

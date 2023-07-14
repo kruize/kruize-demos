@@ -22,6 +22,7 @@ import os
 import time
 import shutil
 
+
 def form_kruize_url(cluster_type):
     global URL
     if (cluster_type == "minikube"):
@@ -49,6 +50,7 @@ def form_kruize_url(cluster_type):
 
 #    URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
     print ("\nKRUIZE AUTOTUNE URL = ", URL)
+    return URL
 
 
 # Description: This function validates the input json and posts the experiment using createExperiment API to Kruize
@@ -80,7 +82,6 @@ def create_experiment(input_json_file):
 # Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
 # Input Parameters: resource usage metrics json
 def update_results(result_json_file):
-
     # read the json
     json_file = open(result_json_file, "r")
     result_json = json.loads(json_file.read())
@@ -97,19 +98,16 @@ def update_results(result_json_file):
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
 def list_recommendations(experiment_name):
-
     print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
     PARAMS = {'experiment_name': experiment_name}
     response = requests.get(url = url, params = PARAMS)
     print("URL = ", url, "  Response status code = ", response.status_code)
-
     return response.json()
 
 # Description: This function creates a performance profile using the Kruize createPerformanceProfile API
 # Input Parameters: performance profile json
 def create_performance_profile(perf_profile_json_file):
-
     json_file = open(perf_profile_json_file, "r")
     perf_profile_json = json.loads(json_file.read())
 
@@ -120,9 +118,8 @@ def create_performance_profile(perf_profile_json_file):
     print(response.text)
     return response
 
-# Description: This function obtains the experiments and result metrics from Kruize using listExperiments API
+# Description: This function obtains the experiments from Kruize using listExperiments API
 def list_experiments():
-
     print("\nListing the experiments...")
     url = URL + "/listExperiments"
     response = requests.get(url = url)
@@ -132,7 +129,7 @@ def list_experiments():
 
 # Description: This function obtains the result metrics and recommendations from Kruize using listExperiments API for an experiment.
 def list_metrics_with_recommendations(experiment_name):
-    print("\nListing the experiments...")
+    print("\nListing the experiments with metrics and recommendations...")
     url = URL + "/listExperiments"
     PARAMS = {'results':'true','recommendations':'true','latest':'false','experiment_name':experiment_name}
     response = requests.get(url = url, params = PARAMS)

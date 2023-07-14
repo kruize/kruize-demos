@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from kruize.kruize import *
-#from recommendations_demo.
-import recommendation_validation
 import sys, getopt
 import json
 import os
 import time
 import csv
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from recommendations_demo.kruize.kruize import *
+from recommendations_demo import recommendation_validation
 
 def match_experiments(listexperimentsjson,inputcsv):
     with open(listexperimentsjson, 'r') as jsonfile:
@@ -75,7 +76,6 @@ def match_experiments(listexperimentsjson,inputcsv):
                            print("Experiment details from results : name= ",row["k8_object_name"],"; Type= ",row["k8_object_type"]," ; Container= ",row["container_name"], "Namespace=", row["namespace"])
             if experiments == counter:
                print("The experiment is not matching with any existing ones.")
-
 
 def create_expjson(clustername,filename):
 #cluster,experiment_name,k8objname,k8objtype,namespace,container_image,container_name):
@@ -153,26 +153,37 @@ def createExpAndupdateResults(clustername,resultscsv):
             print("\nUpdating the results to Kruize API...")
             update_results(json_file)
 
-            # Sleep
             # Commenting out sleep
             #time.sleep(1)
-            print("\nGenerating the recommendations...")
-            reco = list_recommendations(experiment_name)
-            recommendations_json_arr.append(reco)
+            #print("\nGenerating the recommendations...")
+            #reco = list_recommendations(experiment_name)
+            #recommendations_json_arr.append(reco)
 
             # Dump the results & recommendations into json files
-            with open('recommendations_data.json', 'w') as f:
-               json.dump(recommendations_json_arr, f, indent=4)
-                
-#            recommendation_validation.update_recomm_csv("recommendations_data.json")
+            #with open('recommendations_data.json', 'w') as f:
+            #   json.dump(recommendations_json_arr, f, indent=4)
+            #recommendation_validation.update_recomm_csv("recommendations_data.json")
 
-        print("\nPrint the list of experiments after updating.")
-        #list_exp_json = list_experiments()
-        list_metricsrec_json = list_metrics_with_recommendations(experiment_name)
-        with open('metrics_recommendations_data.json', 'w') as f:
+    return
+
+
+def getMetricsWithRecommendations(cluster_type,experiment_name):
+    form_kruize_url(cluster_type)
+    list_metricsrec_json = list_metrics_with_recommendations(experiment_name)
+    with open('metrics_recommendations_data.json', 'w') as f:
             json.dump(list_metricsrec_json, f, indent=4)
+    return 
 
-
+def getExperimentNames(cluster_type):
+    experiment_names = []
+    form_kruize_url(cluster_type)
+    list_experiments_json = list_experiments()
+    for obj in list_experiments_json:
+        name = obj.get('experiment_name');
+        if name:
+            experiment_names.append(name)
+    print(experiment_names)
+    return experiment_names
 
 
 def main(argv):
@@ -197,17 +208,17 @@ def main(argv):
     if '-r' not in sys.argv:
         resultscsv = 'metrics.csv'
 
+    # Hardcoding the clustername as the details aren't available
     clustername = "e23-alias"
 
-    #print("Resultscsv = ", resultscsv)
     print("Cluster type = ", cluster_type)
 
     # Form the kruize url
     form_kruize_url(cluster_type)
 
     # Create the performance profile
-#    perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
-    create_performance_profile(perf_profile_json_file)
+    #perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
+    #create_performance_profile(perf_profile_json_file)
 
     # Create and updateResults
     createExpAndupdateResults(clustername,resultscsv)

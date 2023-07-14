@@ -323,9 +323,12 @@ done
 
 # Benchmark specific recommendations
 
-# Copy the previous recommendationsOutput.csv into another for future purpose.
+# Copy the previous recommendationsOutput.csv and experimentOutput.csv into another for future purpose.
 if [ -e "recommendationsOutput.csv" ]; then
 	mv recommendationsOutput.csv recommendationsOutput-$(date +%Y%m%d).csv
+fi
+if [ -e "experimentOutput.csv" ]; then
+        mv experimentOutput.csv experimentOutput-$(date +%Y%m%d).csv
 fi
 
 if [ ${start_demo} -eq 1 ]; then
