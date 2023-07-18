@@ -165,6 +165,7 @@ function autotune_start() {
 
 	if [ ${autotune_restart} -eq 0 ]; then
 		clone_repos autotune
+		clone_repos benchmarks
 		minikube_start
 		prometheus_install autotune
 		benchmarks_install
