@@ -31,7 +31,8 @@ function run_benchmark() {
 		popd >/dev/null
 	fi
 
-
+	# Create namespace
+	kubectl create namespace ${NAMESPACE}
         #git clone https://github.com/kusumachalasani/benchmarks.git -b queries
 
         # For this demo, start only TFB benchmark.
@@ -94,6 +95,9 @@ function monitoring_recommendations_demo_with_benchmark() {
 	max_iterations_without_update=3
 	interval=900
 	iterations_without_update=0
+	update_recommendations_interval=15mins
+	recommendation_type="short_term"
+
 	while true; do
 		# Clean up any intermediate files
 		rm -rf ${SCRIPTS_REPO}/results/* aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv
@@ -291,3 +295,8 @@ function monitor_metrics() {
 
 }
 
+function set_recommendations(experiment_name,recommendation_type) {
+	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.setRecommendations("experiment_recommendations_data.json",'${recommendation_type}')'
+
+}

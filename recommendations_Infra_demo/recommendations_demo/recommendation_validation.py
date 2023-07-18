@@ -415,7 +415,7 @@ def getExperimentMetrics(filename):
     if not data:
         print("No experiments found!")
     else:
-        with open('experimentMetrics.csv', 'w', newline='') as f:
+        with open('experimentMetrics_temp.csv', 'w', newline='') as f:
             fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'cpuUsage_format', 'memoryRequest_format', 'memoryRSS_format', 'cpuThrottle_format', 'memoryLimit_format', 'cpuLimit_format', 'memoryUsage_format', 'cpuRequest_format']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             # Write the headers to the CSV file
@@ -466,7 +466,7 @@ def getExperimentMetrics(filename):
                                 kobj_dict.update(recomm_dict)
                                 writer.writerow(kobj_dict)
         # Sort the data in chronological order of timezone
-        with open('experimentMetrics.csv', 'r') as csvfile:
+        with open('experimentMetrics_temp.csv', 'r') as csvfile:
             reader = csv.DictReader(csvfile)
             Edata = list(reader)
         data_sorted = sorted(Edata, key=lambda x: x['timezone'])
@@ -477,4 +477,133 @@ def getExperimentMetrics(filename):
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(data_sorted)
+
+
+def get_recommondations(filename):
+    with open(filename, 'r') as f:
+      data = json.load(f)
+    if not data:
+        print("No experiments found!")
+    else:
+        with open('experimentRecommendations_temp.csv', 'w', newline='') as f:
+            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_format', 'duration_based_short_term_memory_requests_format', 'duration_based_short_term_cpu_limits_format', 'duration_based_short_term_memory_limits_format', 'duration_based_medium_term_cpu_requests_format' , 'duration_based_medium_term_memory_requests_format', 'duration_based_medium_term_cpu_limits_format' , 'duration_based_medium_term_memory_limits_format', 'duration_based_long_term_cpu_requests_format' , 'duration_based_long_term_memory_requests_format', 'duration_based_long_term_cpu_limits_format' , 'duration_based_long_term_memory_limits_format']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            experiment_name = ""
+            datadict = data[0]
+            for key, value in datadict.items():
+                if key == "experiment_name":
+                    experiment_name = value
+                if key == "kubernetes_objects":
+                    for kobj in value:
+                        containerNames=[]
+                        k8ObjectName = ""
+                        namespace = ""
+                        k8ObjectType = ""
+                        k8ObjectName = kobj["name"]
+                        namespace = kobj["namespace"]
+                        k8ObjectType = kobj["type"]
+                        #for container_name,container_data in kobj["containers"].items():
+                        #for container_name,container_data in kobj["containers"]:
+                        for index, container_data in enumerate(kobj["containers"]):
+                            containerName = container_data.get("container_name")
+                            containerNames.append(containerName)
+                            #containerData = container_data.get("data")
+                            containerData = container_data.get("recommendations", {}).get("data", {})
+                            #for timezone, timezone_data in container_data["data"].items():
+                            for timezone, timezone_data in containerData.items():
+                                kobj_dict = {
+                                'experiment_name': experiment_name,
+                                'type': kobj["type"],
+                                'name': kobj["name"],
+                                'namespace': kobj["namespace"],
+                                'container_name': container_data["container_name"],
+                                'timezone': timezone,
+                                }
+                                recomm_dict = {}
+                                for recomm_engine, recomm_enginedata in timezone_data.items():
+                                    for recomm_type, recomm_typedata in recomm_enginedata.items():
+                                        if "config" in recomm_typedata:
+                                            for recomm_config, recomm_configmetrics in recomm_typedata["config"].items():
+                                                for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                    recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
+                                                    recomm_var_format = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_format'
+                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                                    recomm_dict[recomm_var_format] = str(recomm_resourcedata["format"])
+                                kobj_dict.update(recomm_dict)
+                                writer.writerow(kobj_dict)
+                            # Sort the data in chronological order of timezone
+        with open('experimentRecommendations_temp.csv', 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            Edata = list(reader)
+        data_sorted = sorted(Edata, key=lambda x: x['timezone'])
+
+        # Write the sorted data back to the CSV file
+        with open('experimentRecommendations.csv', 'a', newline='') as csvfile:
+            fieldnames = reader.fieldnames
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data_sorted)
+
+
+def get_value_fromcsv(filename, recommendation_type):
+    with open(filename, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            value = row[recommendation_type]
+            print(value)
+        return value
+
+def setRecommendations(filename,recommendation_type):
+    get_recommondations(filename)
+    if recommendation_type == "short_term":
+        cpu_request_type = duration_based_short_term_cpu_requests
+        cpu_limit_type = duration_based_short_term_cpu_limits
+        mem_request_type = duration_based_short_term_memory_requests
+        mem_limit_type = duration_based_short_term_memory_limits
+        cpu_format = duration_based_short_term_cpu_requests_format
+        mem_format = duration_based_short_term_memory_requests_format
+    elif recommendation_type == "medium_term":
+        cpu_request_type = duration_based_medium_term_cpu_requests
+        cpu_limit_type = duration_based_medium_term_cpu_limits
+        mem_request_type = duration_based_medium_term_memory_requests
+        mem_limit_type = duration_based_medium_term_memory_limits
+        cpu_format = duration_based_medium_term_cpu_requests_format
+        mem_format = duration_based_medium_term_memory_requests_format
+    elif recommendation_type == "long_term":
+        cpu_request_type = duration_based_long_term_cpu_requests
+        cpu_limit_type = duration_based_long_term_cpu_limits
+        mem_request_type = duration_based_long_term_memory_requests
+        mem_limit_type = duration_based_long_term_memory_limits
+        cpu_format = duration_based_long_term_cpu_requests_format
+        mem_format = duration_based_long_term_memory_requests_format
+    fi
+
+    cpu_request_value=get_value_fromcsv('experimentRecommendations.csv', cpu_request_type)
+    cpu_limit_value=get_value_fromcsv('experimentRecommendations.csv', cpu_limit_type)
+#    mem_request_value=get_value_fromcsv('experimentRecommendations.csv', mem_request_type)
+#    mem_limit_value=get_value_fromcsv('experimentRecommendations.csv', mem_limit_type)
+    mem_format=get_value_fromcsv('experimentRecommendations.csv', mem_format)
+    
+    if _mem_format == "GiB":
+        memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))+"Gi"
+        memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))+"Gi"
+
+    elif mem_format == "MiB":
+        memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))+"Mi"
+        memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))+"Mi"
+    else:
+        memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))
+        memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))
+
+    kubernetes_object_type=get_value_fromcsv('experimentRecommendations.csv', 'type')
+    kubernetes_object_name=get_value_fromcsv('experimentRecommendations.csv', 'name')
+    kubernetes_object_namespace=get_value_fromcsv('experimentRecommendations.csv', 'namespace')
+    kubernetes_object_container=get_value_fromcsv('experimentRecommendations.csv', 'container_name')
+    
+    command = f"kubectl -n {kubernetes_object_namespace} set resources {kubernetes_object_type}/{kubernetes_object_name} --containers={kubernetes_object_container} --requests='cpu={cpu_request_value},memory={memory_request_value}'"
+    
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    
 

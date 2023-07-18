@@ -185,6 +185,14 @@ def getExperimentNames(cluster_type):
     print(experiment_names)
     return experiment_names
 
+def getRecommendations(cluster_type,experiment_name):
+    form_kruize_url(cluster_type)
+    get_recommendations_json = get_recommendations(experiment_name)
+    with open('experiment_recommendations_data.json', 'w') as f:
+            json.dump(get_recommendations_json, f, indent=4)
+    return
+
+
 
 def main(argv):
     try:
@@ -218,7 +226,7 @@ def main(argv):
 
     # Create the performance profile
     #perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
-    #create_performance_profile(perf_profile_json_file)
+    create_performance_profile(perf_profile_json_file)
 
     # Create and updateResults
     createExpAndupdateResults(clustername,resultscsv)

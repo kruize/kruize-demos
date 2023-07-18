@@ -30,9 +30,10 @@ target="crc"
 visualize=0
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
+	echo "a = feed experiments to existing kruize deployment"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
@@ -94,77 +95,82 @@ function kruize_install() {
 		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
 		echo
 
-		if [ ${EXPERIMENT_START} -eq 0 ]; then
-			CURR_DRIVER=$(minikube config get driver 2>/dev/null)
-			if [ "${CURR_DRIVER}" == "docker" ]; then
-				echo "Setting docker env"
-			#	eval $(minikube docker-env)
-			elif [ "${CURR_DRIVER}" == "podman" ]; then
-				echo "Setting podman env"
-			#	eval $(minikube podman-env)
-			fi
-		fi
-
 		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
 		#./deploy.sh -c minikube -i docker.io/kruize/autotune_operator:0.0.13_mvp -m crc
 		check_err "ERROR: kruize failed to start, exiting"
 
-		echo -n "Waiting 30 seconds for Autotune to sync with Prometheus..."
-		sleep 30
+		echo -n "Waiting 40 seconds for Autotune to sync with Prometheus..."
+		sleep 40
 		echo "done"
 	popd >/dev/null
 	echo "#######################################"
 	echo
 }
 
-function monitoring_demo_start() {
+function monitoring_demo_setup() {
 
-	#minikube >/dev/null
-	#check_err "ERROR: minikube not installed"
-	# Start all the installs
-	start_time=$(get_date)
-	echo
-	echo "#######################################"
-	echo "#           Demo Setup                #"
-	echo "#######################################"
-	echo
-	echo "--> Clone Required Repos"
+        #minikube >/dev/null
+        #check_err "ERROR: minikube not installed"
+        # Start all the installs
+        echo
+        echo "#######################################"
+        echo "#           Demo Setup                #"
+        echo "#######################################"
+        echo
+        echo "--> Clone Required Repos"
 
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		echo "--> Setup minikube"
-		echo "--> Installs Prometheus"
-	fi
+        if [ ${CLUSTER_TYPE} == "minikube" ]; then
+                echo "--> Setup minikube"
+                echo "--> Installs Prometheus"
+        fi
 
-	echo "--> Installs Kruize"
-	echo "--> Creates experiments in monitoring mode"
-	echo "--> Updates the results into Kruize"
-	echo "--> Fetches the recommendations from Kruize"
-	echo
+        echo "--> Installs Kruize"
+        echo "--> Creates experiments in monitoring mode"
+        echo "--> Updates the results into Kruize"
+        echo "--> Fetches the recommendations from Kruize"
+        echo
 
-	if [ ${monitoring_restart} -eq 0 ]; then
-		clone_repos autotune
+        if [ ${cluster_monitoring_setup} -eq 1 ]; then
+                if [ ${CLUSTER_TYPE} == "minikube" ]; then
+                        echo "Starting minikube"
+                        minikube_start
 
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-	#		echo "Starting minikube"		
-	#		minikube_start
-			if [[ ${monitorRecommendations} == 1 ]]; then
-				## Check if prometheus is running for valid benchmark results.
-		                prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
-                		if [ "${prometheus_pod_running}" == "" ]; then
-					echo "Calling prometheus_install"
-					prometheus_install
-					echo "Calling prometheus_install done"
-				fi
+			CURR_DRIVER=$(minikube config get driver 2>/dev/null)
+                        if [ "${CURR_DRIVER}" == "docker" ]; then
+                                echo "Setting docker env"
+ 				eval $(minikube docker-env)
+                        elif [ "${CURR_DRIVER}" == "podman" ]; then
+                                echo "Setting podman env"
+ 				eval $(minikube podman-env)
+                        fi
+                fi
+		if [[ ${monitorRecommendations} == 1 ]]; then
+			## Check if prometheus is running for valid benchmark results.
+			prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+			if [ "${prometheus_pod_running}" == "" ]; then
+				echo "Calling prometheus_install"
+				prometheus_install
+				echo "Calling prometheus_install done"
 			fi
 		fi
-
 	fi
 
-	# Check for pre-requisites to run the demo
-	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
-	prereq_check ${CLUSTER_TYPE}
+        # Check for pre-requisites to run the demo
+        python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+        prereq_check ${CLUSTER_TYPE}
 
-	kruize_install
+        kruize_install
+
+}
+
+function monitoring_demo_start() {
+
+	start_time=$(get_date)
+
+	if [[ ${demo_monitoring_setup} -eq 1 ]]; then
+		clone_repos autotune
+		monitoring_demo_setup
+	fi
 
 	# Deploy benchmarks. Create an experiment, update results and fetch recommendations using Kruize REST APIs
 	if [[ ${dataDrivenRecommendations} -eq 1 ]]; then
@@ -186,6 +192,7 @@ function monitoring_demo_start() {
 		#if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
 		if [[ ${demoBenchmark} -eq 1 ]]; then
 			echo "Running the monitoring mode  with demo benchmark"
+			clone_repos benchmarks
                         monitoring_recommendations_demo_with_benchmark
 		else
 			echo "Running the monitoring mode on a cluster"
@@ -193,6 +200,8 @@ function monitoring_demo_start() {
 		fi
 	elif [[ ${compareRecommendations} -eq 1 ]]; then
                 comparing_recommendations_demo_with_data ./recommendations_demo/tfb-results/splitfiles
+	elif [[ ${setRecommendations} -eq 1 ]]; then
+		set_recommendations
 	fi
 
 
@@ -244,11 +253,11 @@ function monitoring_demo_cleanup() {
 
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
-monitoring_restart=0
+cluster_monitoring_setup=1
+demo_monitoring_setup=1
 start_demo=1
-EXPERIMENT_START=0
 # Iterate through the commandline options
-while getopts o:c:d:prst-: gopts
+while getopts o:c:d:prstau-: gopts
 do
 
 	 case ${gopts} in
@@ -296,7 +305,8 @@ do
 		prometheus=1
 		;;
 	r)
-		monitoring_restart=1
+		cluster_monitoring_setup=0
+		demo_monitoring_setup=1
 		;;
 	s)
 		start_demo=1
@@ -310,8 +320,16 @@ do
 	d)
 		DURATION="${OPTARG}"
 		;;
+	a)
+		cluster_monitoring_setup=0
+		demo_monitoring_setup=0
+		;;
+	u)
+		setRecommendations=1
+		;;
 	*)
-			usage
+		usage
+		;;
 	esac
 done
 
