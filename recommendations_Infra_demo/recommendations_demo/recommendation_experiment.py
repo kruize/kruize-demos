@@ -85,6 +85,17 @@ def create_expjson(clustername,filename):
     with open(filename, 'r') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            ## Hardcoding for tfb-results and demo benchmark. Updating them only if these columns are not available.
+            ## Keep this until the metrics queries are fixed in benchmark to get the below column data
+            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" ]
+            for col in columns_tocheck:
+                if col not in row:
+                    row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
+                    row["container_name"] = "tfb-server"
+                    row["k8_object_type"] = "deployment"
+                    row["k8_object_name"] = "tfb-qrh-sample-0"
+                    row["namespace"] = "tfb-perf"
+
             replacements = {
                     "EXP_NAME": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
                     "CLUSTER_NAME": clustername,
@@ -187,9 +198,9 @@ def getExperimentNames(cluster_type):
 
 def getRecommendations(cluster_type,experiment_name):
     form_kruize_url(cluster_type)
-    get_recommendations_json = get_recommendations(experiment_name)
+    recommendations_json = list_recommendations(experiment_name)
     with open('experiment_recommendations_data.json', 'w') as f:
-            json.dump(get_recommendations_json, f, indent=4)
+            json.dump(recommendations_json, f, indent=4)
     return
 
 

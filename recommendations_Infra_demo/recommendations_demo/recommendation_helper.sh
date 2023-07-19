@@ -33,11 +33,10 @@ function run_benchmark() {
 
 	# Create namespace
 	kubectl create namespace ${NAMESPACE}
-        #git clone https://github.com/kusumachalasani/benchmarks.git -b queries
 
-        # For this demo, start only TFB benchmark.
-        # Command to run the TFB benchmark in monitoring mode with fixed loads
-        ./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s "${CLUSTER_NAME}" -e ${RESULTS_DIR} -g "${TFB_IMAGE}" --dbtype="${DB_TYPE}" --mode="${MODE}" -r -d ${DURATION} -i 1 -n "${NAMESPACE}"  --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_limit} --memlim=${memory_limit}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}  &
+	# For this demo, start only TFB benchmark.
+	# Command to run the TFB benchmark in monitoring mode with fixed loads
+	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s "${CLUSTER_NAME}" -e ${RESULTS_DIR} -g "${TFB_IMAGE}" --dbtype="${DB_TYPE}" --mode="${MODE}" -r -d ${DURATION} -i 1 -n "${NAMESPACE}"  --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_limit} --memlim=${memory_limit}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}  &
 
 }
 
@@ -79,16 +78,21 @@ function run_monitoring_exp() {
 
 # Generates recommendations along with the benchmark run in parallel
 function monitoring_recommendations_demo_with_benchmark() {
-
-        echo "Running the benchmark demo...."
+	echo "Running the benchmark demo...."
 	run_benchmark
 
 	echo "Sleep for 15 mins before gathering the results"
 	sleep 15m
 	echo "Gathering the results..."
 	# Get the latest directory in the "results" folder
-        BENCHMARK_RESULTS_DIR="./benchmarks/techempower/results"
-        latest_dir=$(find $BENCHMARK_RESULTS_DIR -type d -printf '%T@ %p\n' | sort -n | tail -1 | awk '{print $2}')
+	BENCHMARK_RESULTS_DIR="./benchmarks/techempower/results"
+	latest_dir=$(find $BENCHMARK_RESULTS_DIR -type d -printf '%T@ %p\n' | sort -n | tail -1 | awk '{print $2}')
+
+	## Set the medium term recommendations every 6 hours
+	recommendation_type="medium_term"
+	recommendation_interval="21600"
+	set_recommendations "$recommendation_type" "$recommendation_interval" > setRecommendations.log 2>&1 &
+	#timeout 2592000 bash -c "set_recommendations medium_term 21600" > setRecommendations.log 2>&1 &
 
 	# Get the current time in Unix timestamp format
 	now=$(date +%s)
@@ -295,8 +299,38 @@ function monitor_metrics() {
 
 }
 
-function set_recommendations(experiment_name,recommendation_type) {
-	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getRecommendations('${CLUSTER_TYPE}','${exp_name}')"
-	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.setRecommendations("experiment_recommendations_data.json",'${recommendation_type}')'
+# Set recommendations for the given experiment
+function set_recommendations_experiment() {
+	exp_name=$1
+	recommendation_type=$2
+	recommendation_interval=$3
+	while true; do
+		echo "Applying the recommendations.."
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.setRecommendations("experiment_recommendations_data.json",'${recommendation_type}')'
+		echo "Sleeping for ${recommendation_interval}s"
+		sleep ${recommendation_interval}s
+	done
+}
 
+# Set recommendations for all the experiments available
+function set_recommendations() {
+        recommendation_type=$1
+        recommendation_interval=$2
+        while true; do
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
+	        names=$(cat expoutput.txt | tail -n 1)
+	        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+	        # Convert the cleaned names into an array
+	        IFS=',' read -ra expnames_array <<< "$cleaned_names"
+	        echo "expnames_array os $expnames_array"
+		# Iterate over the names
+		for exp_name in ${expnames_array[@]}; do
+			echo "Applying the recommendations for $exp_name.."
+			python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+			python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.setRecommendations('experiment_recommendations_data.json','${recommendation_type}')"
+		done
+		echo "Wait for ${recommendation_interval}s to set the next recommendation"
+                sleep ${recommendation_interval}s
+        done
 }

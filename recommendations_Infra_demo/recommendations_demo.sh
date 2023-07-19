@@ -201,7 +201,8 @@ function monitoring_demo_start() {
 	elif [[ ${compareRecommendations} -eq 1 ]]; then
                 comparing_recommendations_demo_with_data ./recommendations_demo/tfb-results/splitfiles
 	elif [[ ${setRecommendations} -eq 1 ]]; then
-		set_recommendations
+		# Hardcoding to set the recommendations of duration based medium term for every 6 hrs
+		timeout 2592000 bash -c "set_recommendations medium_term 21600" &
 	fi
 
 
