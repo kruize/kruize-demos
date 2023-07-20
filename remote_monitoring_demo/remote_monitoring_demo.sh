@@ -209,11 +209,6 @@ function pronosana_init() {
 	echo
 }
 
-function remote_monitoring_demo_start2() {
-  local bulk=$1
-  echo "doing bulk : $bulk"
-}
-
 function remote_monitoring_demo_start() {
 
 	local bulk=$1
