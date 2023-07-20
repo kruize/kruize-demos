@@ -111,6 +111,16 @@ def update_results(result_json_file):
     print(response.text)
     return response
 
+def update_recommendations(name):
+    print("\nUpdating the Recommendations...")
+    url = URL + "/updateRecommendations?experiment_name=%s"%(name)
+    print("URL = ", url)
+
+    response = requests.post(url,)
+    print("Response status code = ", response.status_code)
+    print(response.text)
+    return response
+
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
 def list_recommendations(experiment_name):

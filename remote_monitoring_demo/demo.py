@@ -36,6 +36,7 @@ def generate_json(find_arr, json_file, filename, i):
         file.write(data)
 
 def main(argv):
+    bulk = False
     cluster_type = "minikube"
     create_exp_json_file = "./json_files/create_exp.json"
     find = []
@@ -52,7 +53,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"h:c:d:")
     except getopt.GetoptError:
-        print("demo.py -c <cluster type>")
+        print("demo.py -c <cluster type> -b <bulk upload>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -64,7 +65,7 @@ def main(argv):
             num_entries = int(arg) * 96
             num_entries += 1
 
-    print("Cluster type = ", cluster_type)
+    print("demo.py -c %s -b %s"%(cluster_type,bulk))
 
     # Form the kruize url
     form_kruize_url(cluster_type)
@@ -130,10 +131,10 @@ def main(argv):
     print("Updating results for one of the experiments and fetching recommendations from Kruize...")
     print("*************************************************************************************\n")
 
+    bulk_payload = []
     for i in range(1, num_exp_res):
         json_file = "./resource_usage_metrics_data/result_" + str(i) + ".json"
         update_results(json_file)
-
         reco = list_recommendations(experiment_name)
         recommendations_json_arr.append(reco)
 

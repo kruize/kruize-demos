@@ -35,6 +35,7 @@ PYTHON_CMD=python3
 function usage() {
 	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--days=] [--visualize]"
 	echo "s = start (default), t = terminate"
+	echo "sb = start and use bulk upload results , t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "c = supports minikube and openshift cluster-type"
@@ -208,8 +209,14 @@ function pronosana_init() {
 	echo
 }
 
+function remote_monitoring_demo_start2() {
+  local bulk=$1
+  echo "doing bulk : $bulk"
+}
+
 function remote_monitoring_demo_start() {
 
+	local bulk=$1
 	minikube >/dev/null
 	check_err "ERROR: minikube not installed"
 	# Start all the installs
@@ -240,12 +247,12 @@ function remote_monitoring_demo_start() {
 	echo
 
 	if [ ${monitoring_restart} -eq 0 ]; then
-		clone_repos autotune
+		#clone_repos autotune
 
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			minikube_start
+			#minikube_start
 			echo "Calling prometheus_install"
-			prometheus_install
+			#prometheus_install
 			echo "Calling prometheus_install done"
 		fi
 
@@ -259,10 +266,10 @@ function remote_monitoring_demo_start() {
 	fi
 
 	# Check for pre-requisites to run the demo
-	"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
-	prereq_check ${CLUSTER_TYPE}
+	#"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
+	#prereq_check ${CLUSTER_TYPE}
 
-	kruize_install
+	#kruize_install
 
 	# Create an experiment, update results and fetch recommendations using Kruize REST APIs
 	remote_monitoring_experiments
@@ -337,12 +344,12 @@ function remote_monitoring_demo_cleanup() {
 prometheus=0
 monitoring_restart=0
 start_demo=1
+with_bulk=0
 EXPERIMENT_START=0
 # Default no.of data entries to an experiment
 DATA_DAYS=1
 # Iterate through the commandline options
 while getopts o:c:d:prstu:-: gopts; do
-
 	case ${gopts} in
          -)
                 case "${OPTARG}" in
@@ -369,8 +376,12 @@ while getopts o:c:d:prstu:-: gopts; do
 	s)
 		start_demo=1
 		;;
+	b)
+		with_bulk=1
+		;;
 	t)
-		start_demo=0
+	  start_demo=0
+		terminate=1
 		;;
 	c)
 		CLUSTER_TYPE="${OPTARG}"
@@ -387,8 +398,9 @@ while getopts o:c:d:prstu:-: gopts; do
 	esac
 done
 
+
 if [ ${start_demo} -eq 1 ]; then
-	remote_monitoring_demo_start
+	remote_monitoring_demo_start ${with_bulk}
 else
 	remote_monitoring_demo_terminate
 	if [ ${visualize} -eq 1 ]; then
