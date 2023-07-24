@@ -555,6 +555,10 @@ def get_value_fromcsv(filename, recommendation_type):
 
 def setRecommendations(filename,recommendation_type):
     get_recommondations(filename)
+    cpu_request_value = ''
+    cpu_limit_value = ''
+    memory_request_value = ''
+    memory_limit_value = ''
     if recommendation_type == "short_term":
         cpu_request_type = "duration_based_short_term_cpu_requests"
         cpu_limit_type = "duration_based_short_term_cpu_limits"
@@ -580,25 +584,55 @@ def setRecommendations(filename,recommendation_type):
     cpu_request_value=get_value_fromcsv('experimentRecommendations.csv', cpu_request_type)
     cpu_limit_value=get_value_fromcsv('experimentRecommendations.csv', cpu_limit_type)
     mem_format=get_value_fromcsv('experimentRecommendations.csv', mem_format)
+    mem_request_from_csv = get_value_fromcsv('experimentRecommendations.csv', mem_request_type)
+    mem_limit_from_csv = get_value_fromcsv('experimentRecommendations.csv', mem_limit_type)
     if mem_format == "GiB":
-        memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))+"Gi"
-        memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))+"Gi"
-
+        if mem_request_from_csv != '':
+            memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))+"Gi"
+        if mem_limit_from_csv != '':
+            memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))+"Gi"
     elif mem_format == "MiB":
-        memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))+"Mi"
-        memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))+"Mi"
+        if mem_request_from_csv != '':
+            memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))+"Mi"
+        if mem_limit_from_csv != '':
+            memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))+"Mi"
     else:
-        memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))
-        memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))
+        if mem_request_from_csv != '':
+            memory_request_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_request_type))))
+        if mem_limit_from_csv != '':
+            memory_limit_value=str(round(float(get_value_fromcsv('experimentRecommendations.csv', mem_limit_type))))
 
     kubernetes_object_type=get_value_fromcsv('experimentRecommendations.csv', 'type')
     kubernetes_object_name=get_value_fromcsv('experimentRecommendations.csv', 'name')
     kubernetes_object_namespace=get_value_fromcsv('experimentRecommendations.csv', 'namespace')
     kubernetes_object_container=get_value_fromcsv('experimentRecommendations.csv', 'container_name')
-    
-    command = f"kubectl -n {kubernetes_object_namespace} set resources {kubernetes_object_type}/{kubernetes_object_name} --containers={kubernetes_object_container} --requests='cpu={cpu_request_value},memory={memory_request_value}' --limits='cpu={cpu_limit_value},memory={memory_limit_value}'"
-    
+
+    requests_str = ""
+    limits_str = ""
+
+    if cpu_request_value != '':
+        requests_str += f"cpu={cpu_request_value},"
+    if memory_request_value != '':
+        requests_str += f"memory={memory_request_value},"
+
+    if cpu_limit_value != '':
+        limits_str += f"cpu={cpu_limit_value},"
+    if memory_limit_value != '':
+        limits_str += f"memory={memory_limit_value},"
+
+    command = f"kubectl -n {kubernetes_object_namespace} set resources {kubernetes_object_type}/{kubernetes_object_name} --containers={kubernetes_object_container}"
+
+    # Append the requests and limits parts only if they are not empty
+    if requests_str != '':
+        requests_str = requests_str.rstrip(',')
+        command += f" --requests='{requests_str}'"
+    if limits_str != '':
+        limits_str = limits_str.rstrip(',')
+        command += f" --limits='{limits_str}'"
+    print("Applying recommendations using following command..")
+    print(command)
+    #command = f"kubectl -n {kubernetes_object_namespace} set resources {kubernetes_object_type}/{kubernetes_object_name} --containers={kubernetes_object_container} --requests='cpu={cpu_request_value},memory={memory_request_value}' --limits='cpu={cpu_limit_value},memory={memory_limit_value}'"
+
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
-    
 
