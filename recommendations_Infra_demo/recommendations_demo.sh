@@ -34,6 +34,7 @@ function usage() {
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "a = feed experiments to existing kruize deployment"
+	echo "g = get the metrics and recommendations of all experiments in kruize in csv format"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
@@ -258,7 +259,7 @@ cluster_monitoring_setup=1
 demo_monitoring_setup=1
 start_demo=1
 # Iterate through the commandline options
-while getopts o:c:d:prstau-: gopts
+while getopts o:c:d:prstaug-: gopts
 do
 
 	 case ${gopts} in
@@ -327,6 +328,13 @@ do
 		;;
 	u)
 		setRecommendations=1
+		cluster_monitoring_setup=0
+		demo_monitoring_setup=0
+		;;
+	g)
+		getMetricsRecommendations=1
+		cluster_monitoring_setup=0
+		demo_monitoring_setup=0
 		;;
 	*)
 		usage

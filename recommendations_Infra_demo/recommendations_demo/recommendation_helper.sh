@@ -112,6 +112,8 @@ function monitoring_recommendations_demo_with_benchmark() {
 		# Check if the time difference is less than or equal to 3600 seconds (1 hour)
 		if [ $time_diff -le $interval ]; then
 			echo "$file was modified in the last $interval seconds"
+			# Sleep for 4m before merging the data to avoid timing issues with metrics collection
+			sleep 240
 			get_tfb_results_json 1 $latest_dir
 			if [[ -f ${SCRIPTS_REPO}/results/metrics.csv ]]; then
 				run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
@@ -332,5 +334,23 @@ function set_recommendations() {
 		done
 		echo "Wait for ${recommendation_interval}s to set the next recommendation"
                 sleep ${recommendation_interval}s
+        done
+}
+
+# Get the metrics and recommendatins of all experiments
+function get_metrics_recommendations() {
+        python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
+        names=$(cat expoutput.txt | tail -n 1)
+        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+        # Convert the cleaned names into an array
+        IFS=',' read -ra expnames_array <<< "$cleaned_names"
+        echo "expnames_array os $expnames_array"
+
+        #experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
+        # Iterate over the names
+        for exp_name in ${expnames_array[@]}; do
+                echo "exp_name is $exp_name"
+                python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+                python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
         done
 }
