@@ -33,23 +33,20 @@ visualize=0
 PYTHON_CMD=python3
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--days=] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
-	echo "sb = start and use bulk upload results , t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
-	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
-	echo "days = number of days data to push into kruize. Do not exceed 15."
 	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
 
 ## Checks for the pre-requisites to run the monitoring demo
 function prereq_check() {
-	# Python is required only to run the monitoring experiment
+	# Python is required only to run the monitoring experiment 
 	"${PYTHON_CMD}" --version >/dev/null 2>/dev/null
 	check_err "ERROR: "${PYTHON_CMD}" not installed. Required to start the demo. Check if all dependencies ("${PYTHON_CMD}", minikube) are installed."
 
@@ -75,65 +72,58 @@ function kruize_install() {
 	echo "6. Installing Kruize"
 	if [ ! -d autotune ]; then
 		echo "ERROR: autotune dir not found."
-		if [[ ${autotune_restart} -eq 1 ]]; then
+		if [ ${autotune_restart} -eq 1 ]; then
 			echo "ERROR: Kruize not running. Wrong use of restart command"
 		fi
 		exit -1
 	fi
 	pushd autotune >/dev/null
-	# Checkout mvp_demo to get the latest mvp_demo release version
-	git checkout mvp_demo >/dev/null 2>/dev/null
+		# Checkout mvp_demo to get the latest mvp_demo release version
+		git checkout mvp_demo >/dev/null 2>/dev/null
 
-	AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
-	# Kruize UI repo
-	KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
-	KRUIZE_UI_VERSION="$(curl -s https://raw.githubusercontent.com/kruize/kruize-ui/mvp_demo/package.json | grep -m1 '\"version\"' | tr -d ' ' | cut -d: -f2 | tr -d \" | sed 's/,$//')"
+		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
+		# Checkout the tag related to the last published mvp_demo version
+		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
 
-	# Checkout the tag related to the last published mvp_demo version
-	git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
-
-	echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
-	./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
-	sleep 5
-	if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
-		AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
-	fi
-	if [ -z "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
-		KRUIZE_UI_DOCKER_IMAGE=${KRUIZE_UI_REPO}:${KRUIZE_UI_VERSION}
-	fi
-	DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE} -u ${KRUIZE_UI_DOCKER_IMAGE}"
-	if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
-		DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
-	fi
-	echo
-	echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
-	echo
-
-	if [ ${EXPERIMENT_START} -eq 0 ]; then
-		CURR_DRIVER=$(minikube config get driver 2>/dev/null)
-		if [ "${CURR_DRIVER}" == "docker" ]; then
-			echo "Setting docker env"
-			eval $(minikube docker-env)
-		elif [ "${CURR_DRIVER}" == "podman" ]; then
-			echo "Setting podman env"
-			eval $(minikube podman-env)
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
+		sleep 5
+		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
+			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
 		fi
-	fi
+		DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE}"
+		if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
+		fi
+		echo
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo
 
-	./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
-	check_err "ERROR: kruize failed to start, exiting"
+		if [ ${EXPERIMENT_START} -eq 0 ]; then
+			CURR_DRIVER=$(minikube config get driver 2>/dev/null)
+			if [ "${CURR_DRIVER}" == "docker" ]; then
+				echo "Setting docker env"
+				eval $(minikube docker-env)
+			elif [ "${CURR_DRIVER}" == "podman" ]; then
+				echo "Setting podman env"
+				eval $(minikube podman-env)
+			fi
+		fi
 
-	echo -n "Waiting 40 seconds for Autotune to sync with Prometheus..."
-	sleep 40
-	echo "done"
+		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
+		check_err "ERROR: kruize failed to start, exiting"
+
+		echo -n "Waiting 40 seconds for Autotune to sync with Prometheus..."
+		sleep 40
+		echo "done"
 	popd >/dev/null
 	echo "#######################################"
 	echo
 }
 
 function remote_monitoring_experiments() {
-	echo "Running demo.py with ${DATA_DAYS} day data..."
-	"${PYTHON_CMD}" demo.py -c "${CLUSTER_TYPE}" -d "${DATA_DAYS}"
+	echo "Running demo.py..."
+	"${PYTHON_CMD}" demo.py -c "${CLUSTER_TYPE}"
 }
 
 function pronosana_backfill() {
@@ -143,11 +133,12 @@ function pronosana_backfill() {
 	echo ""
 	echo "Invoking pronosana backfill using the below command..."
 	echo ""
-	pushd pronosana >/dev/null
-	echo "./pronosana backfill ${CLUSTER_TYPE} --usage-data-json=${PWD}/usage_data.json --recommendation-data-json=${PWD}/recommendations_data.json"
-	./pronosana backfill ${CLUSTER_TYPE} --usage-data-json=${PWD}/usage_data.json --recommendation-data-json=${PWD}/recommendations_data.json
-	popd >/dev/null
+	pushd pronosana > /dev/null
+		echo "./pronosana backfill ${CLUSTER_TYPE} --usage-data-json=${PWD}/usage_data.json --recommendation-data-json=${PWD}/recommendations_data.json"
+		./pronosana backfill ${CLUSTER_TYPE} --usage-data-json=${PWD}/usage_data.json --recommendation-data-json=${PWD}/recommendations_data.json
+	popd > /dev/null
 }
+
 
 function check_pronosana_setup() {
 	echo ""
@@ -157,34 +148,35 @@ function check_pronosana_setup() {
 	err_wait=0
 	counter=0
 	kubectl_cmd="kubectl -n pronosana"
-	while true; do
+	while true;
+	do
 		sleep 2
 		${kubectl_cmd} get pods | grep ${check_pod}
 		pod_stat=$(${kubectl_cmd} get pods | grep ${check_pod} | awk '{ print $3 }')
 		case "${pod_stat}" in
-		"Running")
-			echo "Info: ${check_pod} deploy succeeded: ${pod_stat}"
-			err=0
-			break
-			;;
-		"Error")
-			# On Error, wait for 10 seconds before exiting.
-			err_wait=$((err_wait + 1))
-			if [ ${err_wait} -gt 5 ]; then
-				echo "Error: ${check_pod} deploy failed: ${pod_stat}"
-				err=-1
-				break
-			fi
-			;;
-		*)
-			sleep 2
-			if [ $counter == 200 ]; then
-				${kubectl_cmd} describe pod ${scheck_pod}
-				echo "ERROR: Prometheus Pods failed to come up!"
-				exit -1
-			fi
-			((counter++))
-			;;
+			"Running")
+				echo "Info: ${check_pod} deploy succeeded: ${pod_stat}"
+				err=0
+				break;
+				;;
+			"Error")
+				# On Error, wait for 10 seconds before exiting.
+				err_wait=$(( err_wait + 1 ))
+				if [ ${err_wait} -gt 5 ]; then
+					echo "Error: ${check_pod} deploy failed: ${pod_stat}"
+					err=-1
+					break;
+				fi
+				;;
+			*)
+				sleep 2
+				if [ $counter == 200 ]; then
+					${kubectl_cmd} describe pod ${scheck_pod}
+					echo "ERROR: Prometheus Pods failed to come up!"
+					exit -1
+				fi
+				((counter++))
+				;;
 		esac
 	done
 
@@ -197,13 +189,13 @@ function pronosana_init() {
 	echo
 	echo "#######################################"
 	pushd pronosana >/dev/null
-	"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
-	echo "6. Initializing pronosana"
-	./pronosana cleanup ${CLUSTER_TYPE}
-	sleep 30
-	./pronosana init ${CLUSTER_TYPE}
-	sleep 30
-	check_pronosana_setup
+		"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
+		echo "6. Initializing pronosana"
+		./pronosana cleanup ${CLUSTER_TYPE}
+		sleep 30
+		./pronosana init ${CLUSTER_TYPE}
+		sleep 30
+		check_pronosana_setup
 	popd >/dev/null
 	echo "#######################################"
 	echo
@@ -211,7 +203,6 @@ function pronosana_init() {
 
 function remote_monitoring_demo_start() {
 
-	local bulk=$1
 	minikube >/dev/null
 	check_err "ERROR: minikube not installed"
 	# Start all the installs
@@ -242,17 +233,17 @@ function remote_monitoring_demo_start() {
 	echo
 
 	if [ ${monitoring_restart} -eq 0 ]; then
-		#clone_repos autotune
+		clone_repos autotune
 
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			#minikube_start
+			minikube_start
 			echo "Calling prometheus_install"
-			#prometheus_install
+			prometheus_install
 			echo "Calling prometheus_install done"
 		fi
 
 		if [ ${visualize} -eq 1 ]; then
-			# clone_repos pronosana
+			clone_repos pronosana
 			rm -rf pronosana
 			git clone https://github.com/bharathappali/pronosana.git
 			echo "visualize = $visualize"
@@ -261,12 +252,12 @@ function remote_monitoring_demo_start() {
 	fi
 
 	# Check for pre-requisites to run the demo
-	#"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
-	#prereq_check ${CLUSTER_TYPE}
+	"${PYTHON_CMD}" -m pip install --user -r requirements.txt >/dev/null 2>&1
+	prereq_check ${CLUSTER_TYPE}
 
-	#kruize_install
+	kruize_install
 
-	# Create an experiment, update results and fetch recommendations using Kruize REST APIs
+	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
 	remote_monitoring_experiments
 
 	echo
@@ -287,7 +278,7 @@ function remote_monitoring_demo_start() {
 		echo "If there are any issues with launching the browser, you can manually open this link - http://localhost:3000/login"
 		echo ""
 	fi
-
+	
 }
 
 function remote_monitoring_demo_terminate() {
@@ -297,9 +288,9 @@ function remote_monitoring_demo_terminate() {
 	echo "#######################################"
 	echo
 	pushd autotune >/dev/null
-	./deploy.sh -t -c ${CLUSTER_TYPE}
-	echo "ERROR: Failed to terminate kruize monitoring"
-	echo
+		./deploy.sh -t -c ${CLUSTER_TYPE}
+		echo "ERROR: Failed to terminate kruize monitoring"
+		echo
 	popd >/dev/null
 }
 
@@ -310,7 +301,7 @@ function pronosana_terminate() {
 	echo "#######################################"
 	echo
 	pushd pronosana >/dev/null
-	./pronosana cleanup ${CLUSTER_TYPE}
+		./pronosana cleanup ${CLUSTER_TYPE}
 	popd >/dev/null
 }
 
@@ -330,7 +321,7 @@ function remote_monitoring_demo_cleanup() {
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube_delete
 	fi
-
+	
 	echo "Success! Monitoring Demo setup cleanup completed."
 	echo
 }
@@ -339,26 +330,26 @@ function remote_monitoring_demo_cleanup() {
 prometheus=0
 monitoring_restart=0
 start_demo=1
-with_bulk=0
 EXPERIMENT_START=0
-# Default no.of data entries to an experiment
-DATA_DAYS=1
+terminate=0
 # Iterate through the commandline options
-while getopts o:c:d:prstu:-: gopts; do
-	case ${gopts} in
+while getopts o:c:d:prsbt-: gopts
+do
+
+	 case ${gopts} in
          -)
                 case "${OPTARG}" in
                         visualize)
                                 visualize=1
                                 ;;
-			days=*)
-				DATA_DAYS=${OPTARG#*=}
-				;;
-			*)
-				;;
-		esac
-		;;
-
+                        *)
+                                if [ "${OPTERR}" == 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
+                                        echo "Unknown option --${OPTARG}" >&2
+                                        usage
+                                fi
+                                ;;
+                esac
+                ;;
 	o)
 		AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
 		;;
@@ -370,9 +361,6 @@ while getopts o:c:d:prstu:-: gopts; do
 		;;
 	s)
 		start_demo=1
-		;;
-	b)
-		with_bulk=1
 		;;
 	t)
 	  start_demo=0
@@ -388,14 +376,13 @@ while getopts o:c:d:prstu:-: gopts; do
 		KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 		;;
 	*)
-		usage
-		;;
+			usage
 	esac
 done
 
 
 if [ ${start_demo} -eq 1 ]; then
-	remote_monitoring_demo_start ${with_bulk}
+	remote_monitoring_demo_start
 else
 	remote_monitoring_demo_terminate
 	if [ ${visualize} -eq 1 ]; then

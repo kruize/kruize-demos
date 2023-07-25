@@ -111,9 +111,9 @@ def update_results(result_json_file):
     print(response.text)
     return response
 
-def update_recommendations(name):
+def update_recommendations(name,edate):
     print("\nUpdating the Recommendations...")
-    url = URL + "/updateRecommendations?experiment_name=%s"%(name)
+    url = URL + "/updateRecommendations?experiment_name=%s&interval_end_time=%s"%(name,edate)
     print("URL = ", url)
 
     response = requests.post(url,)

@@ -36,11 +36,9 @@ def generate_json(find_arr, json_file, filename, i):
         file.write(data)
 
 def main(argv):
-    bulk = False
     cluster_type = "minikube"
     create_exp_json_file = "./json_files/create_exp.json"
     find = []
-    num_entries = 97
 
     json_data = json.load(open(create_exp_json_file))
 
@@ -51,9 +49,9 @@ def main(argv):
     print(find)
 
     try:
-        opts, args = getopt.getopt(argv,"h:c:d:")
+        opts, args = getopt.getopt(argv,"h:c:b:")
     except getopt.GetoptError:
-        print("demo.py -c <cluster type> -b <bulk upload>")
+        print("demo.py -c <cluster type>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -61,11 +59,8 @@ def main(argv):
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
-        elif opt == '-d' and arg is not None:
-            num_entries = int(arg) * 96
-            num_entries += 1
 
-    print("demo.py -c %s -b %s"%(cluster_type,bulk))
+    print("demo.py -c %s"%(cluster_type))
 
     # Form the kruize url
     form_kruize_url(cluster_type)
@@ -74,7 +69,6 @@ def main(argv):
     perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
     create_performance_profile(perf_profile_json_file)
 
-    recommendations_json_arr = []
     ## Create experiments from the experiments_list and use related csv data to updateResults
     experiments_list = ['eap-app_deploymentconfig_america', 'example_replicationcontroller_america', 'tfb-qrh_deployment_tfb-tests', 'rhsso-operator_deployment_sso']
     for exp in experiments_list:
@@ -125,6 +119,7 @@ def main(argv):
             print("Namespace = ", namespace)
 
     # Post the experiment results
+    recommendations_json_arr = []
     num_exp_res = 151
 
     print("\n*************************************************************************************")
@@ -133,11 +128,85 @@ def main(argv):
 
     bulk_payload = []
     for i in range(1, num_exp_res):
-        json_file = "./resource_usage_metrics_data/result_" + str(i) + ".json"
-        update_results(json_file)
-        reco = list_recommendations(experiment_name)
-        recommendations_json_arr.append(reco)
+        json_file_path = "./resource_usage_metrics_data/result_" + str(i) + ".json"
+        with open(json_file_path, 'r') as json_file:
+            json_data = json_file.read()
+        json_parsed = json.loads(json_data)
+        bulk_payload.append(json_parsed[0])
 
+    # Define the batch size
+    batch_size = 100
+
+    # Loop to fetch elements in batches
+    current_index = 0
+    while current_index < len(bulk_payload):
+        # Get the current batch
+        batch = bulk_payload[current_index:current_index + batch_size]
+
+        file_path = './resource_usage_metrics_data/result_%s_to_%s.json'%(current_index,batch_size)
+        with open(file_path, 'w') as json_file:
+            json.dump(batch, json_file)
+        update_results(file_path)
+
+        # Update the current index for the next batch
+        current_index += batch_size
+    end_dates = [
+        "2023-04-02T00:45:00.000Z",
+        "2023-04-02T01:15:00.421Z",
+        "2023-04-02T01:30:00.433Z",
+        "2023-04-02T01:45:00.000Z",
+        "2023-04-02T02:00:00.000Z",
+        "2023-04-02T02:15:00.000Z",
+        "2023-04-02T02:30:00.000Z",
+        "2023-04-02T02:45:00.000Z",
+        "2023-04-02T03:00:00.000Z",
+        "2023-04-02T03:15:00.000Z",
+        "2023-04-02T03:45:00.000Z",
+        "2023-04-02T04:00:00.000Z",
+        "2023-04-02T04:15:00.000Z",
+        "2023-04-02T04:30:00.000Z",
+        "2023-04-02T04:45:00.000Z",
+        "2023-04-02T05:00:00.000Z",
+        "2023-04-02T05:15:00.000Z",
+        "2023-04-02T05:30:00.000Z",
+        "2023-04-02T05:45:00.000Z",
+        "2023-04-02T06:00:00.000Z",
+        "2023-04-02T06:15:00.000Z",
+        "2023-04-02T06:30:00.000Z",
+        "2023-04-02T07:00:00.000Z",
+        "2023-04-02T07:15:00.000Z",
+        "2023-04-02T07:30:00.000Z",
+        "2023-04-02T07:45:00.000Z",
+        "2023-04-02T08:00:00.000Z",
+        "2023-04-02T08:15:00.000Z",
+        "2023-04-02T08:30:00.000Z",
+        "2023-04-02T08:45:00.000Z",
+        "2023-04-02T09:00:00.000Z",
+        "2023-04-02T09:15:00.000Z",
+        "2023-04-02T09:30:00.000Z",
+        "2023-04-02T09:45:00.000Z",
+        "2023-04-02T10:00:00.000Z",
+        "2023-04-02T10:15:00.000Z",
+        "2023-04-02T10:30:00.000Z",
+        "2023-04-02T10:45:00.000Z",
+        "2023-04-02T11:00:00.770Z",
+        "2023-04-02T11:15:00.770Z",
+        "2023-04-02T11:30:00.770Z",
+        "2023-04-02T11:45:00.770Z",
+        "2023-04-02T12:00:00.770Z",
+        "2023-04-02T12:15:00.770Z",
+        "2023-04-02T12:30:00.770Z",
+        "2023-04-02T12:45:00.770Z",
+        "2023-04-02T13:00:00.110Z",
+        "2023-04-02T13:15:00.350Z",
+        "2023-04-02T13:30:00.680Z"
+    ]
+    for enddate in end_dates:
+        update_recommendations(experiment_name,enddate)
+    # Sleep
+    time.sleep(1)
+    reco = list_recommendations(experiment_name)
+    recommendations_json_arr.append(reco)
 
     # Dump the results & recommendations into json files
     with open('recommendations_data.json', 'w') as f:
