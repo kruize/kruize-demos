@@ -106,6 +106,51 @@ function clone_repos() {
 	echo
 }
 
+function clone_jaeger() {
+	app_name=$1
+	echo
+	echo "#######################################"
+	echo "1. Cloning ${app_name} git repos"
+	if [ ! -d ${app_name} ]; then
+		git clone git@github.com:kruize/${app_name}.git 2>/dev/null
+		if [ $? -ne 0 ]; then
+			git clone https://github.com/kruize/${app_name}.git 2>/dev/null
+		fi
+		check_err "ERROR: git clone of kruize/${app_name} failed."
+	fi
+
+	if [ ! -d benchmarks ]; then
+	    mkdir benchmarks
+		pushd benchmarks
+		git clone git@github.com:ozer550/Jaeger-demo-application.git 
+		if [ $? -ne 0 ]; then
+			git clone https://github.com/ozer550/Jaeger-demo-application.git 
+		fi
+		check_err "ERROR: git clone of Jaeger_demo_application failed."
+	fi
+	echo "done"
+	echo "#######################################"
+	echo
+	popd
+}
+
+###########################################
+#   Jaeger Install
+###########################################
+function Jaeger_demo_install() {
+	echo
+	echo "#######################################"
+	pushd benchmarks >/dev/null
+		echo "5. Installing Jaeger_demo into cluster"
+		pushd  Jaeger-demo-application >/dev/null
+			kubectl apply -f minikube-resources
+			check_err "ERROR: Jaeger_Demo app failed to start, exiting"
+		popd >/dev/null
+	popd >/dev/null
+	echo "#######################################"
+	echo
+}
+
 ###########################################
 #   Cleanup git Repos
 ###########################################
