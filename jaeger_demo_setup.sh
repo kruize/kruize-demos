@@ -245,6 +245,8 @@ function autotune_start() {
 		expose_prometheus
 	fi
 
+	expose_jaeger
+
 
 	# Set the lookback time to 7 days (604800000 milliseconds)
 	lookback=604800000
@@ -265,7 +267,7 @@ function autotune_start() {
 
 	# Create the curl URL
 	curl_url="http://$minikube_ip:$jaeger_nodeport/api/dependencies?endTs=$endTs&lookback=$lookback"
-    http://192.168.49.2:30007/api/dependencies?endTs=1690347897323&lookback=604800000
+    # http://192.168.49.2:30007/api/dependencies?endTs=1690347897323&lookback=604800000
 	# Curl Url for demo application
 	name_generator_curl_url="http://$minikube_ip:$nodeport_8080/api/v1/names/random"
 	
