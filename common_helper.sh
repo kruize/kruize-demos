@@ -122,9 +122,9 @@ function clone_jaeger() {
 	if [ ! -d benchmarks ]; then
 	    mkdir benchmarks
 		pushd benchmarks
-		git clone git@github.com:ozer550/Jaeger-demo-application.git 
+		git clone git@github.com:kruize/jaeger-demos.git
 		if [ $? -ne 0 ]; then
-			git clone https://github.com/ozer550/Jaeger-demo-application.git 
+			git clone https://github.com/kruize/jaeger-demos.git
 		fi
 		check_err "ERROR: git clone of Jaeger_demo_application failed."
 	fi
@@ -142,8 +142,8 @@ function Jaeger_demo_install() {
 	echo "#######################################"
 	pushd benchmarks >/dev/null
 		echo "5. Installing Jaeger_demo into cluster"
-		pushd  Jaeger-demo-application >/dev/null
-			kubectl apply -f minikube-resources
+		pushd  jaeger-demos >/dev/null
+			kubectl apply -f kubernetes-resources
 			check_err "ERROR: Jaeger_Demo app failed to start, exiting"
 		popd >/dev/null
 	popd >/dev/null
