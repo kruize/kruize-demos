@@ -239,9 +239,9 @@ function benchmarks_install() {
 #  Expose Jaeger port
 ###########################################
 function expose_jaeger() {
-	echo "Port forwarding Prometheus"
+	echo "Port forwarding Jaeger"
 	echo "Info: Prometheus accessible at http://localhost:9090"
-	kubectl port-forward svc/jaeger 16686:16686
+	kubectl port-forward svc/jaeger 16686:16686 &
 }
 
 

@@ -246,28 +246,15 @@ function autotune_start() {
 	fi
 
 	expose_jaeger
-
-
-	# Set the lookback time to 7 days (604800000 milliseconds)
-	lookback=604800000
-
-	# Set the endTs based on the current timestamp 
-	endTs=$(date +%s%3N)
 	
 	# Get the Minikube IP
 	minikube_ip=$(minikube ip)
-	# Get the NodePort for the port 16686 of the Jaeger service
-	jaeger_nodeport=$(kubectl get svc jaeger -o=jsonpath='{.spec.ports[?(@.port==16686)].nodePort}')
-    jaeger_nodeport="${jaeger_nodeport//\%}"
 
 	# Get the NodePort for the port 8080 of the name-generator-service
 	nodeport_8080=$(kubectl get svc name-generator-service -o=jsonpath='{.spec.ports[?(@.port==8080)].nodePort}')
 	# Remove the '%' symbol from the NodePort value
 	nodeport_8080="${nodeport_8080//\%}"
 
-	# Create the curl URL
-	curl_url="http://$minikube_ip:$jaeger_nodeport/api/dependencies?endTs=$endTs&lookback=$lookback"
-    # http://192.168.49.2:30007/api/dependencies?endTs=1690347897323&lookback=604800000
 	# Curl Url for demo application
 	name_generator_curl_url="http://$minikube_ip:$nodeport_8080/api/v1/names/random"
 	
@@ -277,14 +264,6 @@ function autotune_start() {
    		curl "$name_generator_curl_url"
 	done
 	
-	echo
-	echo "#######################################"
-	echo "#             Curlinggg the dependenciessss             #"
-	echo "#######################################"
-	# Perform the curl operation
-	curl "$curl_url"
-
-
 }
 
 function autotune_terminate() {
@@ -307,7 +286,7 @@ prometheus=0
 autotune_restart=0
 start_demo=1
 DOCKER_IMAGES=""
-AUTOTUNE_DOCKER_IMAGE=""
+AUTOTUNE_DOCKER_IMAGE="kruize/autotune:jaeger_demo"
 HPO_DOCKER_IMAGE=""
 EXPERIMENT_START=1
 # Iterate through the commandline options
