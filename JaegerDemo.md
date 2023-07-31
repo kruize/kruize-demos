@@ -1,5 +1,5 @@
 # Jaeger Demo
-This demo instruments a microservices springboot application using Jaeger to fetch the dependecies using Jaeger API.
+This demo deploys kruize, jaeger and a microservices spring boot application that is instrumented using jaeger in minikube. Kruize then fetches the microservices dependencies using the Jaeger [API](https://www.jaegertracing.io/docs/1.23/apis/#service-dependencies-graph-internal). You can find the details about the microservices application used [here](https://github.com/kruize/jaeger-demos/blob/main/JaegerDependencyDemo.md).
 
 ## How do I run it?
 
@@ -7,7 +7,7 @@ This demo instruments a microservices springboot application using Jaeger to fet
 ./jaeger_demo_setup.sh
 ```
 
-To view the dependecies Api response from Jaeger follow the given steps:
+To view the dependencies API response from Jaeger follow the given steps:
 
 - Find the name of Kruize pod.
 ```
