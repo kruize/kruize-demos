@@ -273,7 +273,7 @@ function autotune_terminate() {
 	echo "#       Autotune Demo Terminate       #"
 	echo "#######################################"
 	echo
-	delete_repos autotune
+	delete_jaeger_repos autotune
 	minikube_delete
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
