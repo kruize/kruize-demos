@@ -229,10 +229,8 @@ function autotune_start() {
 		Jaeger_demo_install
 	fi
 	kruize_install
-	# autotune_install
-	# if [ ${EXPERIMENT_START} -eq 1 ]; then
-	# 	autotune_objects_install
-	# fi
+    
+
 	echo
 	kubectl -n monitoring get pods
 	echo
@@ -263,6 +261,11 @@ function autotune_start() {
     	echo -e "\n\nCurling Name Generator API: Iteration $i"
    		curl "$name_generator_curl_url"
 	done
+    
+	echo "#######################################"
+	echo "Check kruize pod logs to see the Jaeger api/dependencies output"
+	echo "#######################################"
+	
 	
 }
 
