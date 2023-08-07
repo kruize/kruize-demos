@@ -95,10 +95,11 @@ def create_expjson(clustername,filename):
                     row["k8_object_type"] = "deployment"
                     row["k8_object_name"] = "tfb-qrh-sample-0"
                     row["namespace"] = "tfb-perf"
+                    row["cluster_name"] = "e23-alias"
 
             replacements = {
                     "EXP_NAME": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
-                    "CLUSTER_NAME": clustername,
+                    "CLUSTER_NAME": row["cluster_name"],
                     "k8Object_TYPE": row["k8_object_type"],
                     "k8Object_NAME": row["k8_object_name"],
                     "k8ObjectNAMESPACE": row["namespace"],
