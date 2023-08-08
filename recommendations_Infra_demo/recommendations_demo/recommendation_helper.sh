@@ -354,3 +354,15 @@ function get_metrics_recommendations() {
                 python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
         done
 }
+
+function summarize_cluster_data() {
+	clusterName=$1
+	namespaceName=$2
+	if [ -z "$clusterName" ]; then
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}')"
+	elif [ -z "$namespaceName" ]; then
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}','${CLUSTER_NAME}')"
+	else
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}','${CLUSTER_NAME}','${NAMESPACE_NAME}')"
+	fi
+}

@@ -30,7 +30,7 @@ target="crc"
 visualize=0
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--summarize] [--visualize]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "a = feed experiments to existing kruize deployment"
@@ -39,6 +39,7 @@ function usage() {
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
+	echo "summarize = Summarize the data. Default - all clusters. Append --clusterName=<> and --namespaceName=<> for individual summary"
 	echo "visualize = Visualize the recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
@@ -204,6 +205,19 @@ function monitoring_demo_start() {
 	elif [[ ${setRecommendations} -eq 1 ]]; then
 		# Hardcoding to set the recommendations of duration based medium term for every 6 hrs
 		timeout 2592000 bash -c "set_recommendations medium_term 21600" &
+	elif [[ ${summarizeData} -eq 1 ]]; then
+		if [[ -z ${CLUSTER_NAME} ]]; then
+			if [[  -z ${NAMESPACE_NAME} ]]; then
+				echo "Summarizing cluster:${CLUSTER_NAME} namespace:${NAMESPACE_NAME} data available in kruize"
+				summarize_cluster_data ${CLUSTER_NAME} ${NAMESPACE_NAME}
+			else
+				echo "Summarizing ${CLUSTER_NAME} data available in kruize"
+                                summarize_cluster_data ${CLUSTER_NAME}
+			fi
+		else
+			echo "Summarizing all the cluster data available in kruize"
+			summarize_cluster_data
+		fi
 	fi
 
 
@@ -292,8 +306,16 @@ do
 			dataDir=*)
 				resultsDir=${OPTARG#*=}
 				;;
+			summarize=*)
+				summarizeData=1
+				cluster_monitoring_setup=0
+				demo_monitoring_setup=0
+				;;
 			clusterName=*)
 				CLUSTER_NAME=${OPTARG#*=}
+				;;
+			namespaceName=*)
+				NAMESPACE_NAME=${OPTARG#*=}
 				;;
 
                         *)

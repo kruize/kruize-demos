@@ -136,6 +136,18 @@ def list_metrics_with_recommendations(experiment_name):
     print("URL = ", url, "   Response status code = ", response.status_code)
     return response.json()
 
+def summarize_cluster_data(cluster_name=None,namespace_name=None):
+    print("\nSummarizing the cluster data...")
+    PARAMS=None
+    url = URL + "/listClusters/summarize"
+    if cluster_name is not None and namespace_name is None:
+        PARAMS = {'cluster_name':cluster_name}
+    elif cluster_name is not None and namespace_name is not None:
+        PARAMS = {'cluster_name':cluster_name, 'namespace_name':namespace_name}
+    response = requests.get(url = url, params = PARAMS)
+    print("URL = ", url, "   Response status code = ", response.status_code)
+    return response.json()
+
 # Description: This function combines the metric results and recommendations into a single json
 # Input parameters: result json file, recommendations json
 def combine_jsons(result_json, reco_json):

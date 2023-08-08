@@ -204,7 +204,12 @@ def getRecommendations(cluster_type,experiment_name):
             json.dump(recommendations_json, f, indent=4)
     return
 
-
+def summarizeClusterData(cluster_type, cluster_name=None, namespace_name=None):
+    form_kruize_url(cluster_type)
+    cluster_data_json = summarize_cluster_data(cluster_name,namespace_name)
+    with open('cluster_data.json', 'w') as f:
+            json.dump(cluster_data_json, f, indent=4)
+    return
 
 def main(argv):
     try:
