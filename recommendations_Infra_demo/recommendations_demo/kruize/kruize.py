@@ -139,7 +139,7 @@ def list_metrics_with_recommendations(experiment_name):
 def summarize_cluster_data(cluster_name=None,namespace_name=None):
     print("\nSummarizing the cluster data...")
     PARAMS=None
-    url = URL + "/listClusters/summarize"
+    url = URL + "/summarize"
     if cluster_name is not None and namespace_name is None:
         PARAMS = {'cluster_name':cluster_name}
     elif cluster_name is not None and namespace_name is not None:

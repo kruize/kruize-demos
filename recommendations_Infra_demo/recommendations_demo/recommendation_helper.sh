@@ -365,4 +365,5 @@ function summarize_cluster_data() {
 	else
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}','${CLUSTER_NAME}','${NAMESPACE_NAME}')"
 	fi
+	python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('cluster_data.json')"
 }

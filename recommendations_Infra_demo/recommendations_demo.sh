@@ -306,7 +306,7 @@ do
 			dataDir=*)
 				resultsDir=${OPTARG#*=}
 				;;
-			summarize=*)
+			summarize)
 				summarizeData=1
 				cluster_monitoring_setup=0
 				demo_monitoring_setup=0

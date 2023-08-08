@@ -550,14 +550,10 @@ def get_cluster_data_csv(filename):
     with open(filename, 'r') as f:
         data = json.load(f)
     with open('clusterData.csv', 'w', newline='') as f:
-        #writer = csv.writer(f)
-        # Write the headers to the CSV file
         fieldnames = ['cluster_name', 'timezone', 'current_cpu_requests', 'current_memory_requests', 'current_cpu_limits', 'current_memory_limits', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_variation', 'duration_based_short_term_memory_requests_variation', 'duration_based_short_term_cpu_limits_variation', 'duration_based_short_term_memory_limits_variation', 'duration_based_medium_term_cpu_requests_variation' , 'duration_based_medium_term_memory_requests_variation', 'duration_based_medium_term_cpu_limits_variation' , 'duration_based_medium_term_memory_limits_variation', 'duration_based_long_term_cpu_requests_variation' , 'duration_based_long_term_memory_requests_variation', 'duration_based_long_term_cpu_limits_variation' , 'duration_based_long_term_memory_limits_variation']
 
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-
-        #writer.writerow(['cluster_name', 'time_zone', 'duration_engine', 'duration_type', 'current_cpu_requests' , 'current_memory_requests' , 'current_cpu_limits', 'current_memory_limits', 'config_cpu_requests' , 'config_memory_requests' , 'config_cpu_limits', 'config_memory_limits', 'change_cpu_requests' , 'change_memory_requests' , 'change_cpu_limits', 'change_memory_limits'])
 
         for cluster in data:
             cluster_name = cluster['cluster_name']
@@ -590,35 +586,6 @@ def get_cluster_data_csv(filename):
                                     #recomm_dict[recomm_var_format] = str(recomm_resourcedata["format"])
                 clust_dict.update(recomm_dict)
                 writer.writerow(clust_dict)
-
-
-        # Compare the data for each time zone
-        for json_data in data:
-            #cluster_json = json_data[0]
-            cluster_name = json_data["cluster_name"]
-
-            for cluster_summary in json_data[0]["summary"]:
-                for time_zone in cluster_summary["data"]:
-                    for recommendation_engine in cluster_summary["data"][time_zone]:
-                        for duration_type in cluster_summary["data"][time_zone][recommendation_engine]:
-                            resources = cluster_summary["recommendations"]["data"][time_zone][recommendation_engine][duration_type]
-                            #if "config" in recommendations["duration_based"][duration_type]:
-                            if "config" in resources:
-                                cpu_limits_json = ''
-                                memory_limits_json = ''
-                                cpu_requests_json = ''
-                                memory_requests_json = ''
-                                if "cpu" in resources["config"]["limits"]:
-                                    cpu_limits_json = round(resources["config"]["limits"]["cpu"]["amount"], 4)
-                                if "memory" in resources["config"]["limits"]:
-                                    memory_limits_json = round(resources["config"]["limits"]["memory"]["amount"], 4)
-                                if "cpu" in resources["config"]["requests"]:
-                                    cpu_requests_json = round(resources["config"]["requests"]["cpu"]["amount"], 4)
-                                if "memory" in resources["config"]["requests"]:
-                                    memory_requests_json = round(resources["config"]["requests"]["memory"]["amount"], 4)
-                            writer.writerow([cluster_json, exp_name_json, container_json, time_zone, recommendation_engine, duration_type, cpu_requests_json, memory_requests_json, cpu_limits_json, memory_limits_json])
-
-
 
 def get_value_fromcsv(filename, recommendation_type):
     with open(filename, 'r') as file:
