@@ -32,6 +32,8 @@ visualize=0
 
 PYTHON_CMD=python3
 
+KRUIZE_UI_DOCKER_IMAGE="quay.io/kruize/kruize-ui:test"
+
 function usage() {
 	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
@@ -82,6 +84,10 @@ function kruize_install() {
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
+		# Kruize UI repo
+    KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
+    KRUIZE_UI_VERSION="$(curl -s https://raw.githubusercontent.com/kruize/kruize-ui/main/package.json | grep -m1 '\"version\"' | tr -d ' ' | cut -d: -f2 | tr -d \" | sed 's/,$//')"
+
 		# Checkout the tag related to the last published mvp_demo version
 		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
 
@@ -91,7 +97,10 @@ function kruize_install() {
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
 		fi
-		DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE}"
+		if [ -z "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+      KRUIZE_UI_DOCKER_IMAGE=${KRUIZE_UI_REPO}:${KRUIZE_UI_VERSION}
+    fi
+		DOCKER_IMAGES="-i ${AUTOTUNE_DOCKER_IMAGE} -u ${KRUIZE_UI_DOCKER_IMAGE}"
 		if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
 			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
@@ -332,7 +341,7 @@ monitoring_restart=0
 start_demo=1
 EXPERIMENT_START=0
 # Iterate through the commandline options
-while getopts o:c:d:prst-: gopts
+while getopts o:c:d:prstu:-: gopts
 do
 
 	 case ${gopts} in
@@ -371,6 +380,9 @@ do
 	d)
 		DURATION="${OPTARG}"
 		;;
+  u)
+    KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
+    ;;
 	*)
 			usage
 	esac
