@@ -239,7 +239,7 @@ function monitoring_recommendations_demo_with_data() {
 				## Convert the csv into json
 				run_monitoring_exp $file
 			fi
-			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
+			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 			sleep 1s
 		fi
 	done

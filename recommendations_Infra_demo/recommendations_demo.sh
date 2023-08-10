@@ -189,7 +189,7 @@ function monitoring_demo_start() {
 		echo "Completed"
 		echo "#######################################"
 		echo ""
-		echo "Use recommendationsOutput.csv to generate visualizations for the generated recommendations."
+		echo "Use experimentOutput.csv to generate visualizations for the metrics and Kruize recommendations."
 	elif [[ ${monitorRecommendations} -eq 1 ]]; then
 		#if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
 		if [[ ${demoBenchmark} -eq 1 ]]; then

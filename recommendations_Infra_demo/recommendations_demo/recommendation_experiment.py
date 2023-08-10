@@ -87,15 +87,21 @@ def create_expjson(clustername,filename):
         for row in reader:
             ## Hardcoding for tfb-results and demo benchmark. Updating them only if these columns are not available.
             ## Keep this until the metrics queries are fixed in benchmark to get the below column data
-            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" ]
+            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" , "cluster_name"]
             for col in columns_tocheck:
                 if col not in row:
-                    row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
-                    row["container_name"] = "tfb-server"
-                    row["k8_object_type"] = "deployment"
-                    row["k8_object_name"] = "tfb-qrh-sample-0"
-                    row["namespace"] = "tfb-perf"
-                    row["cluster_name"] = "e23-alias"
+                    if col == "image_name":
+                        row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
+                    if col == "container_name":
+                        row["container_name"] = "tfb-server"
+                    if col == "k8_object_type":
+                        row["k8_object_type"] = "deployment"
+                    if col == "k8_object_name":
+                        row["k8_object_name"] = "tfb-qrh-sample-0"
+                    if col == "namespace":
+                        row["namespace"] = "tfb-perf"
+                    if col == "cluster_name":
+                        row["cluster_name"] = "e23-alias"
 
             replacements = {
                     "EXP_NAME": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
