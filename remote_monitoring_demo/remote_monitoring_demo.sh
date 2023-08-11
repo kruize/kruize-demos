@@ -85,7 +85,7 @@ function kruize_install() {
 	AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 	# Kruize UI repo
 	KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
-	KRUIZE_UI_VERSION="$(curl -s https://raw.githubusercontent.com/kruize/kruize-ui/main/package.json | grep -m1 '\"version\"' | tr -d ' ' | cut -d: -f2 | tr -d \" | sed 's/,$//')"
+	KRUIZE_UI_VERSION="$(curl -s https://raw.githubusercontent.com/kruize/kruize-ui/mvp_demo/package.json | grep -m1 '\"version\"' | tr -d ' ' | cut -d: -f2 | tr -d \" | sed 's/,$//')"
 
 	# Checkout the tag related to the last published mvp_demo version
 	git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
