@@ -34,3 +34,8 @@ $ ./remote_monitoring_demo.sh -r -o [kruize image]
 # To terminate the demo
 $ ./remote_monitoring_demo.sh -t
 
+# To run / restart the demo with a specific UI image
+# RUN:
+$ ./remote_monitoring_demo.sh -u [kruize ui image]
+# RESTART:
+$ ./remote_monitoring_demo.sh -r -u [kruize ui image]
