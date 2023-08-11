@@ -1,0 +1,27 @@
+[{
+  "version": "1.0",
+  "experiment_name": "python-sample|deployment|america",
+  "cluster_name": "cluster-one-division-bell",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "python-sample",
+      "namespace": "america",
+      "containers": [
+        {
+          "container_image_name": "test",
+          "container_name": "python-sample"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]

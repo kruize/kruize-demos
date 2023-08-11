@@ -1,0 +1,27 @@
+[{
+  "version": "1.0",
+  "experiment_name": "rhsso-operator|deployment|sso",
+  "cluster_name": "cluster-one-division-bell",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "rhsso-operator",
+      "namespace": "sso",
+      "containers": [
+        {
+          "container_image_name": "test",
+          "container_name": "rhsso-operator"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]

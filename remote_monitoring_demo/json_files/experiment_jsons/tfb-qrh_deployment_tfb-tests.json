@@ -1,0 +1,27 @@
+[{
+  "version": "1.0",
+  "experiment_name": "tfb-qrh|deployment|tfb-tests",
+  "cluster_name": "cluster-one-division-bell",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "tfb-qrh",
+      "namespace": "tfb-tests",
+      "containers": [
+        {
+          "container_image_name": "kruize/tfb-db:1.15",
+          "container_name": "tfb-server"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
