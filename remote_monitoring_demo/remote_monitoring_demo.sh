@@ -32,8 +32,6 @@ visualize=0
 
 PYTHON_CMD=python3
 
-KRUIZE_UI_DOCKER_IMAGE="quay.io/kruize/kruize-ui:0.0.1"
-
 function usage() {
 	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
 	echo "s = start (default), t = terminate"
@@ -42,6 +40,7 @@ function usage() {
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
+	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
