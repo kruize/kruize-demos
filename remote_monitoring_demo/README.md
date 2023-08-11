@@ -27,15 +27,10 @@ $ ./remote_monitoring_demo.sh
 Where values for demo.py are:
 usage: ./remote_monitoring_demo.sh [ -c ] : cluster type. Supported types - minikube, openshift. Default is minikube
                             [ -o ] : Kruize docker image, optional
+                            [ -u ] : Kruize UI image, optional
                             
 # If you want to restart only kruize with the specified docker image
 $ ./remote_monitoring_demo.sh -r -o [kruize image]
 
 # To terminate the demo
 $ ./remote_monitoring_demo.sh -t
-
-# To run / restart the demo with a specific UI image
-# RUN:
-$ ./remote_monitoring_demo.sh -u [kruize ui image]
-# RESTART:
-$ ./remote_monitoring_demo.sh -r -u [kruize ui image]
