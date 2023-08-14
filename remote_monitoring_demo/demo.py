@@ -21,6 +21,7 @@ import json
 import os
 import time
 import csv
+import itertools
 
 def generate_json(find_arr, json_file, filename, i):
 
@@ -38,6 +39,7 @@ def main(argv):
     cluster_type = "minikube"
     create_exp_json_file = "./json_files/create_exp.json"
     find = []
+    num_entries = 96
 
     json_data = json.load(open(create_exp_json_file))
 
@@ -48,7 +50,7 @@ def main(argv):
     print(find)
 
     try:
-        opts, args = getopt.getopt(argv,"h:c:")
+        opts, args = getopt.getopt(argv,"h:c:d:")
     except getopt.GetoptError:
         print("demo.py -c <cluster type>")
         sys.exit(2)
@@ -58,6 +60,8 @@ def main(argv):
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
+        elif opt == '-d' and arg is not None:
+            num_entries = int(arg) * 96
 
     print("Cluster type = ", cluster_type)
 
@@ -81,7 +85,9 @@ def main(argv):
         with open(experiment_csv, 'r') as csv_file:
             reader = csv.reader(csv_file)
             header = next(reader)
-            for row in reader:
+
+            limited_reader = itertools.islice(reader, num_entries)
+            for row in limited_reader:
                 #if not any(row):
                 #    continue
                 with open('intermediate.csv', mode='w', newline='') as outfile:
