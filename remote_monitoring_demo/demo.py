@@ -88,8 +88,8 @@ def main(argv):
 
             limited_reader = itertools.islice(reader, num_entries)
             for row in limited_reader:
-                #if not any(row):
-                #    continue
+                if not any(row):
+                    continue
                 with open('intermediate.csv', mode='w', newline='') as outfile:
                     writer = csv.writer(outfile)
                     writer.writerow(header)
@@ -99,9 +99,6 @@ def main(argv):
                 resultsjson_file = "./json_files/experiment_jsons/results.json"
                 create_json_from_csv("./intermediate.csv",resultsjson_file)
                 update_results(resultsjson_file)
-                
-                # Sleep
-                #time.sleep(1)
                 
                 reco = list_recommendations(experiment_name)
                 recommendations_json_arr.append(reco)
@@ -135,9 +132,6 @@ def main(argv):
     for i in range(1, num_exp_res):
         json_file = "./resource_usage_metrics_data/result_" + str(i) + ".json"
         update_results(json_file)
-
-        # Sleep
-        time.sleep(1)
 
         reco = list_recommendations(experiment_name)
         recommendations_json_arr.append(reco)

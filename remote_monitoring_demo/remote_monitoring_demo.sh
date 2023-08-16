@@ -41,7 +41,7 @@ function usage() {
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
-	echo "days = number of days data to push into kruize"
+	echo "days = number of days data to push into kruize. Do not exceed 15."
 	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
