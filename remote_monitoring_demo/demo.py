@@ -39,7 +39,7 @@ def main(argv):
     cluster_type = "minikube"
     create_exp_json_file = "./json_files/create_exp.json"
     find = []
-    num_entries = 96
+    num_entries = 97
 
     json_data = json.load(open(create_exp_json_file))
 
@@ -62,6 +62,7 @@ def main(argv):
             cluster_type = arg
         elif opt == '-d' and arg is not None:
             num_entries = int(arg) * 96
+            num_entries += 1
 
     print("Cluster type = ", cluster_type)
 
