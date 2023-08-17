@@ -33,7 +33,7 @@ visualize=0
 PYTHON_CMD=python3
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--days=] [--visualize]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
@@ -41,6 +41,7 @@ function usage() {
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "days = number of days data to push into kruize. Do not exceed 15."
 	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
@@ -73,7 +74,7 @@ function kruize_install() {
 	echo "6. Installing Kruize"
 	if [ ! -d autotune ]; then
 		echo "ERROR: autotune dir not found."
-		if [ ${autotune_restart} -eq 1 ]; then
+		if [[ ${autotune_restart} -eq 1 ]]; then
 			echo "ERROR: Kruize not running. Wrong use of restart command"
 		fi
 		exit -1
@@ -130,8 +131,8 @@ function kruize_install() {
 }
 
 function remote_monitoring_experiments() {
-	echo "Running demo.py..."
-	"${PYTHON_CMD}" demo.py -c "${CLUSTER_TYPE}"
+	echo "Running demo.py with ${DATA_DAYS} day data..."
+	"${PYTHON_CMD}" demo.py -c "${CLUSTER_TYPE}" -d "${DATA_DAYS}"
 }
 
 function pronosana_backfill() {
@@ -337,21 +338,22 @@ prometheus=0
 monitoring_restart=0
 start_demo=1
 EXPERIMENT_START=0
+# Default no.of data entries to an experiment
+DATA_DAYS=1
 # Iterate through the commandline options
 while getopts o:c:d:prstu:-: gopts; do
 
 	case ${gopts} in
-	-)
-		case "${OPTARG}" in
-		visualize)
-			visualize=1
-			;;
-		*)
-			if [ "${OPTERR}" == 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
-				echo "Unknown option --${OPTARG}" >&2
-				usage
-			fi
-			;;
+         -)
+                case "${OPTARG}" in
+                        visualize)
+                                visualize=1
+                                ;;
+			days=*)
+				DATA_DAYS=${OPTARG#*=}
+				;;
+			*)
+				;;
 		esac
 		;;
 
