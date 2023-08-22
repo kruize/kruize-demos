@@ -339,23 +339,21 @@ terminate=0
 # Default no.of data entries to an experiment
 DATA_DAYS=1
 # Iterate through the commandline options
-while getopts o:c:d:prstu-: gopts
-do
-
-	 case ${gopts} in
+while getopts o:c:d:prstu:-: gopts; do
+	case ${gopts} in
          -)
                 case "${OPTARG}" in
                         visualize)
                                 visualize=1
                                 ;;
-                        *)
-                                if [ "${OPTERR}" == 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
-                                        echo "Unknown option --${OPTARG}" >&2
-                                        usage
-                                fi
-                                ;;
-                esac
-                ;;
+			days=*)
+				DATA_DAYS=${OPTARG#*=}
+				;;
+			*)
+				;;
+		esac
+		;;
+
 	o)
 		AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
 		;;
@@ -369,8 +367,7 @@ do
 		start_demo=1
 		;;
 	t)
-	  start_demo=0
-		terminate=1
+		start_demo=0
 		;;
 	c)
 		CLUSTER_TYPE="${OPTARG}"
@@ -382,10 +379,10 @@ do
 		KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 		;;
 	*)
-			usage
+		usage
+		;;
 	esac
 done
-
 if [ ${start_demo} -eq 1 ]; then
 	remote_monitoring_demo_start
 else
