@@ -40,6 +40,7 @@ function usage() {
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
+	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "days = number of days data to push into kruize. Do not exceed 15."
 	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
 	exit 1
@@ -83,6 +84,8 @@ function kruize_install() {
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
+    # Kruize UI repo
+		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
 		# Checkout the tag related to the last published mvp_demo version
 		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
 

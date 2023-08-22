@@ -14,58 +14,66 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from . json_validate import validate_exp_input_json
-import subprocess
-import requests
 import json
-import os
-import time
-import shutil
+import requests
+import subprocess
+
+from .json_validate import validate_exp_input_json
 
 # Global vars
 URL = ""
 KRUIZE_UI_URL = ""
 
+
 def form_kruize_url(cluster_type):
     global URL
     global KRUIZE_UI_URL
     if (cluster_type == "minikube"):
-        port = subprocess.run(['kubectl -n monitoring get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)
+        port = subprocess.run(
+            ['kubectl -n monitoring get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
+            shell=True, stdout=subprocess.PIPE)
 
-        AUTOTUNE_PORT=port.stdout.decode('utf-8').strip('\n')
+        AUTOTUNE_PORT = port.stdout.decode('utf-8').strip('\n')
 
-        ui_port = subprocess.run(['kubectl -n monitoring get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)
+        ui_port = subprocess.run([
+                                     'kubectl -n monitoring get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
+                                 shell=True, stdout=subprocess.PIPE)
 
-        KRUIZE_UI_PORT=ui_port.stdout.decode('utf-8').strip('\n')
+        KRUIZE_UI_PORT = ui_port.stdout.decode('utf-8').strip('\n')
 
         ip = subprocess.run(['minikube ip'], shell=True, stdout=subprocess.PIPE)
-        SERVER_IP=ip.stdout.decode('utf-8').strip('\n')
+        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
 
     elif (cluster_type == "openshift"):
-        port = subprocess.run(['kubectl -n openshift-tuning get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)
+        port = subprocess.run(
+            ['kubectl -n openshift-tuning get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
+            shell=True, stdout=subprocess.PIPE)
 
-        AUTOTUNE_PORT=port.stdout.decode('utf-8').strip('\n')
+        AUTOTUNE_PORT = port.stdout.decode('utf-8').strip('\n')
         print("PORT = ", AUTOTUNE_PORT)
 
-        ui_port = subprocess.run(['kubectl -n openshift-tuning get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'], shell=True, stdout=subprocess.PIPE)
+        ui_port = subprocess.run([
+                                     'kubectl -n openshift-tuning get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
+                                 shell=True, stdout=subprocess.PIPE)
 
-        KRUIZE_UI_PORT=ui_port.stdout.decode('utf-8').strip('\n')
+        KRUIZE_UI_PORT = ui_port.stdout.decode('utf-8').strip('\n')
         print("KRUIZE UI PORT = ", KRUIZE_UI_PORT)
 
-        ip = subprocess.run(['kubectl get pods -l=app=kruize -o wide -n openshift-tuning -o=custom-columns=NODE:.spec.nodeName --no-headers'], shell=True, stdout=subprocess.PIPE)
-        SERVER_IP=ip.stdout.decode('utf-8').strip('\n')
+        ip = subprocess.run([
+                                'kubectl get pods -l=app=kruize -o wide -n openshift-tuning -o=custom-columns=NODE:.spec.nodeName --no-headers'],
+                            shell=True, stdout=subprocess.PIPE)
+        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
         print("IP = ", SERVER_IP)
 
     URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
-    KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" +str(KRUIZE_UI_PORT)
-    print ("\nKRUIZE AUTOTUNE URL = ", URL)
-    print ("\nKRUIZE UI URL = ", KRUIZE_UI_URL)
+    KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
+    print("\nKRUIZE AUTOTUNE URL = ", URL)
+    print("\nKRUIZE UI URL = ", KRUIZE_UI_URL)
 
 
 # Description: This function validates the input json and posts the experiment using createExperiment API to Kruize
 # Input Parameters: experiment input json
 def create_experiment(input_json_file):
-
     json_file = open(input_json_file, "r")
     input_json = json.loads(json_file.read())
     print("\n************************************************************")
@@ -91,14 +99,14 @@ def create_experiment(input_json_file):
         print("Response status code = ", response.status_code)
         print(response.text)
 
+
 # Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
 # Input Parameters: resource usage metrics json
 def update_results(result_json_file):
-
     # read the json
     json_file = open(result_json_file, "r")
     result_json = json.loads(json_file.read())
-    
+
     # TO DO: Validate the result json
 
     print("\nUpdating the results...")
@@ -111,35 +119,36 @@ def update_results(result_json_file):
     print(response.text)
     return response
 
-def update_recommendations(name,edate):
+
+def update_recommendations(name, edate):
     print("\nUpdating the Recommendations...")
-    url = URL + "/updateRecommendations?experiment_name=%s&interval_end_time=%s"%(name,edate)
+    url = URL + "/updateRecommendations?experiment_name=%s&interval_end_time=%s" % (name, edate)
     print("URL = ", url)
 
-    response = requests.post(url,)
+    response = requests.post(url, )
     print("Response status code = ", response.status_code)
-    print(response.text)
+    # print(response.text)
     return response
+
 
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
 def list_recommendations(experiment_name):
-
     print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
     print("URL = ", url)
     print("KRUIZE UI URL = ", KRUIZE_UI_URL)
 
     PARAMS = {'experiment_name': experiment_name}
-    response = requests.get(url = url, params = PARAMS)
+    response = requests.get(url=url, params=PARAMS)
     print("Response status code = ", response.status_code)
 
     return response.json()
 
+
 # Description: This function creates a performance profile using the Kruize createPerformanceProfile API
 # Input Parameters: performance profile json
 def create_performance_profile(perf_profile_json_file):
-
     json_file = open(perf_profile_json_file, "r")
     perf_profile_json = json.loads(json_file.read())
 
@@ -153,23 +162,23 @@ def create_performance_profile(perf_profile_json_file):
     print(response.text)
     return response
 
+
 # Description: This function obtains the experiments and result metrics from Kruize using listExperiments API
 def list_experiments():
-
     print("\nListing the experiments...")
     url = URL + "/listExperiments"
     print("URL = ", url)
     print("KRUIZE UI URL = ", KRUIZE_UI_URL)
 
-    response = requests.get(url = url)
+    response = requests.get(url=url)
     print("Response status code = ", response.status_code)
 
     return response.json()
 
+
 # Description: This function combines the metric results and recommendations into a single json
 # Input parameters: result json file, recommendations json
 def combine_jsons(result_json, reco_json):
-
     input_json = open(result_json, "r")
     data = json.loads(input_json.read())
 
