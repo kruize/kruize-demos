@@ -46,7 +46,7 @@ function usage() {
 
 ## Checks for the pre-requisites to run the monitoring demo
 function prereq_check() {
-	# Python is required only to run the monitoring experiment 
+	# Python is required only to run the monitoring experiment
 	"${PYTHON_CMD}" --version >/dev/null 2>/dev/null
 	check_err "ERROR: "${PYTHON_CMD}" not installed. Required to start the demo. Check if all dependencies ("${PYTHON_CMD}", minikube) are installed."
 
@@ -96,7 +96,7 @@ function kruize_install() {
 			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
 		echo
-		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo "Starting2 kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
 		echo
 
 		if [ ${EXPERIMENT_START} -eq 0 ]; then
@@ -257,7 +257,7 @@ function remote_monitoring_demo_start() {
 
 	kruize_install
 
-	# Create an experiment, update results and fetch recommendations using Kruize REST APIs	
+	# Create an experiment, update results and fetch recommendations using Kruize REST APIs
 	remote_monitoring_experiments
 
 	echo
@@ -278,7 +278,7 @@ function remote_monitoring_demo_start() {
 		echo "If there are any issues with launching the browser, you can manually open this link - http://localhost:3000/login"
 		echo ""
 	fi
-	
+
 }
 
 function remote_monitoring_demo_terminate() {
@@ -321,7 +321,7 @@ function remote_monitoring_demo_cleanup() {
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube_delete
 	fi
-	
+
 	echo "Success! Monitoring Demo setup cleanup completed."
 	echo
 }

@@ -69,37 +69,6 @@ def main(argv):
     perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
     create_performance_profile(perf_profile_json_file)
 
-    ## Create experiments from the experiments_list and use related csv data to updateResults
-    experiments_list = ['eap-app_deploymentconfig_america', 'example_replicationcontroller_america', 'tfb-qrh_deployment_tfb-tests', 'rhsso-operator_deployment_sso']
-    for exp in experiments_list:
-        experiment_json = "./json_files/experiment_jsons/" + exp + ".json"
-        experiment_csv = "./csv_data/" + exp + ".csv"
-        create_experiment(experiment_json)
-        json_data = json.load(open(experiment_json))
-        experiment_name = json_data[0]['experiment_name']
-
-        with open(experiment_csv, 'r') as csv_file:
-            reader = csv.reader(csv_file)
-            header = next(reader)
-
-            limited_reader = itertools.islice(reader, num_entries)
-            for row in limited_reader:
-                if not any(row):
-                    continue
-                with open('intermediate.csv', mode='w', newline='') as outfile:
-                    writer = csv.writer(outfile)
-                    writer.writerow(header)
-                    writer.writerow(row)
-                    
-                # Convert the results csv to json
-                resultsjson_file = "./json_files/experiment_jsons/results.json"
-                create_json_from_csv("./intermediate.csv",resultsjson_file)
-                update_results(resultsjson_file)
-                
-                reco = list_recommendations(experiment_name)
-                recommendations_json_arr.append(reco)
-
-
     # Create experiments using the specified json
     num_exps = 1
     for i in range(num_exps):
