@@ -106,6 +106,14 @@ def main(argv):
                 create_json_from_csv("./intermediate.csv", resultsjson_file)
                 update_results(resultsjson_file)
 
+                resultsjson = json.load(open(resultsjson_file))
+                for item in resultsjson:
+                    item['interval_start_time'] = datetime.strptime(item['interval_start_time'],
+                                                                    "%Y-%m-%dT%H:%M:%S.%fZ")
+                    item['interval_end_time'] = datetime.strptime(item['interval_end_time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
+                update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
+
                 reco = list_recommendations(experiment_name)
                 recommendations_json_arr.append(reco)
 
