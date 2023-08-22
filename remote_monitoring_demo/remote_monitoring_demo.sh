@@ -340,48 +340,48 @@ terminate=0
 DATA_DAYS=1
 # Iterate through the commandline options
 while getopts o:c:d:prstu:-: gopts; do
-	case ${gopts} in
+	      case ${gopts} in
          -)
                 case "${OPTARG}" in
                         visualize)
                                 visualize=1
                                 ;;
-			days=*)
-				DATA_DAYS=${OPTARG#*=}
-				;;
-			*)
-				;;
-		esac
-		;;
+                        days=*)
+                          DATA_DAYS=${OPTARG#*=}
+                          ;;
+                        *)
+                          ;;
+                esac
+                ;;
 
-	o)
-		AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
-		;;
-	p)
-		prometheus=1
-		;;
-	r)
-		monitoring_restart=1
-		;;
-	s)
-		start_demo=1
-		;;
-	t)
-		start_demo=0
-		;;
-	c)
-		CLUSTER_TYPE="${OPTARG}"
-		;;
-	d)
-		DURATION="${OPTARG}"
-		;;
-	u)
-		KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
-		;;
-	*)
-		usage
-		;;
-	esac
+        o)
+          AUTOTUNE_DOCKER_IMAGE="${OPTARG}"
+          ;;
+        p)
+          prometheus=1
+          ;;
+        r)
+          monitoring_restart=1
+          ;;
+        s)
+          start_demo=1
+          ;;
+        t)
+          start_demo=0
+          ;;
+        c)
+          CLUSTER_TYPE="${OPTARG}"
+          ;;
+        d)
+          DURATION="${OPTARG}"
+          ;;
+        u)
+          KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
+          ;;
+        *)
+          usage
+          ;;
+	      esac
 done
 if [ ${start_demo} -eq 1 ]; then
 	remote_monitoring_demo_start
