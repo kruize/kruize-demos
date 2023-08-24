@@ -84,7 +84,7 @@ function kruize_install() {
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
-    # Kruize UI repo
+		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
 		# Checkout the tag related to the last published mvp_demo version
 		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
@@ -99,8 +99,11 @@ function kruize_install() {
 		if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
 			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${AUTOTUNE_DOCKER_IMAGE}"
 		fi
+		if [ ! -z "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -u ${KRUIZE_UI_DOCKER_IMAGE}"
+		fi
 		echo
-		echo "Starting2 kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
 		echo
 
 		if [ ${EXPERIMENT_START} -eq 0 ]; then
