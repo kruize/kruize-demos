@@ -211,6 +211,7 @@ function monitoring_recommendations_demo_with_data() {
 	#CLUSTER_TYPE=$1
 	BENCHMARK_RESULTS_DIR=$1
 	MODE=$2
+	VALIDATE=$3
 	echo "Results Dir is ... ${BENCHMARK_RESULTS_DIR}"
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
@@ -231,16 +232,16 @@ function monitoring_recommendations_demo_with_data() {
 			if [[ ${MODE} == "crc" ]];then
 				echo "Running the results of crc mode.........................."
 				# metrics.csv is generated with aggregated data for a k8 object.
-				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
-				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
-				run_monitoring_exp metrics.csv
+			#	python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
+			#	${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
+			#	run_monitoring_exp metrics.csv
 			else
 				${SCRIPTS_REPO}/replaceheaders.sh $file
 				## Convert the csv into json
 				run_monitoring_exp $file
 			fi
-			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
-			sleep 1s
+#			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
+			#sleep 1s
 		fi
 	done
 	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
@@ -248,16 +249,25 @@ function monitoring_recommendations_demo_with_data() {
 	cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
 	# Convert the cleaned names into an array
 	IFS=',' read -ra expnames_array <<< "$cleaned_names"
-	echo "expnames_array os $expnames_array"
+	#echo "expnames_array is $expnames_array"
 
 	#experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
 	# Iterate over the names
 	for exp_name in ${expnames_array[@]}; do
-		echo "exp_name is $exp_name"
+		#echo "exp_name is $exp_name"
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
 		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+		if [[ ${VALIDATE} == "true" ]]; then    
+			IFS="|" read -ra parts <<< "${exp_name}"
+			recommendation_file="${parts[0]}.csv"
+			recommendation_file_path="./recommendations_demo/validateResults/output/"${recommendation_file}
+			#echo "Recommendation file is ... ${recommendation_file}"
+			python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendation('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}')"
+	                #validate_recommendations metrics_recommendations_data.json
+        	        #validate_recommendations recommendations_data.json
+			echo "=================================="
+	       fi
 	done
-	#validate_recommendations recommendations_data.json
 }
 
 # Split the csv data into multiple files of 6 hr data.
@@ -285,7 +295,7 @@ function split_csvs() {
 
 function validate_recommendations() {
 	recommendation_json=$1
-	python3 ${SCRIPTS_REPO}/recommendation_validation.py $recommendation_json
+	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_recomm('${recommendation_json}')'
 }
 
 # Compare the recommendations for different versions for a data
@@ -356,14 +366,32 @@ function get_metrics_recommendations() {
 }
 
 function summarize_cluster_data() {
-	clusterName=$1
-	namespaceName=$2
+	CLUSTER_NAME=$1
+	NAMESPACE_NAME=$2
 	if [ -z "$clusterName" ]; then
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}')"
+		python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('cluster','cluster_data.json','clusterData.csv')"
 	elif [ -z "$namespaceName" ]; then
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}','${CLUSTER_NAME}')"
+		python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('cluster','cluster_data.json','clusterData.csv')"
 	else
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}','${CLUSTER_NAME}','${NAMESPACE_NAME}')"
+		python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('clusterNamespace','cluster_namespace_data.json','clusterNamespaceData.csv')"
 	fi
-	python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('cluster_data.json')"
+}
+
+function summarize_namespace_data() {
+        NAMESPACE_NAME=$1
+	if [ ! -z "$namespaceName" ]; then
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeNamespaceData('${CLUSTER_TYPE}','${NAMESPACE_NAME}')"
+		python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('clusterNamespace','namespace_data.json','namespaceData.csv')"
+	else
+		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeNamespaceData('${CLUSTER_TYPE}')"
+                python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('clusterNamespace','namespace_data.json','namespaceData.csv')"
+
+	fi
+}
+
+function summarize_all_data() {
+	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeAllData('${CLUSTER_TYPE}')"
 }

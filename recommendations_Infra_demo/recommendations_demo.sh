@@ -39,7 +39,9 @@ function usage() {
 	echo "c = supports minikube and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
-	echo "summarize = Summarize the data. Default - all clusters. Append --clusterName=<> and --namespaceName=<> for individual summary"
+	echo "summarizeClusters = Summarize the cluster data. Default - all clusters. Append --clusterName=<> and --namespaceName=<> for individual summary"
+	echo "summarizeNamespaces = Summarize the namespace data. Default - all namespaces. Append --namespaceName=<> for individual summary"
+	echo "validate = Validates the recommendations for a set of experiments"
 	echo "visualize = Visualize the recommendations in grafana (Yet to be implemented)"
 	exit 1
 }
@@ -189,7 +191,7 @@ function monitoring_demo_start() {
 		echo "Completed"
 		echo "#######################################"
 		echo ""
-		echo "Use experimentOutput.csv to generate visualizations for the metrics and Kruize recommendations."
+		echo "Use recommendationsOutput.csv to generate visualizations for the generated recommendations."
 	elif [[ ${monitorRecommendations} -eq 1 ]]; then
 		#if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
 		if [[ ${demoBenchmark} -eq 1 ]]; then
@@ -205,19 +207,38 @@ function monitoring_demo_start() {
 	elif [[ ${setRecommendations} -eq 1 ]]; then
 		# Hardcoding to set the recommendations of duration based medium term for every 6 hrs
 		timeout 2592000 bash -c "set_recommendations medium_term 21600" &
-	elif [[ ${summarizeData} -eq 1 ]]; then
-		if [[ -z ${CLUSTER_NAME} ]]; then
-			if [[  -z ${NAMESPACE_NAME} ]]; then
+	elif [[ ${summarizeClusters} -eq 1 ]]; then
+		echo "CLUSTER_NAME is ${CLUSTER_NAME}"
+		if [[ ! -z ${CLUSTER_NAME} ]]; then
+			if [[ ! -z ${NAMESPACE_NAME} ]]; then
 				echo "Summarizing cluster:${CLUSTER_NAME} namespace:${NAMESPACE_NAME} data available in kruize"
 				summarize_cluster_data ${CLUSTER_NAME} ${NAMESPACE_NAME}
 			else
-				echo "Summarizing ${CLUSTER_NAME} data available in kruize"
+				echo "Summarizing cluster:${CLUSTER_NAME} data available in kruize"
                                 summarize_cluster_data ${CLUSTER_NAME}
 			fi
 		else
 			echo "Summarizing all the cluster data available in kruize"
 			summarize_cluster_data
+			#summarize_all_data
 		fi
+	elif [[ ${summarizeNamespaces} -eq 1 ]]; then
+		if [[ ! -z ${NAMESPACE_NAME} ]]; then
+			echo "Summarizing namespace:${NAMESPACE_NAME} data available in kruize"
+			summarize_namespace_data ${NAMESPACE_NAME}
+                else
+                        echo "Summarizing all the namespaces data available in kruize"
+                        summarize_namespace_data
+                        #summarize_all_data
+                fi
+	elif [[ ${summarizeAll} -eq 1 ]]; then
+		echo "Summarizing all the data available in kruize"
+		summarize_all_data
+	elif [[ ${validateRecommendations} -eq 1 ]]; then
+		echo "Validating the Recommendations..."
+		#resultsDir="./recommendations_demo/validateResults/cluster1"
+		resultsDir="./recommendations_demo/validateResults"
+		monitoring_recommendations_demo_with_data ${resultsDir} crc true
 	fi
 
 
@@ -272,6 +293,10 @@ prometheus=0
 cluster_monitoring_setup=1
 demo_monitoring_setup=1
 start_demo=1
+validateRecommendations=0
+CLUSTER_NAME=""
+#echo "clustername is $CLUSTER_NAME"
+#echo "setup is $demo_monitoring_setup"
 # Iterate through the commandline options
 while getopts o:c:d:prstaug-: gopts
 do
@@ -306,19 +331,36 @@ do
 			dataDir=*)
 				resultsDir=${OPTARG#*=}
 				;;
-			summarize)
-				summarizeData=1
+			summarizeClusters)
+				summarizeClusters=1
 				cluster_monitoring_setup=0
 				demo_monitoring_setup=0
 				;;
+			summarizeNamespaces)
+                                summarizeNamespaces=1
+                                cluster_monitoring_setup=0
+                                demo_monitoring_setup=0
+                                ;;
+			summarizeAll)
+				summarizeAll=1
+				cluster_monitoring_setup=0
+                                demo_monitoring_setup=0
+                                ;;
+
 			clusterName=*)
+				echo "checking.."
 				CLUSTER_NAME=${OPTARG#*=}
+				echo "clusterName is ${OPTARG#*=}"
 				;;
 			namespaceName=*)
 				NAMESPACE_NAME=${OPTARG#*=}
 				;;
+			validate)
+				validateRecommendations=1
+				;;
 
                         *)
+				;;
                 esac
                 ;;
 

@@ -19,6 +19,7 @@ import json
 import os
 import time
 import csv
+import itertools
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from recommendations_demo.kruize.kruize import *
@@ -87,21 +88,15 @@ def create_expjson(clustername,filename):
         for row in reader:
             ## Hardcoding for tfb-results and demo benchmark. Updating them only if these columns are not available.
             ## Keep this until the metrics queries are fixed in benchmark to get the below column data
-            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" , "cluster_name"]
+            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" ]
             for col in columns_tocheck:
                 if col not in row:
-                    if col == "image_name":
-                        row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
-                    if col == "container_name":
-                        row["container_name"] = "tfb-server"
-                    if col == "k8_object_type":
-                        row["k8_object_type"] = "deployment"
-                    if col == "k8_object_name":
-                        row["k8_object_name"] = "tfb-qrh-sample-0"
-                    if col == "namespace":
-                        row["namespace"] = "tfb-perf"
-                    if col == "cluster_name":
-                        row["cluster_name"] = "e23-alias"
+                    row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
+                    row["container_name"] = "tfb-server"
+                    row["k8_object_type"] = "deployment"
+                    row["k8_object_name"] = "tfb-qrh-sample-0"
+                    row["namespace"] = "tfb-perf"
+                    row["cluster_name"] = "e23-alias"
 
             replacements = {
                     "EXP_NAME": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
@@ -130,7 +125,9 @@ def createExpAndupdateResults(clustername,resultscsv):
     with open(resultscsv, newline='') as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
-        for row in reader:
+        limited_reader = itertools.islice(reader, 97)
+        for row in limited_reader:
+        #for row in reader:
             recommendations_json_arr = []
             if not any(row):
                 continue
@@ -210,12 +207,59 @@ def getRecommendations(cluster_type,experiment_name):
             json.dump(recommendations_json, f, indent=4)
     return
 
+def listClusters(cluster_type):
+    form_kruize_url(cluster_type)
+    list_clusters_data = list_clusters()
+    return list_clusters_data
+
 def summarizeClusterData(cluster_type, cluster_name=None, namespace_name=None):
     form_kruize_url(cluster_type)
+    recommendation_validation.create_cluster_data_csv('cluster','clusterData.csv')
     cluster_data_json = summarize_cluster_data(cluster_name,namespace_name)
     with open('cluster_data.json', 'w') as f:
             json.dump(cluster_data_json, f, indent=4)
     return
+
+def summarizeNamespaceData(cluster_type, namespace_name=None):
+    form_kruize_url(cluster_type)
+    recommendation_validation.create_cluster_data_csv('clusterNamespace','namespaceData.csv')
+    namespace_data_json = summarize_namespace_data(namespace_name)
+    with open('namespace_data.json', 'w') as f:
+            json.dump(namespace_data_json, f, indent=4)
+    return
+
+## Temporary function to get list of clusters and parse individually as /summarize has issues.
+def summarizeAllData(cluster_type):
+    form_kruize_url(cluster_type)
+    list_clusters_data = list_clusters()
+    recommendation_validation.create_cluster_data_csv('cluster','clusterData.csv')
+    recommendation_validation.create_cluster_data_csv('clusterNamespace','clusterNamespaceData.csv')
+    for cluster in list_clusters_data:
+        print(cluster)
+        cluster_data_json = summarize_cluster_data(cluster)
+        with open('cluster_data.json', 'w') as f:
+            json.dump(cluster_data_json, f, indent=4)
+        recommendation_validation.get_cluster_data_csv('cluster','cluster_data.json','clusterData.csv')
+        #print(cluster_data_json)
+        first_cluster_summary = cluster_data_json[0].get('summary', {})
+        namespaces = first_cluster_summary.get('namespaces', {}).get('names', [])
+        for namespace in namespaces:
+            print(namespace)
+            cluster_namespace_data_json = summarize_cluster_data(cluster,namespace)
+            print(cluster_namespace_data_json)
+            with open('cluster_namespace_data.json', 'w') as f:
+                json.dump(cluster_namespace_data_json, f, indent=4)
+            recommendation_validation.get_cluster_data_csv('clusterNamespace','cluster_namespace_data.json','clusterNamespaceData.csv')
+
+def getAllExperimentsRecommendations(cluster_type):
+    form_kruize_url(cluster_type)
+    exp_names = getExperimentNames(cluster_type)
+    for name in exp_names:
+        recommendation_json = list_recommendations(name)
+        with open('exp_recommendation_data.json', 'w') as f:
+            json.dump(recommendation_json, f, indent=4)
+        recommendation_validation.get_recommondations('exp_recommendation_data.json')
+
 
 def main(argv):
     try:

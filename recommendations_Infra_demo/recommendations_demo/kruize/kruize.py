@@ -136,16 +136,33 @@ def list_metrics_with_recommendations(experiment_name):
     print("URL = ", url, "   Response status code = ", response.status_code)
     return response.json()
 
+def list_clusters():
+    print("\nListing the clusters...")
+    url = URL + "/listClusters"
+    response = requests.get(url = url)
+    print("URL = ", url,"   Response status code = ", response.status_code)
+    return response.json()
+
 def summarize_cluster_data(cluster_name=None,namespace_name=None):
     print("\nSummarizing the cluster data...")
-    PARAMS=None
+    PARAMS = {'summarize_type':'cluster'}
     url = URL + "/summarize"
     if cluster_name is not None and namespace_name is None:
-        PARAMS = {'cluster_name':cluster_name}
+        PARAMS = {'summarize_type':'cluster', 'cluster_name':cluster_name}
     elif cluster_name is not None and namespace_name is not None:
-        PARAMS = {'cluster_name':cluster_name, 'namespace_name':namespace_name}
+        PARAMS = {'summarize_type':'namespace','cluster_name':cluster_name, 'namespace_name':namespace_name}
     response = requests.get(url = url, params = PARAMS)
-    print("URL = ", url, "   Response status code = ", response.status_code)
+    print("URL = ", url,  "PARAMS = ",PARAMS ,"   Response status code = ", response.status_code)
+    return response.json()
+
+def summarize_namespace_data(namespace_name=None):
+    print("\nSummarizing the namespace data...")
+    url = URL + "/summarize"
+    PARAMS = {'summarize_type':'namespace'}
+    if namespace_name is not None:
+        PARAMS = {'summarize_type':'namespace','namespace_name':namespace_name}
+    response = requests.get(url = url, params = PARAMS)
+    print("URL = ", url,  "PARAMS = ",PARAMS ,"   Response status code = ", response.status_code)
     return response.json()
 
 # Description: This function combines the metric results and recommendations into a single json
