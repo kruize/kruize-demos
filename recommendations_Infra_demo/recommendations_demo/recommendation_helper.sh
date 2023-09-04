@@ -57,7 +57,6 @@ function get_tfb_results_json() {
 	#Clean up if any old results exists
 	rm -rf ${SCRIPTS_REPO}/results/metrics.csv
 
-	#echo "find $latest_dir -name "*.csv" -type f -exec paste -d ',' {} +"
 	find $latest_dir -name "*.csv" -type f -exec paste -d ',' {} + > merged.csv
 	if [[ $(wc -l < merged.csv) -gt 1 ]]; then
 	        { head -n 1 merged.csv; tail -n ${get_lines} merged.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
@@ -71,9 +70,14 @@ function get_tfb_results_json() {
 
 # Creates, updates and generates recommendations for an experiment
 function run_monitoring_exp() {
-	resultsFile=$1
-	## Generate recommendations for the csv
-	python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${resultsFile}
+	RESULTS_FILE=$1
+	BULK_RESULTS=$2
+	DAYS_DATA=$3
+	if [ -z "$DAYS_DATA" ]; then
+		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS}
+	else
+		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -d ${DAYS_DATA}
+	fi
 }
 
 # Generates recommendations along with the benchmark run in parallel
@@ -140,7 +144,7 @@ function monitoring_recommendations_demo_for_k8object() {
 	k8_object_type=$2
 
 	#Todo
-	# Use clsuter , namespace , object name details for monitor metrics
+	# Use cluster , namespace , object name details for monitor metrics
 	# Monitor metrics for that object
 	# Below function save data in clusterresults.csv
 	echo "Running monitor metrics..."
@@ -148,7 +152,7 @@ function monitoring_recommendations_demo_for_k8object() {
 
 	echo "Sleeping for 15 mins...."
 	# Sleep for 15m to ensure it starts collecting some data.
-	sleep 2m
+	sleep 15m
 
 	# Assuming, monitor_metrics collects the data in 
         #BENCHMARK_RESULTS_DIR="${SCRIPTS_REPO}/results-${k8_object_type}-${k8_object}"
@@ -176,12 +180,11 @@ function monitoring_recommendations_demo_for_k8object() {
 		if [[ ${fileModifiedIn15mins} == "clusterresults.csv" ]]; then
                         echo "$file was modified in the last $interval seconds"
 			echo "Aggregating the metrics from the cluster.."
-			#python3 recommendations_demo/aggregateWorkloadMetrics.py $intervalResultsFile aggregateClusterResults.csv
 			python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$intervalResultsFile\", \"aggregateClusterResults.csv\")"
 			#Get the last lines to send to Kruize updateresults API
 			# Assumption only 1 application is running.
 			#{ head -n 1 aggregateClusterResults.csv; tail -n ${numoflines} aggregateClusterResults.csv; } > ${SCRIPTS_REPO}/results/metrics.csv
-			#COnsidering all apps except openshift specific
+			# Considering all apps except openshift specific
 			cp aggregateClusterResults.csv ${SCRIPTS_REPO}/results/metrics.csv
 			${SCRIPTS_REPO}/replaceheaders.sh ${SCRIPTS_REPO}/results/metrics.csv
 				
@@ -212,36 +215,33 @@ function monitoring_recommendations_demo_with_data() {
 	BENCHMARK_RESULTS_DIR=$1
 	MODE=$2
 	VALIDATE=$3
-	echo "Results Dir is ... ${BENCHMARK_RESULTS_DIR}"
+	BULK_RESULTS=$4
+	DAYS_DATA=$5
+	echo "Inserting the results in kruize from :  ${BENCHMARK_RESULTS_DIR}"
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
 	fi
+	## Commenting this out for now as /listExperiments is used for both metrics and recommendations instead of /listRecommendations
 	# Create headers for recommendationsOutput.csv
-	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
-	# Commenting this out as we may not require now as updating multiple results are not supported.
-        #split_csvs $BENCHMARK_RESULTS_DIR
-	#for file in "$BENCHMARK_RESULTS_DIR"/splitfiles/*.csv; do
+	#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
 	
-	# Sort files based on timestamp and update to Kruize APIs in chronological order
-	oldest_file=$(ls -t "$BENCHMARK_RESULTS_DIR"/*.csv | head -n 1)
-	for file in "$oldest_file" "$BENCHMARK_RESULTS_DIR"/*.csv; do
-	#for file in "$BENCHMARK_RESULTS_DIR"/*.csv; do
-		# Cleanup of previous temporary scripts
+	for file in $(find "$BENCHMARK_RESULTS_DIR" -name "*.csv"); do
+		# Cleanup of previous temporary scripts 
 		rm -rf ${SCRIPTS_REPO}/results/* metrics.csv
 		if [ -s "$file" ] && [ $(wc -l < "$file") -gt 1 ]; then
 			if [[ ${MODE} == "crc" ]];then
-				echo "Running the results of crc mode.........................."
+				echo "Running the results of crc mode......"
 				# metrics.csv is generated with aggregated data for a k8 object.
 				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
 				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
-				run_monitoring_exp metrics.csv
+				run_monitoring_exp metrics.csv ${BULK_RESULTS} ${DAYS_DATA}
 			else
 				${SCRIPTS_REPO}/replaceheaders.sh $file
 				## Convert the csv into json
-				run_monitoring_exp $file
+				run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA}
 			fi
-#			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
-			#sleep 1s
+			# Commenting this out as we are not using /listRecommendations now
+			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 		fi
 	done
 	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
@@ -249,25 +249,25 @@ function monitoring_recommendations_demo_with_data() {
 	cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
 	# Convert the cleaned names into an array
 	IFS=',' read -ra expnames_array <<< "$cleaned_names"
-	#echo "expnames_array is $expnames_array"
 
 	#experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
 	# Iterate over the names
 	for exp_name in ${expnames_array[@]}; do
-		#echo "exp_name is $exp_name"
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
 		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
 		if [[ ${VALIDATE} == "true" ]]; then    
 			IFS="|" read -ra parts <<< "${exp_name}"
 			recommendation_file="${parts[0]}.csv"
 			recommendation_file_path="./recommendations_demo/validateResults/output/"${recommendation_file}
-			#echo "Recommendation file is ... ${recommendation_file}"
 			python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendation('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}')"
 	                #validate_recommendations metrics_recommendations_data.json
         	        #validate_recommendations recommendations_data.json
 			echo "=================================="
 	       fi
 	done
+
+	# Cleaning up all temp files
+	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt
 }
 
 # Split the csv data into multiple files of 6 hr data.
@@ -368,10 +368,10 @@ function get_metrics_recommendations() {
 function summarize_cluster_data() {
 	CLUSTER_NAME=$1
 	NAMESPACE_NAME=$2
-	if [ -z "$clusterName" ]; then
+	if [ -z "${CLUSTER_NAME}" ]; then
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}')"
 		python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('cluster','cluster_data.json','clusterData.csv')"
-	elif [ -z "$namespaceName" ]; then
+	elif [ -z "${NAMESPACE_NAME}" ]; then
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeClusterData('${CLUSTER_TYPE}','${CLUSTER_NAME}')"
 		python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_cluster_data_csv('cluster','cluster_data.json','clusterData.csv')"
 	else
@@ -394,4 +394,5 @@ function summarize_namespace_data() {
 
 function summarize_all_data() {
 	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.summarizeAllData('${CLUSTER_TYPE}')"
+	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getAllExperimentsRecommendations('${CLUSTER_TYPE}')"
 }

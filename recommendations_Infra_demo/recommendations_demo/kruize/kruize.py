@@ -45,7 +45,7 @@ def form_kruize_url(cluster_type):
         #SERVER_IP=ip.stdout.decode('utf-8').strip('\n')
         #print("IP = ", SERVER_IP)
         port = subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
-        kruize_URL = subprocess.run(['oc status -n openshift-tuning | grep "svc/kruize" | cut -d " " -f1'], shell=True, stdout=subprocess.PIPE)
+        kruize_URL = subprocess.run(['oc status -n openshift-tuning | grep "svc/kruize[^-]" | cut -d " " -f1'], shell=True, stdout=subprocess.PIPE)
         URL = kruize_URL.stdout.decode('utf-8').strip('\n')
 
 #    URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
@@ -91,6 +91,21 @@ def update_results(result_json_file):
     print("\nUpdating the results...")
     url = URL + "/updateResults"
     response = requests.post(url, json=result_json)
+    print("URL = ", url, "  Response status code = ", response.status_code)
+    print(response.text)
+    return response
+
+# Description: This function generates the recommendations for an experiment
+# Input Parameters: experiment_name , interval_end time
+def update_recommendations(experiment_name, end_time=None):
+    print("\nUpdating the Recommendations...")
+    url = URL + "/updateRecommendations"
+    if end_time is not None:
+        PARAMS = {'experiment_name':experiment_name,'interval_end_time':end_time}
+    else:
+        PARAMS = {'experiment_name':experiment_name}
+
+    response = requests.post(url, params = PARAMS )
     print("URL = ", url, "  Response status code = ", response.status_code)
     print(response.text)
     return response

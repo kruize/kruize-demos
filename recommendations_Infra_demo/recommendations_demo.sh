@@ -182,16 +182,16 @@ function monitoring_demo_start() {
 		# crc mode considers the individual data. Else, it considers the aggregated data.
 		if [[ ${mode} == "crc" ]]; then
 			echo "Running the recommendation Infra demo with the existing data in crc mode..."
-			monitoring_recommendations_demo_with_data ${resultsDir} crc
+			monitoring_recommendations_demo_with_data ${resultsDir} crc false ${bulkResults} ${daysData}
 		else
 			echo "Running the recommendation Infra demo with the existing data..."
-			monitoring_recommendations_demo_with_data ${resultsDir}
+			monitoring_recommendations_demo_with_data ${resultsDir} "" false ${bulkResults} ${daysData}
 		fi
 		echo
 		echo "Completed"
 		echo "#######################################"
 		echo ""
-		echo "Use recommendationsOutput.csv to generate visualizations for the generated recommendations."
+		echo "Use experimentOutput.csv to generate visualizations"
 	elif [[ ${monitorRecommendations} -eq 1 ]]; then
 		#if [ -z $k8ObjectType ] && [ -z $k8ObjectName ]; then
 		if [[ ${demoBenchmark} -eq 1 ]]; then
@@ -238,7 +238,7 @@ function monitoring_demo_start() {
 		echo "Validating the Recommendations..."
 		#resultsDir="./recommendations_demo/validateResults/cluster1"
 		resultsDir="./recommendations_demo/validateResults"
-		monitoring_recommendations_demo_with_data ${resultsDir} crc true
+		monitoring_recommendations_demo_with_data ${resultsDir} crc true 
 	fi
 
 
@@ -295,10 +295,9 @@ demo_monitoring_setup=1
 start_demo=1
 validateRecommendations=0
 CLUSTER_NAME=""
-#echo "clustername is $CLUSTER_NAME"
-#echo "setup is $demo_monitoring_setup"
+bulkResults=0
 # Iterate through the commandline options
-while getopts o:c:d:prstaug-: gopts
+while getopts o:c:d:prstaugb-: gopts
 do
 
 	 case ${gopts} in
@@ -358,6 +357,9 @@ do
 			validate)
 				validateRecommendations=1
 				;;
+			daysData)
+				daysData=${OPTARG#*=}
+				;;
 
                         *)
 				;;
@@ -399,6 +401,9 @@ do
 		getMetricsRecommendations=1
 		cluster_monitoring_setup=0
 		demo_monitoring_setup=0
+		;;
+	b)
+		bulkResults=1
 		;;
 	*)
 		usage

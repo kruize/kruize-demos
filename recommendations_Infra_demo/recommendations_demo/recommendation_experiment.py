@@ -20,6 +20,9 @@ import os
 import time
 import csv
 import itertools
+import pandas as pd
+import shutil
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from recommendations_demo.kruize.kruize import *
@@ -88,18 +91,31 @@ def create_expjson(clustername,filename):
         for row in reader:
             ## Hardcoding for tfb-results and demo benchmark. Updating them only if these columns are not available.
             ## Keep this until the metrics queries are fixed in benchmark to get the below column data
-            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" ]
+            columns_tocheck = [ "image_name" , "container_name" , "k8_object_type" , "k8_object_name" , "namespace" , "cluster_name" ]
+            image_name = "kruize/tfb-qrh:2.9.1.F"
+            container_name = "tfb-server"
+            k8_object_type = "deployment"
+            k8_object_name = "tfb-qrh-sample-0"
+            namespace = "tfb-perf"
+            cluster_name = "e23-alias"
+	
             for col in columns_tocheck:
                 if col not in row:
-                    row["image_name"] = "kruize/tfb-qrh:2.9.1.F"
-                    row["container_name"] = "tfb-server"
-                    row["k8_object_type"] = "deployment"
-                    row["k8_object_name"] = "tfb-qrh-sample-0"
-                    row["namespace"] = "tfb-perf"
-                    row["cluster_name"] = "e23-alias"
+                    if col == "image_name":
+                        row[col] = image_name
+                    elif col == "container_name":
+                        row[col] = container_name
+                    elif col == "k8_object_type":
+                        row[col] = k8_object_type
+                    elif col == "k8_object_name":
+                        row[col] = k8_object_name
+                    elif col == "namespace":
+                        row[col] = namespace
+                    elif col == "cluster_name":
+                        row[col] = cluster_name
 
             replacements = {
-                    "EXP_NAME": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
+                    "EXP_NAME": row["container_name"] + '|' + row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"] + '|' + row["cluster_name"],
                     "CLUSTER_NAME": row["cluster_name"],
                     "k8Object_TYPE": row["k8_object_type"],
                     "k8Object_NAME": row["k8_object_name"],
@@ -119,65 +135,138 @@ def create_expjson(clustername,filename):
     with open("./recommendations_demo/json_files/create_exp.json", 'w') as file:
         file.write(newdata)
 
+def createExpAndupdateResults(clustername,resultscsv,days=None,bulk=None):
+    if days is not None:
+        num_entries = int(days) * 96
+        num_entries += 1
+    if bulk == "1":
+        df = pd.read_csv(resultscsv)
+        sort_columns = ['namespace', 'k8_object_type', 'k8_object_name', 'container_name']
+        sorted_df = df.sort_values(sort_columns)
+        grouped = sorted_df.groupby(sort_columns)
+        temp_dir = 'temp'
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
 
-def createExpAndupdateResults(clustername,resultscsv):
-    # Create json using each row of a csv and update results
-    with open(resultscsv, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        header = next(reader)
-        limited_reader = itertools.islice(reader, 97)
-        for row in limited_reader:
-        #for row in reader:
-            recommendations_json_arr = []
-            if not any(row):
-                continue
-            with open('intermediate.csv', mode='w', newline='') as outfile:
-                writer = csv.writer(outfile)
-                writer.writerow(header)
-                writer.writerow(row)
-         
-            # Commenting this for now to make run faster
-            # TODO : Check if experiment exists  and update Results. Else createExp
-            #print("\nGet list experiments before starting to update results")
-            #list_exp_json = list_experiments()
-            #with open('list_experiments_data.json', 'w') as f:
-            #   json.dump(list_exp_json, f, indent=4)
-            #print("\nMatch if any experiment exists with the current row data.")
-            #match_experiments("list_experiments_data.json","intermediate.csv")
-
-
-            ## Assuming there is one container for a template.
-            # Create Experiment json for that row.
-            print("\nCreating the experiment...")
-            create_expjson(clustername,"intermediate.csv")
-            create_experiment("./recommendations_demo/json_files/create_exp.json")
-
-            json_data = json.load(open("./recommendations_demo/json_files/create_exp.json"))
-            experiment_name = json_data[0]['experiment_name']
-            k8ObjectName = json_data[0]['kubernetes_objects'][0]['name']
-            k8ObjectType = json_data[0]['kubernetes_objects'][0]['type']
-            namespace = json_data[0]['kubernetes_objects'][0]['namespace']
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
+        counter = 0
+        for key, group in grouped:
+            counter += 1
+            filename = f"file_{counter}.csv"
+            filepath = os.path.join(temp_dir, filename)
+            group.to_csv(filepath, index=False)
             
-            print("Experiment_name = ", experiment_name, " K8_Object_name = ", k8ObjectName, " K8_Object_type = ",k8ObjectType, " Namespace = ", namespace)
+        header_row = df.columns.tolist()
+        new_df = pd.DataFrame(columns=header_row)
+        for filename in os.listdir(temp_dir):
+            if filename.endswith('.csv'):
+                filepath = os.path.join(temp_dir, filename)
+                df = pd.read_csv(filepath)
+                with open(filepath, 'r') as input_csv:
+                    csv_reader = csv.reader(input_csv)
+                    header = next(csv_reader)
+                    for row in csv_reader:
+                        with open('intermediate.csv', mode='w', newline='') as outfile:
+                            writer = csv.writer(outfile)
+                            writer.writerow(header)
+                            writer.writerow(row)
+                            break
+                print("\nCreating the experiment...")
+                create_expjson(clustername,"intermediate.csv")
+                create_experiment("./recommendations_demo/json_files/create_exp.json")
+                json_data = json.load(open("./recommendations_demo/json_files/create_exp.json"))
+                experiment_name = json_data[0]['experiment_name']
+                k8ObjectName = json_data[0]['kubernetes_objects'][0]['name']
+                k8ObjectType = json_data[0]['kubernetes_objects'][0]['type']
+                namespace = json_data[0]['kubernetes_objects'][0]['namespace']
+                print("Experiment_name = ", experiment_name, " K8_Object_name = ", k8ObjectName, " K8_Object_type = ",k8ObjectType, " Namespace = ", namespace)
+               
+                # Split the csv's into multiples as updateResults doesn't support greater than 100 results.
+                max_lines_per_csv = 100
+                df = pd.read_csv(filepath)
+                bulksplit_directory = 'bulksplitfiles/'
+                os.makedirs(bulksplit_directory, exist_ok=True)
+                num_output_files = (len(df) + max_lines_per_csv - 1) // max_lines_per_csv
+                for i in range(num_output_files):
+                    start_idx = i * max_lines_per_csv
+                    end_idx = min((i + 1) * max_lines_per_csv, len(df))  # Ensure the last file includes remaining rows
+                    split_df = df.iloc[start_idx:end_idx]
+                    split_df.to_csv(f'{bulksplit_directory}output_{i + 1}.csv', index=False)
 
-            # Convert the results csv to json
-            print("\nConvert the results csv to json...")
-            recommendation_validation.create_json_from_csv("./intermediate.csv","./recommendations_demo/results/results.json")
-
-            json_file = "./recommendations_demo/results/results.json"
-            print("\nUpdating the results to Kruize API...")
-            update_results(json_file)
-
-            # Commenting out sleep
-            #time.sleep(1)
-            #print("\nGenerating the recommendations...")
-            #reco = list_recommendations(experiment_name)
-            #recommendations_json_arr.append(reco)
-
-            # Dump the results & recommendations into json files
-            #with open('recommendations_data.json', 'w') as f:
-            #   json.dump(recommendations_json_arr, f, indent=4)
-            #recommendation_validation.update_recomm_csv("recommendations_data.json")
+                    
+                for filename1 in os.listdir(bulksplit_directory):
+                    if os.path.isfile(os.path.join(bulksplit_directory, filename1)):
+                        filepath1 = os.path.join(bulksplit_directory, filename1)
+                        # Convert the results csv to json
+                        print("\nConvert the results csv to json...")
+                        recommendation_validation.create_json_from_csv(filepath1,"./recommendations_demo/results/results.json")
+                        json_file = "./recommendations_demo/results/results.json"
+                        print("\nUpdating the results to Kruize API...")
+                        update_results(json_file)
+                        #update_recommendations(experiment_name)
+                        resultsjson = json.load(open(json_file))
+                        for item in resultsjson:
+                            item['interval_start_time'] = datetime.strptime(item['interval_start_time'],"%Y-%m-%dT%H:%M:%S.%fZ")
+                            item['interval_end_time'] = datetime.strptime(item['interval_end_time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                        max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
+                        update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
+                if os.path.exists(bulksplit_directory) and os.path.isdir(bulksplit_directory):
+                    shutil.rmtree(bulksplit_directory)
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+    else:
+        # Create json using each row of a csv and update results
+        with open(resultscsv, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            header = next(reader)
+            if days is not None:
+                reader = itertools.islice(reader, num_entries)
+            for row in reader:
+                recommendations_json_arr = []
+                if not any(row):
+                    continue
+                with open('intermediate.csv', mode='w', newline='') as outfile:
+                    writer = csv.writer(outfile)
+                    writer.writerow(header)
+                    writer.writerow(row)         
+                ## Assuming there is one container for a template.
+                # Create Experiment json for that row.
+                print("\nCreating the experiment...")
+                create_expjson(clustername,"intermediate.csv")
+                create_experiment("./recommendations_demo/json_files/create_exp.json")
+                
+                json_data = json.load(open("./recommendations_demo/json_files/create_exp.json"))
+                experiment_name = json_data[0]['experiment_name']
+                k8ObjectName = json_data[0]['kubernetes_objects'][0]['name']
+                k8ObjectType = json_data[0]['kubernetes_objects'][0]['type']
+                namespace = json_data[0]['kubernetes_objects'][0]['namespace']
+                print("Experiment_name = ", experiment_name, " K8_Object_name = ", k8ObjectName, " K8_Object_type = ",k8ObjectType, " Namespace = ", namespace)
+                
+                # Convert the results csv to json
+                print("\nConvert the results csv to json...")
+                recommendation_validation.create_json_from_csv("./intermediate.csv","./recommendations_demo/results/results.json")
+                json_file = "./recommendations_demo/results/results.json"
+                print("\nUpdating the results to Kruize API...")
+                update_results(json_file)
+                #update_recommendations(experiment_name) 
+                resultsjson = json.load(open(json_file))
+                for item in resultsjson:
+                    item['interval_start_time'] = datetime.strptime(item['interval_start_time'],"%Y-%m-%dT%H:%M:%S.%fZ")
+                    item['interval_end_time'] = datetime.strptime(item['interval_end_time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
+                update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
+                
+                # Commenting out sleep
+                #time.sleep(1)
+                #print("\nGenerating the recommendations...")
+                #reco = list_recommendations(experiment_name)
+                #recommendations_json_arr.append(reco)
+                
+                # Dump the results & recommendations into json files
+                #with open('recommendations_data.json', 'w') as f:
+                #   json.dump(recommendations_json_arr, f, indent=4)
+                #recommendation_validation.update_recomm_csv("recommendations_data.json")
 
     return
 
@@ -241,8 +330,7 @@ def summarizeAllData(cluster_type):
             json.dump(cluster_data_json, f, indent=4)
         recommendation_validation.get_cluster_data_csv('cluster','cluster_data.json','clusterData.csv')
         #print(cluster_data_json)
-        first_cluster_summary = cluster_data_json[0].get('summary', {})
-        namespaces = first_cluster_summary.get('namespaces', {}).get('names', [])
+        namespaces = cluster_data_json[0].get('namespaces', {}).get('names', [])
         for namespace in namespaces:
             print(namespace)
             cluster_namespace_data_json = summarize_cluster_data(cluster,namespace)
@@ -263,7 +351,7 @@ def getAllExperimentsRecommendations(cluster_type):
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv,"h:c:p:e:r:")
+        opts, args = getopt.getopt(argv,"h:c:p:e:r:b:d:")
     except getopt.GetoptError:
         print("demo.py -c <cluster type>")
         sys.exit(2)
@@ -279,13 +367,18 @@ def main(argv):
             tmp_create_exp_json_file = arg
         elif opt == '-r':
             resultscsv = arg
-    # Default duration to 6 hours if not passed.
+        elif opt == '-b':
+            bulk_results = arg
+        elif opt == '-d':
+            days_data = arg
+    
     if '-r' not in sys.argv:
         resultscsv = 'metrics.csv'
+    if '-d' not in sys.argv:
+        days_data = None
 
     # Hardcoding the clustername as the details aren't available
     clustername = "e23-alias"
-
     print("Cluster type = ", cluster_type)
 
     # Form the kruize url
@@ -294,9 +387,8 @@ def main(argv):
     # Create the performance profile
     #perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
     create_performance_profile(perf_profile_json_file)
-
     # Create and updateResults
-    createExpAndupdateResults(clustername,resultscsv)
+    createExpAndupdateResults(clustername,resultscsv,days_data,bulk_results)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
