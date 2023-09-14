@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2022, 2022 Red Hat, IBM Corporation and others.
+# Copyright (c) 2023, 2023 Red Hat, IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -220,7 +220,6 @@ function monitoring_demo_start() {
 		else
 			echo "Summarizing all the cluster data available in kruize"
 			summarize_cluster_data
-			#summarize_all_data
 		fi
 	elif [[ ${summarizeNamespaces} -eq 1 ]]; then
 		if [[ ! -z ${NAMESPACE_NAME} ]]; then
@@ -236,9 +235,14 @@ function monitoring_demo_start() {
 		summarize_all_data
 	elif [[ ${validateRecommendations} -eq 1 ]]; then
 		echo "Validating the Recommendations..."
-		#resultsDir="./recommendations_demo/validateResults/cluster1"
 		resultsDir="./recommendations_demo/validateResults"
-		monitoring_recommendations_demo_with_data ${resultsDir} crc true 
+		monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData}
+		exit_code=$?
+		if [[ ${exit_code} == 0 ]]; then
+			exit 0
+		else
+			exit 1
+		fi
 	fi
 
 
@@ -357,7 +361,7 @@ do
 			validate)
 				validateRecommendations=1
 				;;
-			daysData)
+			daysData=*)
 				daysData=${OPTARG#*=}
 				;;
 
@@ -418,10 +422,9 @@ done
 # Monitor the metrics in a cluster to generate recommendations
 
 # Benchmark specific recommendations
-
-# Copy the previous recommendationsOutput.csv and experimentOutput.csv into another for future purpose.
-if [ -e "recommendationsOutput.csv" ]; then
-	mv recommendationsOutput.csv recommendationsOutput-$(date +%Y%m%d).csv
+# Copy the previous experimentRecommendations.csv and experimentOutput.csv into another for future purpose.
+if [ -e "experimentRecommendations.csv" ]; then
+	mv experimentRecommendations.csv experimentRecommendations-$(date +%Y%m%d).csv
 fi
 if [ -e "experimentOutput.csv" ]; then
         mv experimentOutput.csv experimentOutput-$(date +%Y%m%d).csv

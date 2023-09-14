@@ -1,5 +1,5 @@
 """
-Copyright (c) 2022, 2022 Red Hat, IBM Corporation and others.
+Copyright (c) 2023, 2023 Red Hat, IBM Corporation and others.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -81,8 +81,7 @@ def match_experiments(listexperimentsjson,inputcsv):
             if experiments == counter:
                print("The experiment is not matching with any existing ones.")
 
-def create_expjson(clustername,filename):
-#cluster,experiment_name,k8objname,k8objtype,namespace,container_image,container_name):
+def create_expjson(filename):
     with open("./recommendations_demo/json_files/create_exp_template.json", 'r') as jsonfile:
         data = json.load(jsonfile)
 
@@ -135,7 +134,7 @@ def create_expjson(clustername,filename):
     with open("./recommendations_demo/json_files/create_exp.json", 'w') as file:
         file.write(newdata)
 
-def createExpAndupdateResults(clustername,resultscsv,days=None,bulk=None):
+def createExpAndupdateResults(resultscsv,days=None,bulk=None):
     if days is not None:
         num_entries = int(days) * 96
         num_entries += 1
@@ -173,7 +172,7 @@ def createExpAndupdateResults(clustername,resultscsv,days=None,bulk=None):
                             writer.writerow(row)
                             break
                 print("\nCreating the experiment...")
-                create_expjson(clustername,"intermediate.csv")
+                create_expjson("intermediate.csv")
                 create_experiment("./recommendations_demo/json_files/create_exp.json")
                 json_data = json.load(open("./recommendations_demo/json_files/create_exp.json"))
                 experiment_name = json_data[0]['experiment_name']
@@ -209,8 +208,9 @@ def createExpAndupdateResults(clustername,resultscsv,days=None,bulk=None):
                         for item in resultsjson:
                             item['interval_start_time'] = datetime.strptime(item['interval_start_time'],"%Y-%m-%dT%H:%M:%S.%fZ")
                             item['interval_end_time'] = datetime.strptime(item['interval_end_time'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                        max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
-                        update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
+                            update_recommendations(experiment_name, item['interval_end_time'].strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
+                        #max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
+                        #update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
                 if os.path.exists(bulksplit_directory) and os.path.isdir(bulksplit_directory):
                     shutil.rmtree(bulksplit_directory)
         if os.path.exists(temp_dir):
@@ -233,7 +233,7 @@ def createExpAndupdateResults(clustername,resultscsv,days=None,bulk=None):
                 ## Assuming there is one container for a template.
                 # Create Experiment json for that row.
                 print("\nCreating the experiment...")
-                create_expjson(clustername,"intermediate.csv")
+                create_expjson("intermediate.csv")
                 create_experiment("./recommendations_demo/json_files/create_exp.json")
                 
                 json_data = json.load(open("./recommendations_demo/json_files/create_exp.json"))
@@ -257,17 +257,6 @@ def createExpAndupdateResults(clustername,resultscsv,days=None,bulk=None):
                 max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
                 update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
                 
-                # Commenting out sleep
-                #time.sleep(1)
-                #print("\nGenerating the recommendations...")
-                #reco = list_recommendations(experiment_name)
-                #recommendations_json_arr.append(reco)
-                
-                # Dump the results & recommendations into json files
-                #with open('recommendations_data.json', 'w') as f:
-                #   json.dump(recommendations_json_arr, f, indent=4)
-                #recommendation_validation.update_recomm_csv("recommendations_data.json")
-
     return
 
 
@@ -353,11 +342,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"h:c:p:e:r:b:d:")
     except getopt.GetoptError:
-        print("demo.py -c <cluster type>")
+        print("recommendation_experiment.py -c <cluster type>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print("demo.py -c <cluster type>")
+            print("recommendation_experiment.py -c <cluster type>")
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
@@ -377,18 +366,15 @@ def main(argv):
     if '-d' not in sys.argv:
         days_data = None
 
-    # Hardcoding the clustername as the details aren't available
-    clustername = "e23-alias"
     print("Cluster type = ", cluster_type)
 
     # Form the kruize url
     form_kruize_url(cluster_type)
 
     # Create the performance profile
-    #perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
     create_performance_profile(perf_profile_json_file)
     # Create and updateResults
-    createExpAndupdateResults(clustername,resultscsv,days_data,bulk_results)
+    createExpAndupdateResults(resultscsv,days_data,bulk_results)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -1,4 +1,19 @@
 #!/bin/bash
+#
+# Copyright (c) 2023, 2023 Red Hat, IBM Corporation and others.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 CLUSTER_TYPE=$1
 CLUSTER_NAME=$2
@@ -74,6 +89,7 @@ function run_monitoring_exp() {
 	BULK_RESULTS=$2
 	DAYS_DATA=$3
 	if [ -z "$DAYS_DATA" ]; then
+		echo "${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p \"./recommendations_demo/json_files/resource_optimization_openshift.json\" -e \"./recommendations_demo/json_files/create_exp.json\" -r  ${RESULTS_FILE} -b ${BULK_RESULTS}"
 		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS}
 	else
 		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -d ${DAYS_DATA}
@@ -146,7 +162,6 @@ function monitoring_recommendations_demo_for_k8object() {
 	#Todo
 	# Use cluster , namespace , object name details for monitor metrics
 	# Monitor metrics for that object
-	# Below function save data in clusterresults.csv
 	echo "Running monitor metrics..."
 	monitor_metrics
 
@@ -160,9 +175,6 @@ function monitoring_recommendations_demo_for_k8object() {
         if [ ! -d "${SCRIPTS_REPO}/results" ]; then
                 mkdir -p ${SCRIPTS_REPO}/results
         fi
-
-	# Create the headers for recommendationsOutput.csv
-	python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
 
         # Get the current time in Unix timestamp format
         now=$(date +%s)
@@ -190,7 +202,8 @@ function monitoring_recommendations_demo_for_k8object() {
 				
                         run_monitoring_exp ${SCRIPTS_REPO}/results/metrics.csv
 			sleep 10
-			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
+			python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_recommondations("recommendations_data.json")'
+			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
 
                 else
                         echo "$file was not modified in the $interval seconds"
@@ -204,14 +217,11 @@ function monitoring_recommendations_demo_for_k8object() {
                 fi
 		echo "Sleeping for ${interval}s"
                 sleep ${interval}s
-		echo "Came out of sleep...."
         done
 }
 
 # Generates recommendations with the existing data
 function monitoring_recommendations_demo_with_data() {
-	#BENCHMARK_RESULTS_DIR="./tfb-results"
-	#CLUSTER_TYPE=$1
 	BENCHMARK_RESULTS_DIR=$1
 	MODE=$2
 	VALIDATE=$3
@@ -221,11 +231,12 @@ function monitoring_recommendations_demo_with_data() {
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
 	fi
-	## Commenting this out for now as /listExperiments is used for both metrics and recommendations instead of /listRecommendations
-	# Create headers for recommendationsOutput.csv
-	#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.create_recomm_csv()'
 	
 	for file in $(find "$BENCHMARK_RESULTS_DIR" -name "*.csv"); do
+		if [[ ${VALIDATE} == "true" ]] && [[ "$file" == *"/output/"* ]]; then
+			continue
+		fi
+
 		# Cleanup of previous temporary scripts 
 		rm -rf ${SCRIPTS_REPO}/results/* metrics.csv
 		if [ -s "$file" ] && [ $(wc -l < "$file") -gt 1 ]; then
@@ -242,6 +253,7 @@ function monitoring_recommendations_demo_with_data() {
 			fi
 			# Commenting this out as we are not using /listRecommendations now
 			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
+			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_recommondations("recommendations_data.json")'
 		fi
 	done
 	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
@@ -252,22 +264,36 @@ function monitoring_recommendations_demo_with_data() {
 
 	#experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
 	# Iterate over the names
+	validate_status=0
 	for exp_name in ${expnames_array[@]}; do
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
 		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
 		if [[ ${VALIDATE} == "true" ]]; then    
 			IFS="|" read -ra parts <<< "${exp_name}"
-			recommendation_file="${parts[0]}.csv"
-			recommendation_file_path="./recommendations_demo/validateResults/output/"${recommendation_file}
-			python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendation('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}')"
-	                #validate_recommendations metrics_recommendations_data.json
-        	        #validate_recommendations recommendations_data.json
-			echo "=================================="
+			recommendation_file="${parts[1]}.csv"
+			recommendation_filepath="${BENCHMARK_RESULTS_DIR}/output/${recommendation_file}"
+			if [[ -f ${recommendation_filepath} ]]; then
+				recommendation_file_path="./recommendations_demo/validateResults/output/"${recommendation_file}
+				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendation('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}')"
+				exit_code=$?
+				validate_status=$((validate_status + exit_code))
+				#validate_recommendations metrics_recommendations_data.json
+				#validate_recommendations recommendations_data.json
+				echo "=================================="
+			else
+				echo "No matching recommendation output exists for $exp_name"
+                                continue
+                        fi
 	       fi
 	done
 
 	# Cleaning up all temp files
-	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt
+	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv	
+	if [[ ${validate_status} == 0 ]]; then
+		return 0
+	else
+		return 1
+	fi
 }
 
 # Split the csv data into multiple files of 6 hr data.
@@ -304,7 +330,6 @@ function comparing_recommendations_demo_with_data() {
 }
 
 function monitor_metrics() {
-	#./monitor_metrics_promql.sh
 	# Below function save data in clusterresults.csv by default. Provide -r for custom csvfileName.
 	echo "Running the metrics monitor script as python3 metrics_promql.py -c ${CLUSTER_TYPE} -s ${CLUSTER_NAME}"
 	nohup python3 ${SCRIPTS_REPO}/metrics_promql.py -c ${CLUSTER_TYPE} -s ${CLUSTER_NAME} &
@@ -335,7 +360,6 @@ function set_recommendations() {
 	        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
 	        # Convert the cleaned names into an array
 	        IFS=',' read -ra expnames_array <<< "$cleaned_names"
-	        echo "expnames_array os $expnames_array"
 		# Iterate over the names
 		for exp_name in ${expnames_array[@]}; do
 			echo "Applying the recommendations for $exp_name.."
@@ -354,7 +378,6 @@ function get_metrics_recommendations() {
         cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
         # Convert the cleaned names into an array
         IFS=',' read -ra expnames_array <<< "$cleaned_names"
-        echo "expnames_array os $expnames_array"
 
         #experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
         # Iterate over the names

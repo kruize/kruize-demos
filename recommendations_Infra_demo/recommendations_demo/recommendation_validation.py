@@ -1,3 +1,19 @@
+"""
+Copyright (c) 2023, 2023 Red Hat, IBM Corporation and others.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import pandas as pd
 import json
 import csv
@@ -12,7 +28,6 @@ import subprocess
 
 # Validate the recommendations generated to the csv created by scripts(which contains the recommendation logic)
 def validate_recomm(filename):
-    # Load the JSON data
     with open(filename, 'r') as f:
        data = json.load(f)
     df = pd.read_csv('recommendation_check.csv')
@@ -48,68 +63,10 @@ def validate_experiment_recommendation(exp_name, inputfile, validatefile):
     validate_files = filecmp.cmp(inputfile, validatefile)
     if validate_files:
         print("RECOMMENDATIONS MATCH for ", exp_name)
+        exit(0)
     else:
         print("RECOMMENDATIONS DOESN'T MATCH for ",exp_name)
-
-
-# Convert the recommendations json to csv to visualize the data manually.
-def update_recomm_csv(filename):
-    # Load the JSON data
-    with open(filename, 'r') as f:
-      data = json.load(f)
-
-#    experiment_name_exists = False
-#    for reco in data:
-#        if 'experiment_name' in reco:
-#            experiment_name_exists = True
-#            break
-    
-    # Exit the function if experiment_key doesn't exist
-#    if not experiment_name_exists:
-#        print("The experiment key doesn't exist in the JSON data.")
-#        return
-
-    # Open a CSV file for writing
-    with open('recommendationsOutput.csv', 'a', newline='') as f:
-        writer = csv.writer(f)
-        # Write the headers to the CSV file
-        #writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
-
-        # Compare the data for each time zone
-        for json_data in data:
-            cluster_json = json_data[0]["cluster_name"]
-            exp_name_json = json_data[0]["experiment_name"]
-
-            for kubernetes_object in json_data[0]["kubernetes_objects"]:
-                for container in kubernetes_object["containers"]:
-                    container_json = container["container_name"]
-                    for time_zone in container["recommendations"]["data"]:
-                        for recommendation_engine in container["recommendations"]["data"][time_zone]:
-                            for duration_type in container["recommendations"]["data"][time_zone][recommendation_engine]:
-                                recommendations = container["recommendations"]["data"][time_zone]
-                                if "config" in recommendations["duration_based"][duration_type]:
-                                    cpu_limits_json = ''
-                                    memory_limits_json = ''
-                                    cpu_requests_json = ''
-                                    memory_requests_json = ''
-                                    if "cpu" in recommendations["duration_based"][duration_type]["config"]["limits"]:
-                                        cpu_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["cpu"]["amount"], 4)
-                                    if "memory" in recommendations["duration_based"][duration_type]["config"]["limits"]:
-                                        memory_limits_json = round(recommendations["duration_based"][duration_type]["config"]["limits"]["memory"]["amount"], 4)
-                                    if "cpu" in recommendations["duration_based"][duration_type]["config"]["requests"]:
-                                        cpu_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["cpu"]["amount"], 4)
-                                    if "memory" in recommendations["duration_based"][duration_type]["config"]["requests"]:
-                                        memory_requests_json = round(recommendations["duration_based"][duration_type]["config"]["requests"]["memory"]["amount"], 4)
-                                    
-                                    writer.writerow([cluster_json, exp_name_json, container_json, time_zone, recommendation_engine, duration_type, cpu_requests_json, memory_requests_json, cpu_limits_json, memory_limits_json])
-
-
-def create_recomm_csv():
-    # Open a CSV file for writing
-    with open('recommendationsOutput.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
-        # Write the headers to the CSV file
-        writer.writerow(['cluster_name', 'experiment_name', 'container_name', 'time_zone', 'recommendation_engine', 'duration_type','cpu_requests' , 'memory_requests' , 'cpu_limits', 'memory_limits'])
+        exit(1)
 
 def getUniquek8Objects(inputcsvfile):
     column_name = 'k8ObjectName'
@@ -125,7 +82,7 @@ def getUniquek8Objects(inputcsvfile):
 
 def aggregateWorkloads(filename, outputResults):
 
-    print("filename = ", filename)
+    print("Aggregating the data for file : ", filename)
 
     # Load the CSV file into a pandas DataFrame
     df = pd.read_csv(filename)
@@ -169,7 +126,6 @@ def aggregateWorkloads(filename, outputResults):
     # Specify the columns to sort by
     # Sort and grpup the data based on below columns to get a container for a workload and for an interval.
     # Each file generated is for a single timestamp and a container for a workload and will be aggregated to a single metrics value.
-    #sort_columns = ['namespace', 'k8_object_type', 'owner_name', 'image_name', 'container_name', 'interval_start']
     sort_columns = ['namespace', 'k8_object_type', 'workload', 'container_name', 'interval_start']
     sorted_df = df.sort_values(sort_columns)
 
@@ -188,18 +144,15 @@ def aggregateWorkloads(filename, outputResults):
     for key, group in grouped:
         counter += 1
         filename = f"file_{counter}.csv"
-        #    filename = '_'.join(str(x) for x in key) + '.csv'
         filepath = os.path.join(output_dir, filename)
         group.to_csv(filepath, index=False)
 
     #Create a temporary file with a header to append the aggregate data from multiple files.
-    # Extract the header row
     header_row = df.columns.tolist()
     agg_df = pd.DataFrame(columns=header_row)
     columns_to_ignore = ['pod', 'owner_name', 'node']
     if 'resource_id' in df.columns:
         columns_to_ignore.append('resource_id')
-        #columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
 
     for filename in os.listdir(output_dir):
         if filename.endswith('.csv'):
@@ -225,10 +178,6 @@ def aggregateWorkloads(filename, outputResults):
             agg_df = agg_df.append(df)
 
     agg_df.to_csv('./final.csv', index=False)
-    #columns_to_ignore = ['pod', 'owner_name', 'node' , 'resource_id']
-    # Drop the columns like mentioned as they are only one of the value for a workload type.
-    # For a deployment work_type, only one pod value is picked irrespective of multiple pods as the metrics are aggregated. This is optional
-
     df1 = pd.read_csv('final.csv')
     df1.drop(columns_to_ignore, axis=1, inplace=True)
     df1.to_csv(outputResults, index=False)
@@ -264,9 +213,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
     deployments = []
     mebibyte = 1048576
 
-    # Open the CSV file
     with open(csv_file_path, 'r') as csvfile:
-        # Create a CSV reader object
         csvreader = csv.DictReader(csvfile)
 
         for row in csvreader:
@@ -394,8 +341,6 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                             }
                         }) 
 
-            #if container_metrics:
-            #    container_metrics_all["metrics"].update(container_metrics)
 
             # Create a dictionary to hold the container information
             container = {
@@ -422,32 +367,25 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                 "experiment_name": row["container_name"] + '|' + row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"] + '|' + row["cluster_name"],
                 "interval_start_time": convert_date_format(row["start_timestamp"]),
                 "interval_end_time": convert_date_format(row["end_timestamp"]),
-                #"start_timestamp": convert_date_format(row["start_timestamp"]),
-                #"end_timestamp": convert_date_format(row["end_timestamp"]),
-                #"interval_start_time": row["start_timestamp"],
-                #"interval_end_time": row["end_timestamp"],
                 "kubernetes_objects": kubernetes_objects
             }
 
             json_data.append(experiment)
 
-    # Write the final JSON data to the output file
     with open(outputjsonfile, "w") as json_file:
         json.dump(json_data, json_file)
 
 
 ## Get the metrics and recommendations data from listExperiments
 def getExperimentMetrics(filename):
-    # Load the JSON data
     with open(filename, 'r') as f:
       data = json.load(f)
     if not data:
         print("No experiments found!")
     else:
         with open('experimentMetrics_temp.csv', 'w', newline='') as f:
-            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'cpuUsage_format', 'memoryRequest_format', 'memoryRSS_format', 'cpuThrottle_format', 'memoryLimit_format', 'cpuLimit_format', 'memoryUsage_format', 'cpuRequest_format']
+            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cpuUsage_format', 'memoryUsage_format']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
-            # Write the headers to the CSV file
             writer.writeheader()
 
             datadict = data[0]
@@ -480,17 +418,21 @@ def getExperimentMetrics(filename):
                                 for metric_name, metric_data in timezone_data["metrics"].items():
                                     for agg_name, agg_value in metric_data["aggregation_info"].items():
                                         metric_agg_var_name = metric_name + '_' + agg_name
-                                        metric_dict[metric_agg_var_name] = str(agg_value)
+                                        if agg_name != "format":
+                                            metric_dict[metric_agg_var_name] = str(agg_value)
+                                        elif metric_agg_var_name == "cpuUsage_format" or metric_agg_var_name == "memoryUsage_format":
+                                            metric_dict[metric_agg_var_name] = str(agg_value)
                                 for recomm_timezone, recomm_data in container_data["recommendations"]["data"].items():
                                     if recomm_timezone == timezone:
-                                        for recomm_engine, recomm_enginedata in recomm_data.items():
-                                            for recomm_type, recomm_typedata in recomm_enginedata.items():
-                                                if "config" in recomm_typedata:
-                                                    for recomm_config, recomm_configmetrics in recomm_typedata["config"].items():
-                                                        for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                            recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
-                                                            recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
-                                #print(recomm_dict)
+                                        for recomm_type, recomm_typedata in recomm_data["recommendation_terms"].items():
+                                            if 'recommendation_engines' in recomm_typedata:
+                                                for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
+                                                    if "config" in recomm_enginedata:
+                                                        for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
+                                                            for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                                recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
+                                                                if recomm_engine != "performance":
+                                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                 kobj_dict.update(metric_dict)
                                 kobj_dict.update(recomm_dict)
                                 writer.writerow(kobj_dict)
@@ -512,12 +454,6 @@ def getExperimentMetrics(filename):
             writer.writeheader()
             writer.writerows(data_sorted)
 
-        #Delete the temp files
-        if os.path.exists('experimentMetrics_temp.csv'):
-            os.remove('experimentMetrics_temp.csv')
-        if os.path.exists('experimentMetrics_sorted.csv'):    
-            os.remove('experimentMetrics_sorted.csv')
-
 
 def get_recommondations(filename):
     with open(filename, 'r') as f:
@@ -526,7 +462,7 @@ def get_recommondations(filename):
         print("No experiments found!")
     else:
         with open('experimentRecommendations_temp.csv', 'w', newline='') as f:
-            fieldnames = ['experiment_name', 'cluster_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'current_cpu_requests', 'current_memory_requests', 'current_cpu_limits', 'current_memory_limits', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_variation', 'duration_based_short_term_memory_requests_variation', 'duration_based_short_term_cpu_limits_variation', 'duration_based_short_term_memory_limits_variation', 'duration_based_medium_term_cpu_requests_variation' , 'duration_based_medium_term_memory_requests_variation', 'duration_based_medium_term_cpu_limits_variation' , 'duration_based_medium_term_memory_limits_variation', 'duration_based_long_term_cpu_requests_variation' , 'duration_based_long_term_memory_requests_variation', 'duration_based_long_term_cpu_limits_variation' , 'duration_based_long_term_memory_limits_variation', 'duration_based_short_term_cpu_requests_format', 'duration_based_short_term_memory_requests_format', 'duration_based_short_term_cpu_limits_format', 'duration_based_short_term_memory_limits_format', 'duration_based_medium_term_cpu_requests_format' , 'duration_based_medium_term_memory_requests_format', 'duration_based_medium_term_cpu_limits_format' , 'duration_based_medium_term_memory_limits_format', 'duration_based_long_term_cpu_requests_format' , 'duration_based_long_term_memory_requests_format', 'duration_based_long_term_cpu_limits_format' , 'duration_based_long_term_memory_limits_format']
+            fieldnames = ['experiment_name', 'cluster_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'current_cpu_requests', 'current_memory_requests', 'current_cpu_limits', 'current_memory_limits', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation', 'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation', 'performance_medium_term_cpu_requests_variation' , 'performance_medium_term_memory_requests_variation', 'performance_medium_term_cpu_limits_variation' , 'performance_medium_term_memory_limits_variation', 'performance_long_term_cpu_requests_variation' , 'performance_long_term_memory_requests_variation', 'performance_long_term_cpu_limits_variation' , 'performance_long_term_memory_limits_variation', 'cost_short_term_cpu_requests_format', 'cost_short_term_memory_requests_format', 'cost_short_term_cpu_limits_format', 'cost_short_term_memory_limits_format', 'cost_medium_term_cpu_requests_format' , 'cost_medium_term_memory_requests_format', 'cost_medium_term_cpu_limits_format' , 'cost_medium_term_memory_limits_format', 'cost_long_term_cpu_requests_format' , 'cost_long_term_memory_requests_format', 'cost_long_term_cpu_limits_format' , 'cost_long_term_memory_limits_format' ]
 
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
@@ -552,9 +488,8 @@ def get_recommondations(filename):
                         for index, container_data in enumerate(kobj["containers"]):
                             containerName = container_data.get("container_name")
                             containerNames.append(containerName)
-                            #containerData = container_data.get("data")
                             containerData = container_data.get("recommendations", {}).get("data", {})
-                            if "results" not in container_data:
+                            if not containerData:
                                 kobj_dict = {
                                 'experiment_name': experiment_name,
                                 'type': kobj["type"],
@@ -574,28 +509,38 @@ def get_recommondations(filename):
                                 'timezone': timezone,
                                 }
                                 recomm_dict = {}
-                                for recomm_engine, recomm_enginedata in timezone_data.items():
-                                    for recomm_type, recomm_typedata in recomm_enginedata.items():
-                                        if "current" in recomm_typedata:
-                                            recomm_dict["current_cpu_requests"] = str(recomm_typedata["current"]["requests"]["cpu"]["amount"])
-                                            recomm_dict["current_cpu_limits"] = str(recomm_typedata["current"]["limits"]["cpu"]["amount"])
-                                            recomm_dict["current_memory_requests"] = str(recomm_typedata["current"]["requests"]["memory"]["amount"])
-                                            recomm_dict["current_memory_limits"] = str(recomm_typedata["current"]["limits"]["memory"]["amount"])
-                                        if "config" in recomm_typedata:
-                                            for recomm_config, recomm_configmetrics in recomm_typedata["config"].items():
-                                                for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                    recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
-                                                    recomm_var_format = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_format'
-                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
-                                                    recomm_dict[recomm_var_format] = str(recomm_resourcedata["format"])
-                                        if "variation" in recomm_typedata:
-                                            for recomm_config, recomm_configmetrics in recomm_typedata["variation"].items():
-                                                for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                    recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config +  '_variation'
-                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                for current_resource, current_resourcedata in timezone_data["current"].items():
+                                    if 'requests' in current_resourcedata:
+                                        if 'cpu' in current_resourcedata["requests"]:
+                                            recomm_dict["current_cpu_requests"] = str(current_resourcedata["requests"]["cpu"]["amount"])
+                                        if 'memory' in current_resourcedata["requests"]:
+                                            recomm_dict["current_memory_requests"] = str(current_resourcedata["requests"]["memory"]["amount"])
+                                    if 'limits' in current_resourcedata:
+                                        if 'cpu' in current_resourcedata["limits"]:
+                                            recomm_dict["current_cpu_limits"] = str(current_resourcedata["limits"]["cpu"]["amount"])
+                                        if 'memory' in current_resourcedata["limits"]:
+                                            recomm_dict["current_memory_limits"] = str(current_resourcedata["limits"]["memory"]["amount"])
+
+
+                                for recomm_type, recomm_typedata in timezone_data["recommendation_terms"].items():
+                                    if 'recommendation_engines' in recomm_typedata:
+                                        for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
+                                            if "config" in recomm_enginedata:
+                                                for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
+                                                    for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
+                                                        recomm_var_format = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_format'
+                                                        recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                                        if recomm_engine != "performance":
+                                                            recomm_dict[recomm_var_format] = str(recomm_resourcedata["format"])
+                                            if "variation" in recomm_enginedata:
+                                                for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
+                                                    for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config +  '_variation'
+                                                        recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                 kobj_dict.update(recomm_dict)
                                 writer.writerow(kobj_dict)
-                            # Sort the data in chronological order of timezone
+        # Sort the data in chronological order of timezone
         with open('experimentRecommendations_temp.csv', 'r') as csvfile:
             reader = csv.DictReader(csvfile)
             Edata = list(reader)
@@ -614,12 +559,15 @@ def get_recommondations(filename):
             writer.writeheader()
             writer.writerows(data_sorted)
 
+        os.remove('experimentRecommendations_temp.csv')
+        os.remove('experimentRecommendations_sorted_temp.csv')
+
 
 def create_cluster_data_csv(csvtype,outputfile):
     if csvtype == "cluster":
-        fieldnames = ['cluster_name', 'timezone', 'namespaces' , 'namespace_count', 'workloads', 'workload_count', 'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_variation', 'duration_based_short_term_memory_requests_variation', 'duration_based_short_term_cpu_limits_variation', 'duration_based_short_term_memory_limits_variation', 'duration_based_medium_term_cpu_requests_variation' , 'duration_based_medium_term_memory_requests_variation', 'duration_based_medium_term_cpu_limits_variation' , 'duration_based_medium_term_memory_limits_variation', 'duration_based_long_term_cpu_requests_variation' , 'duration_based_long_term_memory_requests_variation', 'duration_based_long_term_cpu_limits_variation' , 'duration_based_long_term_memory_limits_variation']
+        fieldnames = ['cluster_name', 'timezone', 'namespaces' , 'namespace_count', 'workloads', 'workload_count', 'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'cost_short_term_idle_cpu', 'cost_short_term_critical_cpu', 'cost_short_term_optimizable_cpu', 'cost_short_term_optimized_cpu', 'cost_short_term_error_cpu', 'cost_short_term_no_data_cpu', 'cost_short_term_total_cpu', 'cost_short_term_idle_memory', 'cost_short_term_critical_memory', 'cost_short_term_optimizable_memory', 'cost_short_term_optimized_memory', 'cost_short_term_error_memory', 'cost_short_term_no_data_memory', 'cost_short_term_total_memory', 'cost_short_term_error_general', 'cost_short_term_no_data_general', 'cost_short_term_total_general', 'cost_medium_term_idle_cpu', 'cost_medium_term_critical_cpu', 'cost_medium_term_optimizable_cpu', 'cost_medium_term_optimized_cpu', 'cost_medium_term_error_cpu', 'cost_medium_term_no_data_cpu', 'cost_medium_term_total_cpu', 'cost_medium_term_idle_memory', 'cost_medium_term_critical_memory', 'cost_medium_term_optimizable_memory', 'cost_medium_term_optimized_memory', 'cost_medium_term_error_memory', 'cost_medium_term_no_data_memory', 'cost_medium_term_total_memory', 'cost_medium_term_error_general', 'cost_medium_term_no_data_general', 'cost_medium_term_total_general', 'cost_long_term_idle_cpu', 'cost_long_term_critical_cpu', 'cost_long_term_optimizable_cpu', 'cost_long_term_optimized_cpu', 'cost_long_term_error_cpu', 'cost_long_term_no_data_cpu', 'cost_long_term_total_cpu', 'cost_long_term_idle_memory', 'cost_long_term_critical_memory', 'cost_long_term_optimizable_memory', 'cost_long_term_optimized_memory', 'cost_long_term_error_memory', 'cost_long_term_no_data_memory', 'cost_long_term_total_memory', 'cost_long_term_error_general', 'cost_long_term_no_data_general', 'cost_long_term_total_general', 'action_summary_no_data_general' ]
     elif csvtype == "clusterNamespace":
-        fieldnames = ['namespace_name', 'timezone', 'clusters' , 'cluster_count' , 'workloads', 'workload_count', 'containers', 'container_count',  'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_variation', 'duration_based_short_term_memory_requests_variation', 'duration_based_short_term_cpu_limits_variation', 'duration_based_short_term_memory_limits_variation', 'duration_based_medium_term_cpu_requests_variation' , 'duration_based_medium_term_memory_requests_variation', 'duration_based_medium_term_cpu_limits_variation' , 'duration_based_medium_term_memory_limits_variation', 'duration_based_long_term_cpu_requests_variation' , 'duration_based_long_term_memory_requests_variation', 'duration_based_long_term_cpu_limits_variation' , 'duration_based_long_term_memory_limits_variation']
+        fieldnames = ['namespace_name', 'timezone', 'clusters' , 'cluster_count' , 'workloads', 'workload_count', 'containers', 'container_count',  'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'cost_short_term_idle_cpu', 'cost_short_term_critical_cpu', 'cost_short_term_optimizable_cpu', 'cost_short_term_optimized_cpu', 'cost_short_term_error_cpu', 'cost_short_term_no_data_cpu', 'cost_short_term_total_cpu', 'cost_short_term_idle_memory', 'cost_short_term_critical_memory', 'cost_short_term_optimizable_memory', 'cost_short_term_optimized_memory', 'cost_short_term_error_memory', 'cost_short_term_no_data_memory', 'cost_short_term_total_memory', 'cost_short_term_error_general', 'cost_short_term_no_data_general', 'cost_short_term_total_general', 'cost_medium_term_idle_cpu', 'cost_medium_term_critical_cpu', 'cost_medium_term_optimizable_cpu', 'cost_medium_term_optimized_cpu', 'cost_medium_term_error_cpu', 'cost_medium_term_no_data_cpu', 'cost_medium_term_total_cpu', 'cost_medium_term_idle_memory', 'cost_medium_term_critical_memory', 'cost_medium_term_optimizable_memory', 'cost_medium_term_optimized_memory', 'cost_medium_term_error_memory', 'cost_medium_term_no_data_memory', 'cost_medium_term_total_memory', 'cost_medium_term_error_general', 'cost_medium_term_no_data_general', 'cost_medium_term_total_general', 'cost_long_term_idle_cpu', 'cost_long_term_critical_cpu', 'cost_long_term_optimizable_cpu', 'cost_long_term_optimized_cpu', 'cost_long_term_error_cpu', 'cost_long_term_no_data_cpu', 'cost_long_term_total_cpu', 'cost_long_term_idle_memory', 'cost_long_term_critical_memory', 'cost_long_term_optimizable_memory', 'cost_long_term_optimized_memory', 'cost_long_term_error_memory', 'cost_long_term_no_data_memory', 'cost_long_term_total_memory', 'cost_long_term_error_general', 'cost_long_term_no_data_general', 'cost_long_term_total_general', 'action_summary_no_data_general' ]
     with open(outputfile, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -630,12 +578,14 @@ def get_cluster_data_csv(csvtype, filename, outputfile):
     with open(filename, 'r') as f:
         data = json.load(f)
     if csvtype == "cluster":
-        fieldnames = ['cluster_name', 'timezone', 'namespaces' , 'namespace_count', 'workloads', 'workload_count', 'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_variation', 'duration_based_short_term_memory_requests_variation', 'duration_based_short_term_cpu_limits_variation', 'duration_based_short_term_memory_limits_variation', 'duration_based_medium_term_cpu_requests_variation' , 'duration_based_medium_term_memory_requests_variation', 'duration_based_medium_term_cpu_limits_variation' , 'duration_based_medium_term_memory_limits_variation', 'duration_based_long_term_cpu_requests_variation' , 'duration_based_long_term_memory_requests_variation', 'duration_based_long_term_cpu_limits_variation' , 'duration_based_long_term_memory_limits_variation']
+        fieldnames = ['cluster_name', 'timezone', 'namespaces' , 'namespace_count', 'workloads', 'workload_count', 'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'cost_short_term_idle_cpu', 'cost_short_term_critical_cpu', 'cost_short_term_optimizable_cpu', 'cost_short_term_optimized_cpu', 'cost_short_term_error_cpu', 'cost_short_term_no_data_cpu', 'cost_short_term_total_cpu', 'cost_short_term_idle_memory', 'cost_short_term_critical_memory', 'cost_short_term_optimizable_memory', 'cost_short_term_optimized_memory', 'cost_short_term_error_memory', 'cost_short_term_no_data_memory', 'cost_short_term_total_memory', 'cost_short_term_error_general', 'cost_short_term_no_data_general', 'cost_short_term_total_general', 'cost_medium_term_idle_cpu', 'cost_medium_term_critical_cpu', 'cost_medium_term_optimizable_cpu', 'cost_medium_term_optimized_cpu', 'cost_medium_term_error_cpu', 'cost_medium_term_no_data_cpu', 'cost_medium_term_total_cpu', 'cost_medium_term_idle_memory', 'cost_medium_term_critical_memory', 'cost_medium_term_optimizable_memory', 'cost_medium_term_optimized_memory', 'cost_medium_term_error_memory', 'cost_medium_term_no_data_memory', 'cost_medium_term_total_memory', 'cost_medium_term_error_general', 'cost_medium_term_no_data_general', 'cost_medium_term_total_general', 'cost_long_term_idle_cpu', 'cost_long_term_critical_cpu', 'cost_long_term_optimizable_cpu', 'cost_long_term_optimized_cpu', 'cost_long_term_error_cpu', 'cost_long_term_no_data_cpu', 'cost_long_term_total_cpu', 'cost_long_term_idle_memory', 'cost_long_term_critical_memory', 'cost_long_term_optimizable_memory', 'cost_long_term_optimized_memory', 'cost_long_term_error_memory', 'cost_long_term_no_data_memory', 'cost_long_term_total_memory', 'cost_long_term_error_general', 'cost_long_term_no_data_general', 'cost_long_term_total_general', 'action_summary_no_data_general' ]
     elif csvtype == "clusterNamespace":
-        fieldnames = ['namespace_name', 'timezone', 'clusters' , 'cluster_count' , 'workloads', 'workload_count', 'containers', 'container_count', 'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'duration_based_short_term_cpu_requests', 'duration_based_short_term_memory_requests', 'duration_based_short_term_cpu_limits', 'duration_based_short_term_memory_limits', 'duration_based_medium_term_cpu_requests', 'duration_based_medium_term_memory_requests', 'duration_based_medium_term_cpu_limits', 'duration_based_medium_term_memory_limits', 'duration_based_long_term_cpu_requests', 'duration_based_long_term_memory_requests', 'duration_based_long_term_cpu_limits', 'duration_based_long_term_memory_limits', 'duration_based_short_term_cpu_requests_variation', 'duration_based_short_term_memory_requests_variation', 'duration_based_short_term_cpu_limits_variation', 'duration_based_short_term_memory_limits_variation', 'duration_based_medium_term_cpu_requests_variation' , 'duration_based_medium_term_memory_requests_variation', 'duration_based_medium_term_cpu_limits_variation' , 'duration_based_medium_term_memory_limits_variation', 'duration_based_long_term_cpu_requests_variation' , 'duration_based_long_term_memory_requests_variation', 'duration_based_long_term_cpu_limits_variation' , 'duration_based_long_term_memory_limits_variation']
+        fieldnames = ['namespace_name', 'timezone', 'clusters' , 'cluster_count' , 'workloads', 'workload_count', 'containers', 'container_count',  'short_term_current_cpu_requests', 'short_term_current_memory_requests', 'medium_term_current_cpu_requests', 'medium_term_current_memory_requests', 'long_term_current_cpu_requests', 'long_term_current_memory_requests', 'short_term_current_cpu_limits', 'short_term_current_memory_limits', 'medium_term_current_cpu_limits', 'medium_term_current_memory_limits', 'long_term_current_cpu_limits', 'long_term_current_memory_limits', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'cost_short_term_idle_cpu', 'cost_short_term_critical_cpu', 'cost_short_term_optimizable_cpu', 'cost_short_term_optimized_cpu', 'cost_short_term_error_cpu', 'cost_short_term_no_data_cpu', 'cost_short_term_total_cpu', 'cost_short_term_idle_memory', 'cost_short_term_critical_memory', 'cost_short_term_optimizable_memory', 'cost_short_term_optimized_memory', 'cost_short_term_error_memory', 'cost_short_term_no_data_memory', 'cost_short_term_total_memory', 'cost_short_term_error_general', 'cost_short_term_no_data_general', 'cost_short_term_total_general', 'cost_medium_term_idle_cpu', 'cost_medium_term_critical_cpu', 'cost_medium_term_optimizable_cpu', 'cost_medium_term_optimized_cpu', 'cost_medium_term_error_cpu', 'cost_medium_term_no_data_cpu', 'cost_medium_term_total_cpu', 'cost_medium_term_idle_memory', 'cost_medium_term_critical_memory', 'cost_medium_term_optimizable_memory', 'cost_medium_term_optimized_memory', 'cost_medium_term_error_memory', 'cost_medium_term_no_data_memory', 'cost_medium_term_total_memory', 'cost_medium_term_error_general', 'cost_medium_term_no_data_general', 'cost_medium_term_total_general', 'cost_long_term_idle_cpu', 'cost_long_term_critical_cpu', 'cost_long_term_optimizable_cpu', 'cost_long_term_optimized_cpu', 'cost_long_term_error_cpu', 'cost_long_term_no_data_cpu', 'cost_long_term_total_cpu', 'cost_long_term_idle_memory', 'cost_long_term_critical_memory', 'cost_long_term_optimizable_memory', 'cost_long_term_optimized_memory', 'cost_long_term_error_memory', 'cost_long_term_no_data_memory', 'cost_long_term_total_memory', 'cost_long_term_error_general', 'cost_long_term_no_data_general', 'cost_long_term_total_general', 'action_summary_no_data_general' ]
     with open(outputfile, 'a', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         for cluster in data:
+            if not cluster:
+                continue
             if csvtype == "cluster":
                 cluster_name = cluster['cluster_name']
                 namespaces = ', '.join(cluster['namespaces']['names'])
@@ -662,6 +612,11 @@ def get_cluster_data_csv(csvtype, filename, outputfile):
                 if 'containers' in cluster:
                     containers = ', '.join(cluster['containers']['names'])
                     container_count = cluster['containers']['count']
+            action_summary_dict = {}
+            for action_type, action_data in cluster['action_summary'].items():
+                for action_resource, action_value in action_data.items():
+                    action_var_name = 'action_summary_' + action_type + '_' + action_resource
+                    action_summary_dict[action_var_name] = str(action_value["count"])
             for date, metrics in cluster['summary']['data'].items():
                 if csvtype == "clusterNamespace":
                     clust_dict = {
@@ -702,10 +657,14 @@ def get_cluster_data_csv(csvtype, filename, outputfile):
                             for recomm_config, recomm_configmetrics in recomm_typedata["change"]["variation"].items():
                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                     recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
-                                    #recomm_var_format = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_format'
                                     recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
-                                    #recomm_dict[recomm_var_format] = str(recomm_resourcedata["format"])
+                        if "action_summary" in recomm_typedata:
+                            for action_type, action_data in recomm_typedata["action_summary"].items():
+                                for action_resource, action_value in action_data.items():
+                                    action_var_name = recomm_engine + '_' + recomm_type + '_' + action_type + '_' + action_resource
+                                    recomm_dict[action_var_name] = str(action_value["count"])
                 clust_dict.update(recomm_dict)
+                clust_dict.update(action_summary_dict)
                 writer.writerow(clust_dict)
 
 def get_value_fromcsv(filename, recommendation_type):
@@ -722,26 +681,26 @@ def setRecommendations(filename,recommendation_type):
     memory_request_value = ''
     memory_limit_value = ''
     if recommendation_type == "short_term":
-        cpu_request_type = "duration_based_short_term_cpu_requests"
-        cpu_limit_type = "duration_based_short_term_cpu_limits"
-        mem_request_type = "duration_based_short_term_memory_requests"
-        mem_limit_type = "duration_based_short_term_memory_limits"
-        cpu_format = "duration_based_short_term_cpu_requests_format"
-        mem_format = "duration_based_short_term_memory_requests_format"
+        cpu_request_type = "cost_short_term_cpu_requests"
+        cpu_limit_type = "cost_short_term_cpu_limits"
+        mem_request_type = "cost_short_term_memory_requests"
+        mem_limit_type = "cost_short_term_memory_limits"
+        cpu_format = "cost_short_term_cpu_requests_format"
+        mem_format = "cost_short_term_memory_requests_format"
     elif recommendation_type == "medium_term":
-        cpu_request_type = "duration_based_medium_term_cpu_requests"
-        cpu_limit_type = "duration_based_medium_term_cpu_limits"
-        mem_request_type = "duration_based_medium_term_memory_requests"
-        mem_limit_type = "duration_based_medium_term_memory_limits"
-        cpu_format = "duration_based_medium_term_cpu_requests_format"
-        mem_format = "duration_based_medium_term_memory_requests_format"
+        cpu_request_type = "cost_medium_term_cpu_requests"
+        cpu_limit_type = "cost_medium_term_cpu_limits"
+        mem_request_type = "cost_medium_term_memory_requests"
+        mem_limit_type = "cost_medium_term_memory_limits"
+        cpu_format = "cost_medium_term_cpu_requests_format"
+        mem_format = "cost_medium_term_memory_requests_format"
     elif recommendation_type == "long_term":
-        cpu_request_type = "duration_based_long_term_cpu_requests"
-        cpu_limit_type = "duration_based_long_term_cpu_limits"
-        mem_request_type = "duration_based_long_term_memory_requests"
-        mem_limit_type = "duration_based_long_term_memory_limits"
-        cpu_format = "duration_based_long_term_cpu_requests_format"
-        mem_format = "duration_based_long_term_memory_requests_format"
+        cpu_request_type = "cost_long_term_cpu_requests"
+        cpu_limit_type = "cost_long_term_cpu_limits"
+        mem_request_type = "cost_long_term_memory_requests"
+        mem_limit_type = "cost_long_term_memory_limits"
+        cpu_format = "cost_long_term_cpu_requests_format"
+        mem_format = "cost_long_term_memory_requests_format"
 
     cpu_request_value=get_value_fromcsv('experimentRecommendations.csv', cpu_request_type)
     cpu_limit_value=get_value_fromcsv('experimentRecommendations.csv', cpu_limit_type)
@@ -793,8 +752,24 @@ def setRecommendations(filename,recommendation_type):
         command += f" --limits='{limits_str}'"
     print("Applying recommendations using following command..")
     print(command)
-    #command = f"kubectl -n {kubernetes_object_namespace} set resources {kubernetes_object_type}/{kubernetes_object_name} --containers={kubernetes_object_container} --requests='cpu={cpu_request_value},memory={memory_request_value}' --limits='cpu={cpu_limit_value},memory={memory_limit_value}'"
 
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
 
+# Function to add columns(like cluster_name) to the csv's
+def add_column_to_csv(folder_path, column_name, column_value, start_index):
+    source_dirs = sorted([d for d in os.listdir(folder_path) if os.path.isdir(os.path.join(folder_path, d))])
+    for cluster_index, source_dir in enumerate(source_dirs, start=start_index):
+        source_path = os.path.join(folder_path, source_dir)
+        if not os.path.isdir(source_path):
+            continue
+        date_dirs = sorted([d for d in os.listdir(source_path) if os.path.isdir(os.path.join(source_path, d))])
+        for date_dir in date_dirs:
+            date_path = os.path.join(source_path, date_dir)
+            csv_files = [f for f in os.listdir(date_path) if f.endswith('.csv')]
+            for csv_file in csv_files:
+                csv_path = os.path.join(date_path, csv_file)
+                df = pd.read_csv(csv_path)
+                new_column_value = f'{column_value}{cluster_index}'
+                df[column_name] = new_column_value
+                df.to_csv(csv_path, index=False)
