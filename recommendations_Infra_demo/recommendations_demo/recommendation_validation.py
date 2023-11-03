@@ -384,7 +384,7 @@ def getExperimentMetrics(filename):
         print("No experiments found!")
     else:
         with open('experimentMetrics_temp.csv', 'w', newline='') as f:
-            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cpuUsage_format', 'memoryUsage_format']
+            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'cpuUsage_format', 'memoryUsage_format']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -431,8 +431,7 @@ def getExperimentMetrics(filename):
                                                         for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
                                                             for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                                 recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
-                                                                if recomm_engine != "performance":
-                                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                                                recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                 kobj_dict.update(metric_dict)
                                 kobj_dict.update(recomm_dict)
                                 writer.writerow(kobj_dict)
