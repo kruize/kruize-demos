@@ -106,6 +106,55 @@ function clone_repos() {
 	echo
 }
 
+function clone_jaeger() {
+	app_name=$1
+	echo
+	echo "#######################################"
+	echo "1. Cloning ${app_name} git repos"
+	if [ ! -d ${app_name} ]; then
+		git clone git@github.com:kruize/${app_name}.git 2>/dev/null
+		if [ $? -ne 0 ]; then
+			git clone https://github.com/kruize/${app_name}.git 2>/dev/null
+		fi
+		check_err "ERROR: git clone of kruize/${app_name} failed."
+	fi
+
+	git clone git@github.com:kruize/jaeger-demos.git
+	if [ $? -ne 0 ]; then
+		git clone https://github.com/kruize/jaeger-demos.git
+	fi
+	check_err "ERROR: git clone of Jaeger_demo_application failed."
+
+	echo "done"
+	echo "#######################################"
+	echo
+}
+
+###########################################
+#   Jaeger Install
+###########################################
+function Jaeger_demo_install() {
+	echo
+	echo "#######################################"
+	echo "5. Installing Jaeger_demo into cluster"
+	pushd  jaeger-demos >/dev/null
+		kubectl apply -f kubernetes-resources
+		check_err "ERROR: Jaeger_Demo app failed to start, exiting"
+	popd >/dev/null
+	echo "#######################################"
+	echo
+}
+
+###########################################
+#   Cleanup git Repos
+###########################################
+function delete_jaeger_repos() {
+  app_name=$1
+	echo "1. Deleting ${app_name} git repos"
+	rm -rf ${app_name} jaeger-demos
+}
+
+
 ###########################################
 #   Cleanup git Repos
 ###########################################
@@ -191,11 +240,22 @@ function benchmarks_install() {
 }
 
 ###########################################
+#  Expose Jaeger port
+###########################################
+function expose_jaeger() {
+	echo "Port forwarding Jaeger"
+	echo "Info: Prometheus accessible at http://localhost:9090"
+	kubectl port-forward svc/jaeger 16686:16686 &
+}
+
+
+
+###########################################
 #  Expose Prometheus port
 ###########################################
 function expose_prometheus() {
 	kubectl_cmd="kubectl -n monitoring"
-	echo "8. Port forwarding Prometheus"
+	echo "8. Port forwarding Jaeger"
 	echo "Info: Prometheus accessible at http://localhost:9090"
 	${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
 }
