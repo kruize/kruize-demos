@@ -243,8 +243,10 @@ function monitoring_demo_start() {
 		else
 			exit 1
 		fi
+	elif [[ ${getMetricsRecommendations} -eq 1 ]]; then
+ 		echo "Generating the metrics and recommendations for all experiments available in kruize"
+ 		get_metrics_recommendations
 	fi
-
 
 	echo
 	end_time=$(get_date)
