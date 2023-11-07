@@ -1,5 +1,5 @@
 [{
-  "version": "1.0",
+  "version": "v2.0",
   "experiment_name": "python-sample|deployment|america",
   "cluster_name": "cluster-one-division-bell",
   "performance_profile": "resource-optimization-openshift",
