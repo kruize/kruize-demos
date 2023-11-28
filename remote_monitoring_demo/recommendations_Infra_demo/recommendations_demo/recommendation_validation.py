@@ -404,42 +404,46 @@ def getExperimentMetrics(filename):
                         for container_name,container_data in kobj["containers"].items():
                             containerName = container_data["container_name"]
                             containerNames.append(containerName)
-                            for timezone, timezone_data in container_data["results"].items():
-                                kobj_dict = {
-                                'experiment_name': experiment_name,
-                                'type': kobj["type"],
-                                'name': kobj["name"],
-                                'namespace': kobj["namespace"],
-                                'container_name': container_data["container_name"],
-                                'timezone': timezone,
-                                }
-                                metric_dict = {}
-                                recomm_dict = {}
-                                for metric_name, metric_data in timezone_data["metrics"].items():
-                                    for agg_name, agg_value in metric_data["aggregation_info"].items():
-                                        metric_agg_var_name = metric_name + '_' + agg_name
-                                        if agg_name != "format":
-                                            metric_dict[metric_agg_var_name] = str(agg_value)
-                                        elif metric_agg_var_name == "cpuUsage_format" or metric_agg_var_name == "memoryUsage_format":
-                                            metric_dict[metric_agg_var_name] = str(agg_value)
-                                for recomm_timezone, recomm_data in container_data["recommendations"]["data"].items():
-                                    if recomm_timezone == timezone:
-                                        for recomm_type, recomm_typedata in recomm_data["recommendation_terms"].items():
-                                            if 'recommendation_engines' in recomm_typedata:
-                                                for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
-                                                    if "config" in recomm_enginedata:
-                                                        for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
-                                                            for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                                recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
-                                                                recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
-                                                    if "variation" in recomm_enginedata:
-                                                        for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
-                                                            for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                                recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
-                                                                recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
-                                kobj_dict.update(metric_dict)
-                                kobj_dict.update(recomm_dict)
+                            if "results" in container_data:
+                                for timezone, timezone_data in container_data["results"].items():
+                                    kobj_dict = {
+                                            'experiment_name': experiment_name,
+                                            'type': kobj["type"],
+                                            'name': kobj["name"],
+                                            'namespace': kobj["namespace"],
+                                            'container_name': container_data["container_name"],
+                                            'timezone': timezone,
+                                            }
+                                    metric_dict = {}
+                                    recomm_dict = {}
+                                    for metric_name, metric_data in timezone_data["metrics"].items():
+                                        for agg_name, agg_value in metric_data["aggregation_info"].items():
+                                            metric_agg_var_name = metric_name + '_' + agg_name
+                                            if agg_name != "format":
+                                                metric_dict[metric_agg_var_name] = str(agg_value)
+                                            elif metric_agg_var_name == "cpuUsage_format" or metric_agg_var_name == "memoryUsage_format":
+                                                metric_dict[metric_agg_var_name] = str(agg_value)
+                                    for recomm_timezone, recomm_data in container_data["recommendations"]["data"].items():
+                                        if recomm_timezone == timezone:
+                                            for recomm_type, recomm_typedata in recomm_data["recommendation_terms"].items():
+                                                if 'recommendation_engines' in recomm_typedata:
+                                                    for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
+                                                        if "config" in recomm_enginedata:
+                                                            for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
+                                                                for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                                    recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
+                                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                                        if "variation" in recomm_enginedata:
+                                                            for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
+                                                                for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                                    recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
+                                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                    kobj_dict.update(metric_dict)
+                                    kobj_dict.update(recomm_dict)
+                                    writer.writerow(kobj_dict)
+                            else:
                                 writer.writerow(kobj_dict)
+                                
         # Sort the data in chronological order of timezone
         with open('experimentMetrics_temp.csv', 'r') as csvfile:
             reader = csv.DictReader(csvfile)
