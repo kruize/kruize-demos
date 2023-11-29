@@ -442,6 +442,13 @@ def getExperimentMetrics(filename):
                                     kobj_dict.update(recomm_dict)
                                     writer.writerow(kobj_dict)
                             else:
+                                kobj_dict = {
+                                            'experiment_name': experiment_name,
+                                            'type': kobj["type"],
+                                            'name': kobj["name"],
+                                            'namespace': kobj["namespace"],
+                                            'container_name': container_data["container_name"],
+                                            }
                                 writer.writerow(kobj_dict)
                                 
         # Sort the data in chronological order of timezone
