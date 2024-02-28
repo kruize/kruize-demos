@@ -4,7 +4,7 @@ The [hpo demo script](../hpo_demo_setup.sh) currently run [JVM + Quarkus based T
 
 Following are the steps done by demo script:
 - Clone the required repos like hpo, benchmarks.
-- Starts the HPO service. By default it starts with native mode. To start HPO in docker, run as `./hpo_demo_setup.sh -c docker`.
+- Starts the HPO service. By default it starts with native mode. To start HPO in docker, run as `./hpo_demo_setup.sh -c docker`. You can also run HPO on Operate First community cloud using `./hpo_demo_setup.sh -c operate-first`
 - Start an HPO experiment by providing the searchspace json.
 - For each trial in an experiment, following steps are proceeded in sequential order.
     - Generate the trial config from HPO.
