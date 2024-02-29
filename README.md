@@ -2,6 +2,8 @@
 
 Want to try out Kruize? You've come to the right place!
 
+### ⚠️ Please note that while the remote monitoring demo is fully functional, the local monitoring use case/feature is currently under active development. Stay tuned for updates on the progress of the local monitoring feature.
+
 ## What is Kruize HPOaaS?
 
 Machine learning is a process of teaching a system to make accurate predictions based on the data fed. Hyperparamter optimization (/ tuning) helps to choose the right set of parameters for a learning algorithm. HPO uses different methods like Manual, Random search, Grid search, Bayesian optimization. [Kruize HPOaaS](https://github.com/kruize/hpo/blob/master/README.md) currently uses Bayesian optimization because of the multiple advantages that it provides.
