@@ -193,11 +193,14 @@ function expose_prometheus() {
 	${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
 }
 
-if ! which minikube >/dev/null 2>/dev/null; then
-	echo "ERROR: Please install minikube and try again"
-	print_min_resources
-	exit 1
-fi
+###########################################
+#   Check if minikube is installed
+###########################################
+function check_minikube() {
+        if ! which minikube >/dev/null 2>/dev/null; then
+                echo "ERROR: Please install minikube and try again"
+                print_min_resources
+                exit 1
+        fi
+}
 
-# check system configs
-sys_cpu_mem_check
