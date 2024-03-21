@@ -165,6 +165,7 @@ function autotune_start() {
 
 	if [ ${autotune_restart} -eq 0 ]; then
 		clone_repos autotune
+		clone_repos benchmarks
 		minikube_start
 		prometheus_install autotune
 		benchmarks_install
@@ -200,6 +201,10 @@ function autotune_terminate() {
 	echo "Success! Autotune demo cleanup took ${elapsed_time} seconds"
 	echo
 }
+
+# Check if minikube exists and check system configs
+check_minikube
+sys_cpu_mem_check
 
 # By default we start the demo and dont expose prometheus port
 prometheus=0

@@ -276,6 +276,7 @@ function hpo_start() {
 		clone_repos hpo
 # clone autotune repo as well to install the prometheus
 		clone_repos autotune
+		clone_repos benchmarks
 		minikube_start
 		prometheus_install
 		benchmarks_install

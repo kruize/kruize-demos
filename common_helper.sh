@@ -94,13 +94,6 @@ function clone_repos() {
 		check_err "ERROR: git clone of kruize/${app_name} failed."
 	fi
 
-	if [ ! -d benchmarks ]; then
-		git clone git@github.com:kruize/benchmarks.git 2>/dev/null
-		if [ $? -ne 0 ]; then
-			git clone https://github.com/kruize/benchmarks.git 2>/dev/null
-		fi
-		check_err "ERROR: git clone of kruize/benchmarks failed."
-	fi
 	echo "done"
 	echo "#######################################"
 	echo
@@ -200,11 +193,14 @@ function expose_prometheus() {
 	${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
 }
 
-if ! which minikube >/dev/null 2>/dev/null; then
-	echo "ERROR: Please install minikube and try again"
-	print_min_resources
-	exit 1
-fi
+###########################################
+#   Check if minikube is installed
+###########################################
+function check_minikube() {
+        if ! which minikube >/dev/null 2>/dev/null; then
+                echo "ERROR: Please install minikube and try again"
+                print_min_resources
+                exit 1
+        fi
+}
 
-# check system configs
-sys_cpu_mem_check
