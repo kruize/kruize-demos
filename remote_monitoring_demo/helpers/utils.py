@@ -140,7 +140,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
             }
             kubernetes_objects = [kubernetes_object]
             experiment = {
-                "version": "1.0",
+                "version": "v2.0",
                 "experiment_name": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
                 "interval_start_time": convert_date_format(row["interval_start"]),
                 "interval_end_time": convert_date_format(row["interval_end"]),
