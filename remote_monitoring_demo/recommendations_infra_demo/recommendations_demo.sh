@@ -246,6 +246,7 @@ function monitoring_demo_start() {
 	elif [[ ${getMetricsRecommendations} -eq 1 ]]; then
  		echo "Generating the metrics and recommendations for all experiments available in kruize"
  		get_metrics_recommendations
+		get_metrics_boxplots
 	fi
 
 	echo
