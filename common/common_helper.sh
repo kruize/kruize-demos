@@ -58,7 +58,7 @@ function print_min_resources() {
 	echo "       CPUs=8, Memory=16384MB"
 }
 
-# Checks if the system which tries to run autotune is having minimum resources required
+# Checks if the system which tries to run kruize is having minimum resources required
 function sys_cpu_mem_check() {
 	SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
 	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
@@ -106,6 +106,54 @@ function delete_repos() {
   app_name=$1
 	echo "1. Deleting ${app_name} git repos"
 	rm -rf ${app_name} benchmarks
+}
+
+
+###########################################
+#   Kruize Install
+###########################################
+function kruize_install() {
+	echo
+	echo "#######################################"
+	echo "6. Installing Kruize"
+	if [ ! -d autotune ]; then
+		echo "ERROR: autotune dir not found."
+		if [[ ${autotune_restart} -eq 1 ]]; then
+			echo "ERROR: Kruize not running. Wrong use of restart command"
+		fi
+		exit -1
+	fi
+	pushd autotune >/dev/null
+		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
+		# Kruize UI repo
+		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
+
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
+		sleep 5
+		if [ -z "${KRUIZE_DOCKER_IMAGE}" ]; then
+			KRUIZE_DOCKER_IMAGE=${KRUIZE_DOCKER_REPO}:${KRUIZE_VERSION}
+		fi
+		DOCKER_IMAGES="-i ${KRUIZE_DOCKER_IMAGE}"
+		if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${KRUIZE_DOCKER_IMAGE}"
+		fi
+		if [ ! -z "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -u ${KRUIZE_UI_DOCKER_IMAGE}"
+		fi
+		echo
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo
+
+		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
+		check_err "ERROR: kruize failed to start, exiting"
+
+		echo -n "Waiting 40 seconds for Kruize to sync with Prometheus..."
+		sleep 40
+		echo "done"
+	popd >/dev/null
+	echo "#######################################"
+	echo
 }
 
 ###########################################
