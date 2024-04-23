@@ -245,6 +245,21 @@ function benchmarks_install() {
 	echo
 }
 
+#
+# Start a background load on the benchmark for 20 mins
+#
+function run_benchmark_load() {
+	pushd benchmarks >/dev/null
+		pushd techempower >/dev/null
+			if [ ${CLUSTER_TYPE} == "minikube" ]; then
+				./scripts/perf/tfb-run.sh --clustertype=minikube -s localhost  -e results  -d 1200 -n default --mode=monitoring --dbtype=DOCKER
+			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+				./scripts/perf/tfb-run.sh --clustertype=openshift -s localhost  -e results  -d 1200 -n default --mode=monitoring --dbtype=DOCKER
+			fi
+		popd >/dev/null
+	popd >/dev/null
+}
+
 ###########################################
 #  Expose Prometheus port
 ###########################################
@@ -259,10 +274,10 @@ function expose_prometheus() {
 #   Check if minikube is installed
 ###########################################
 function check_minikube() {
-        if ! which minikube >/dev/null 2>/dev/null; then
-                echo "ERROR: Please install minikube and try again"
-                print_min_resources
-                exit 1
-        fi
+	if ! which minikube >/dev/null 2>/dev/null; then
+		echo "ERROR: Please install minikube and try again"
+		print_min_resources
+		exit 1
+	fi
 }
 

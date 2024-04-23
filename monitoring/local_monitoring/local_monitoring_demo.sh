@@ -159,17 +159,6 @@ function kruize_local_patch() {
 #
 #
 #
-function run_benchmark_load() {
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
-	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-		sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-	fi
-}
-
-#
-#
-#
 function kruize_local_demo_setup() {
 	# Start all the installs
 	start_time=$(get_date)
