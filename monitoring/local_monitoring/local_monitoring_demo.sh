@@ -51,24 +51,15 @@ function usage() {
 
 function kruize_local() {
 	#
-	
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
 	export NAMESPACE="default"
 
-	KRUIZE_PORT=$(kubectl -n monitoring get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		MINIKUBE_IP=$(minikube ip)
-		export URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
-	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-		export URL="worker-2.dinolocal1.lab.psi.pnq2.redhat.com:31046"
-	fi
-
 	echo "Listing all datsources"
-	curl http://"${URL}"/datasources
+	curl http://"${KRUIZE_URL}"/datasources
 
 	echo "POST: Import metadata from datasource"
-	curl --location http://"${URL}"/dsmetadata \
+	curl --location http://"${KRUIZE_URL}"/dsmetadata \
 	--header 'Content-Type: application/json' \
 	--data '{
 	   "version": "v1.0",
@@ -77,46 +68,51 @@ function kruize_local() {
 
 	echo ""
 	echo "GET all metadata"
-	curl "http://${URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
 	echo ""
 
 	echo ""
 	echo "GET metadata for namespace openshift-monitoring"
-	curl "http://${URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
 	echo ""
 
 	echo ""
 	echo "GET metadata for namespace default"
 	NAMESPACE="default"
-	curl "http://${URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
 	echo ""
 
 	echo ""
 	echo "Deleting kruize experiment..."
-	echo "curl -X DELETE http://${URL}/createExperiment -d @./create_tfb_exp.json"
-	curl -X DELETE http://${URL}/createExperiment -d @./create_kruize_exp.json
-	curl -X DELETE http://${URL}/createExperiment -d @./create_tfb_exp.json
-	curl -X DELETE http://${URL}/createExperiment -d @./create_tfb-db_exp.json
+	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json"
+	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_kruize_exp.json
+	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json
+	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
 	echo ""
 
 	echo ""
 	echo "Creating perf profile..."
-	curl -X POST http://${URL}/createPerformanceProfile -d @./resource_optimization_openshift.json
+	curl -X POST http://${KRUIZE_URL}/createPerformanceProfile -d @./resource_optimization_openshift.json
 	echo ""
 
 	echo ""
 	echo "Creating kruize experiment..."
-	curl -X POST http://${URL}/createExperiment -d @./create_kruize_exp.json
-	curl -X POST http://${URL}/createExperiment -d @./create_tfb_exp.json
-	curl -X POST http://${URL}/createExperiment -d @./create_tfb-db_exp.json
+	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_kruize_exp.json
+	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json
+	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
 	echo ""
 
 	echo ""
 	echo "Generating recommendations..."
-	curl -X POST "http://${URL}/generateRecommendations?experiment_name=monitor_kruize"
-	curl -X POST "http://${URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	curl -X POST "http://${URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_kruize"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
 	echo ""
+
+	echo
+	echo "Generate recommendations using http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	echo "List Recommendations using http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
+	echo
 }
 
 
@@ -125,26 +121,18 @@ function kruize_local() {
 ###########################################
 function get_urls() {
 
-	kubectl_cmd="kubectl -n monitoring"
-	KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-	KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-
-	kubectl_cmd="kubectl -n default"
-	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-	MINIKUBE_IP=$(minikube ip)
-
 	echo
 	echo "#######################################"
 	echo "#             Quarkus App             #"
 	echo "#######################################"
-	echo "Info: Access techempower app at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}/db"
-        echo "Info: Access techempower app metrics at http://${MINIKUBE_IP}:${TECHEMPOWER_PORT}/q/metrics"
+	echo "Info: Access techempower app at http://${TECHEMPOWER_URL}/db"
+	echo "Info: Access techempower app metrics at http://${TECHEMPOWER_URL}/q/metrics"
 	echo
 	echo "#######################################"
 	echo "#              Kruize               #"
 	echo "#######################################"
-	echo "Info: Access kruize UI at http://${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
-        echo "Info: List all Kruize Experiments at http://${MINIKUBE_IP}:${KRUIZE_PORT}/listExperiments"
+	echo "Info: Access kruize UI at http://${KRUIZE_UI_URL}"
+	echo "Info: List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments"
 	echo
 }
 
@@ -172,20 +160,17 @@ function kruize_local_patch() {
 #
 #
 function run_benchmark_load() {
-	
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
-		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-		fi
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+		sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+	fi
 }
 
 #
 #
 #
 function kruize_local_demo_setup() {
-	minikube >/dev/null
-	check_err "ERROR: minikube not installed"
 	# Start all the installs
 	start_time=$(get_date)
 	echo
@@ -197,19 +182,50 @@ function kruize_local_demo_setup() {
 	if [ ${kruize_restart} -eq 0 ]; then
 		clone_repos autotune
 		clone_repos benchmarks
-		minikube_start
-		prometheus_install autotune
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			minikube >/dev/null
+			check_err "ERROR: minikube not installed"
+			minikube_start
+			prometheus_install autotune
+		fi
 		benchmarks_install
 	fi
 	kruize_local_patch
 	kruize_install
 	echo
-	kubectl -n monitoring get pods
-	echo
+
+	kubectl_cmd="kubectl -n default"
+	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		kubectl_cmd="kubectl -n monitoring"
+
+		MINIKUBE_IP=$(minikube ip)
+
+		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+
+		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
+		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
+		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+		kubectl_cmd="kubectl -n openshift-tuning"
+
+		KRUIZE_IP=$(${kubectl_cmd} get pods -l=app=kruize -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+		KRUIZE_UI_IP=$(${kubectl_cmd} get pods -l=app=kruize-ui-nginx -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+
+		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+
+		export KRUIZE_URL="${KRUIZE_IP}:${KRUIZE_PORT}"
+		export KRUIZE_UI_URL="${KRUIZE_UI_IP}:${KRUIZE_UI_PORT}"
+		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:${TECHEMPOWER_PORT}"
+	fi
 
 	kruize_local
-
 	get_urls
+
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo setup took ${elapsed_time} seconds"
@@ -226,8 +242,11 @@ function kruize_local_demo_terminate() {
 	echo "#       Kruize Demo Terminate       #"
 	echo "#######################################"
 	echo
+	kruize_uninstall
 	delete_repos autotune
-	minikube_delete
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		minikube_delete
+	fi
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
