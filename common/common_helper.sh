@@ -82,7 +82,7 @@ function sys_cpu_mem_check() {
 #   Clone git Repos
 ###########################################
 function clone_repos() {
-  app_name=$1
+	app_name=$1
 	echo
 	echo "#######################################"
 	echo "1. Cloning ${app_name} git repos"
@@ -103,7 +103,7 @@ function clone_repos() {
 #   Cleanup git Repos
 ###########################################
 function delete_repos() {
-  app_name=$1
+	app_name=$1
 	echo "1. Deleting ${app_name} git repos"
 	rm -rf ${app_name} benchmarks
 }
@@ -154,6 +154,20 @@ function kruize_install() {
 	popd >/dev/null
 	echo "#######################################"
 	echo
+}
+
+function kruize_uninstall() {
+	echo
+	echo "Uninstalling Kruize"
+	echo
+	if [ ! -d autotune ]; then
+		return
+	fi
+	pushd autotune >/dev/null
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t
+		check_err "ERROR: Failed to terminate kruize"
+		echo
+	popd >/dev/null
 }
 
 ###########################################
