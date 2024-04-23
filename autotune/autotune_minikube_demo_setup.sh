@@ -17,7 +17,8 @@
 
 # include the common_utils.sh script to access methods
 current_dir="$(dirname "$0")"
-source ${current_dir}/common_helper.sh
+common_dir="${current_dir}/../common/"
+source ${common_dir}/common_helper.sh
 
 # Default docker image repo
 AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
