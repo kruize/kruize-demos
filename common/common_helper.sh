@@ -82,16 +82,16 @@ function sys_cpu_mem_check() {
 #   Clone git Repos
 ###########################################
 function clone_repos() {
-	app_name=$1
+	repo_name=$1
 	echo
 	echo "#######################################"
-	echo "1. Cloning ${app_name} git repos"
-	if [ ! -d ${app_name} ]; then
-		git clone git@github.com:kruize/${app_name}.git 2>/dev/null
+	echo "1. Cloning ${repo_name} git repos"
+	if [ ! -d ${repo_name} ]; then
+		git clone git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
 		if [ $? -ne 0 ]; then
-			git clone https://github.com/kruize/${app_name}.git 2>/dev/null
+			git clone https://github.com/kruize/${repo_name}.git 2>/dev/null
 		fi
-		check_err "ERROR: git clone of kruize/${app_name} failed."
+		check_err "ERROR: git clone of kruize/${repo_name} failed."
 	fi
 
 	echo "done"
@@ -248,14 +248,28 @@ function benchmarks_install() {
 #
 # Start a background load on the benchmark for 20 mins
 #
-function run_benchmark_load() {
+function apply_benchmark_load() {
+	if [ ${benchmark_load} -eq 0 ]; then
+		return;
+	fi
+
+	echo
+	echo "###################################################################"
+	echo " Starting 20 min background load against the techempower benchmark "
+	echo "###################################################################"
+	echo
+
 	pushd benchmarks >/dev/null
 		pushd techempower >/dev/null
+			APP_NAMESPACE=default
+			# 20 mins = 1200 seconds
+			LOAD_DURATION=1200
 			if [ ${CLUSTER_TYPE} == "minikube" ]; then
-				./scripts/perf/tfb-run.sh --clustertype=minikube -s localhost  -e results  -d 1200 -n default --mode=monitoring --dbtype=DOCKER
+				APP_SERVER=localhost
 			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-				./scripts/perf/tfb-run.sh --clustertype=openshift -s localhost  -e results  -d 1200 -n default --mode=monitoring --dbtype=DOCKER
+				APP_SERVER=localhost
 			fi
+			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
 		popd >/dev/null
 	popd >/dev/null
 }
