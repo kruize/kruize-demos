@@ -269,7 +269,7 @@ function apply_benchmark_load() {
 			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 				APP_SERVER=$(oc whoami --show-server | awk -F[/:] '{print $4}' | sed 's/api.//')
 			fi
-			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
+			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER > benchmark.log 2>&1 &
 		popd >/dev/null
 	popd >/dev/null
 }
