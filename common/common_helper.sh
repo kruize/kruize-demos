@@ -266,10 +266,11 @@ function apply_benchmark_load() {
 			LOAD_DURATION=1200
 			if [ ${CLUSTER_TYPE} == "minikube" ]; then
 				APP_SERVER=localhost
+				./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
 			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-				APP_SERVER=localhost
+				echo "----- WARNING: Openshift Load is still a WiP ----"
+				echo "No Load applied"
 			fi
-			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
 		popd >/dev/null
 	popd >/dev/null
 }
