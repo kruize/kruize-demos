@@ -164,16 +164,13 @@ function get_urls() {
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-		kubectl_cmd="kubectl -n openshift-tuning"
+		kubectl_cmd="oc -n openshift-tuning"
 
-		KRUIZE_IP=$(${kubectl_cmd} get pods -l=app=kruize -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-		KRUIZE_UI_IP=$(${kubectl_cmd} get pods -l=app=kruize-ui-nginx -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+		${kubectl_cmd} expose service kruize
+		${kubectl_cmd} expose service kruize-ui-nginx-service
 
-		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-
-		export KRUIZE_URL="${KRUIZE_IP}:${KRUIZE_PORT}"
-		export KRUIZE_UI_URL="${KRUIZE_UI_IP}:${KRUIZE_UI_PORT}"
+		export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
+		export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:${TECHEMPOWER_PORT}"
 	fi
 }
