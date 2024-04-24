@@ -168,6 +168,7 @@ function get_urls() {
 
 		${kubectl_cmd} expose service kruize
 		${kubectl_cmd} expose service kruize-ui-nginx-service
+		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
 		export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
