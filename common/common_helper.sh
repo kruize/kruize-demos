@@ -58,7 +58,7 @@ function print_min_resources() {
 	echo "       CPUs=8, Memory=16384MB"
 }
 
-# Checks if the system which tries to run autotune is having minimum resources required
+# Checks if the system which tries to run kruize is having minimum resources required
 function sys_cpu_mem_check() {
 	SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
 	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
@@ -82,16 +82,16 @@ function sys_cpu_mem_check() {
 #   Clone git Repos
 ###########################################
 function clone_repos() {
-  app_name=$1
+	repo_name=$1
 	echo
 	echo "#######################################"
-	echo "1. Cloning ${app_name} git repos"
-	if [ ! -d ${app_name} ]; then
-		git clone git@github.com:kruize/${app_name}.git 2>/dev/null
+	echo "1. Cloning ${repo_name} git repos"
+	if [ ! -d ${repo_name} ]; then
+		git clone git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
 		if [ $? -ne 0 ]; then
-			git clone https://github.com/kruize/${app_name}.git 2>/dev/null
+			git clone https://github.com/kruize/${repo_name}.git 2>/dev/null
 		fi
-		check_err "ERROR: git clone of kruize/${app_name} failed."
+		check_err "ERROR: git clone of kruize/${repo_name} failed."
 	fi
 
 	echo "done"
@@ -103,9 +103,71 @@ function clone_repos() {
 #   Cleanup git Repos
 ###########################################
 function delete_repos() {
-  app_name=$1
+	app_name=$1
 	echo "1. Deleting ${app_name} git repos"
 	rm -rf ${app_name} benchmarks
+}
+
+
+###########################################
+#   Kruize Install
+###########################################
+function kruize_install() {
+	echo
+	echo "#######################################"
+	echo "6. Installing Kruize"
+	if [ ! -d autotune ]; then
+		echo "ERROR: autotune dir not found."
+		if [[ ${autotune_restart} -eq 1 ]]; then
+			echo "ERROR: Kruize not running. Wrong use of restart command"
+		fi
+		exit -1
+	fi
+	pushd autotune >/dev/null
+		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
+		# Kruize UI repo
+		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
+
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
+		sleep 5
+		if [ -z "${KRUIZE_DOCKER_IMAGE}" ]; then
+			KRUIZE_DOCKER_IMAGE=${KRUIZE_DOCKER_REPO}:${KRUIZE_VERSION}
+		fi
+		DOCKER_IMAGES="-i ${KRUIZE_DOCKER_IMAGE}"
+		if [ ! -z "${HPO_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -o ${KRUIZE_DOCKER_IMAGE}"
+		fi
+		if [ ! -z "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+			DOCKER_IMAGES="${DOCKER_IMAGES} -u ${KRUIZE_UI_DOCKER_IMAGE}"
+		fi
+		echo
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo
+
+		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
+		check_err "ERROR: kruize failed to start, exiting"
+
+		echo -n "Waiting 40 seconds for Kruize to sync with Prometheus..."
+		sleep 40
+		echo "done"
+	popd >/dev/null
+	echo "#######################################"
+	echo
+}
+
+function kruize_uninstall() {
+	echo
+	echo "Uninstalling Kruize"
+	echo
+	if [ ! -d autotune ]; then
+		return
+	fi
+	pushd autotune >/dev/null
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t
+		check_err "ERROR: Failed to terminate kruize"
+		echo
+	popd >/dev/null
 }
 
 ###########################################
@@ -183,6 +245,35 @@ function benchmarks_install() {
 	echo
 }
 
+#
+# Start a background load on the benchmark for 20 mins
+#
+function apply_benchmark_load() {
+	if [ ${benchmark_load} -eq 0 ]; then
+		return;
+	fi
+
+	echo
+	echo "###################################################################"
+	echo " Starting 20 min background load against the techempower benchmark "
+	echo "###################################################################"
+	echo
+
+	pushd benchmarks >/dev/null
+		pushd techempower >/dev/null
+			APP_NAMESPACE=default
+			# 20 mins = 1200 seconds
+			LOAD_DURATION=1200
+			if [ ${CLUSTER_TYPE} == "minikube" ]; then
+				APP_SERVER=localhost
+			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+				APP_SERVER=$(oc whoami --show-server | awk -F[/:] '{print $4}' | sed 's/api.//')
+			fi
+			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
+		popd >/dev/null
+	popd >/dev/null
+}
+
 ###########################################
 #  Expose Prometheus port
 ###########################################
@@ -197,10 +288,10 @@ function expose_prometheus() {
 #   Check if minikube is installed
 ###########################################
 function check_minikube() {
-        if ! which minikube >/dev/null 2>/dev/null; then
-                echo "ERROR: Please install minikube and try again"
-                print_min_resources
-                exit 1
-        fi
+	if ! which minikube >/dev/null 2>/dev/null; then
+		echo "ERROR: Please install minikube and try again"
+		print_min_resources
+		exit 1
+	fi
 }
 
