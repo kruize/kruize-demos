@@ -259,17 +259,18 @@ function apply_benchmark_load() {
 	echo "###################################################################"
 	echo
 
+	TECHEMPOWER_LOAD_IMAGE="quay.io/kusumach/tfb_hyperfoil_load:0.25.2"
 	pushd benchmarks >/dev/null
 		pushd techempower >/dev/null
 			APP_NAMESPACE=default
 			# 20 mins = 1200 seconds
 			LOAD_DURATION=1200
 			if [ ${CLUSTER_TYPE} == "minikube" ]; then
-				APP_SERVER=localhost
+				TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-				APP_SERVER=$(oc whoami --show-server | awk -F[/:] '{print $4}' | sed 's/api.//')
+				TECHEMPOWER_ROUTE=$(oc get route -n default --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 			fi
-			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
+			docker run -d --rm --network="host" ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE}
 		popd >/dev/null
 	popd >/dev/null
 }
