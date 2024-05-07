@@ -16,7 +16,7 @@
 #
 
 current_dir="$(dirname "$0")"
-source ${current_dir}/../../common_helper.sh
+source ${current_dir}/../../../common/common_helper.sh
 source ${current_dir}/recommendations_demo/recommendation_helper.sh
 # Default docker image repos
 AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
