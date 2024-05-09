@@ -259,7 +259,7 @@ function apply_benchmark_load() {
 	echo "###################################################################"
 	echo
 
-	TECHEMPOWER_LOAD_IMAGE="quay.io/kusumach/tfb_hyperfoil_load:0.25.2"
+	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
 	APP_NAMESPACE=default
 	# 20 mins = 1200 seconds
 	# LOAD_DURATION=1200
