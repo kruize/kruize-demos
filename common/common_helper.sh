@@ -259,19 +259,18 @@ function apply_benchmark_load() {
 	echo "###################################################################"
 	echo
 
-	pushd benchmarks >/dev/null
-		pushd techempower >/dev/null
-			APP_NAMESPACE=default
-			# 20 mins = 1200 seconds
-			LOAD_DURATION=1200
-			if [ ${CLUSTER_TYPE} == "minikube" ]; then
-				APP_SERVER=localhost
-			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-				APP_SERVER=$(oc whoami --show-server | awk -F[/:] '{print $4}' | sed 's/api.//')
-			fi
-			./scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${APP_SERVER}  -e results  -d ${LOAD_DURATION} -n ${APP_NAMESPACE}  --mode=monitoring --dbtype=DOCKER &
-		popd >/dev/null
-	popd >/dev/null
+	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
+	APP_NAMESPACE=default
+	# 20 mins = 1200 seconds
+	# LOAD_DURATION=1200
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
+	fi
+	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
+	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 1200 1024 8096
+
 }
 
 ###########################################
