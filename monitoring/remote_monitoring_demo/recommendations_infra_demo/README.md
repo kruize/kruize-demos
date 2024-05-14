@@ -6,7 +6,7 @@ This script facilitates recommendation generation and validation through various
 - Data-Driven Recommendations: Utilize existing data from ROS or in-house benchmarks. (--dataDrivenRecommendations)
 - Cluster Monitoring: Gather live metrics for a specified cluster. (--monitorRecommendations)
 - Demo Benchmark: Use metrics from demo benchmarks. (--demoBenchmark)
-- Validation: Match recommendations with existing data. (--validate)
+- Validation: Match recommendations and boxplots with existing data. (--validate)
 - Summarization: Summarize cluster and namespace data. (--summarize-clusters, --summarize-namespaces, --summarize-all)
 
 ## Script Options
@@ -22,7 +22,7 @@ Option                  Description
 -d                      Specify duration for demo or monitoring.
 -a                      Use existing Kruize deployment and append experiments.
 -u                      Enable Kruize recommendations to the demo app every 6 hours.
--g                      Get metrics recommendations.
+-g                      Get metrics recommendations and boxplots.
 -b                      Enable bulk results (default: disabled).
 --mode=MODE             Specify mode (e.g., crc for CSV data with individual pod data).
 --daysData=DAYS         Specify number of days of data to be pushed.
