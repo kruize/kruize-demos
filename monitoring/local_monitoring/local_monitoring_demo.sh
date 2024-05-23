@@ -141,6 +141,80 @@ function kruize_local() {
 	echo
 	echo "######################################################"
 	echo
+
+	echo
+  echo "######################################################"
+  echo "#     Delete previously imported metadata"
+  echo "######################################################"
+  echo
+  curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
+  	--header 'Content-Type: application/json' \
+  	--data '{
+  	   "version": "v1.0",
+  	   "datasource_name": "prometheus-1"
+  	}'
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Import metadata from prometheus-1 datasource - 2nd iteration"
+  echo "######################################################"
+  echo
+  curl --location http://"${KRUIZE_URL}"/dsmetadata \
+  --header 'Content-Type: application/json' \
+  --data '{
+     "version": "v1.0",
+     "datasource_name": "prometheus-1"
+  }'
+
+
+  echo
+  echo "######################################################"
+  echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
+  echo "######################################################"
+  echo
+  curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Display metadata for default namespace - 2nd iteration"
+  echo "######################################################"
+  echo
+  curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Create kruize experiment - 2nd iteration"
+  echo "######################################################"
+  echo
+  echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
+  curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
+  echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
+  curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Generate recommendations - 2nd iteration"
+  echo "######################################################"
+  echo
+  curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+  curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
+  echo ""
+
+  echo
+  echo "######################################################"
+  echo
+  echo "Generate fresh recommendations - 2nd iteration using"
+  echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+  echo
+  echo "List Recommendations using "
+  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+  echo
+  echo "######################################################"
+  echo
 }
 
 
