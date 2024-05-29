@@ -157,6 +157,14 @@ function kruize_local() {
 
   echo
   echo "######################################################"
+  echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
+  echo "######################################################"
+  echo
+  curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+  echo
+
+  echo
+  echo "######################################################"
   echo "#     Import metadata from prometheus-1 datasource - 2nd iteration"
   echo "######################################################"
   echo
