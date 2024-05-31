@@ -233,7 +233,7 @@ function monitoring_recommendations_demo_with_data() {
 	fi
 	
 	for file in $(find "$BENCHMARK_RESULTS_DIR" -name "*.csv"); do
-		if [[ ${VALIDATE} == "true" ]] && [[ "$file" == *"/output/"* ]]; then
+		if [[ ${VALIDATE} == "true" ]] && ([[ "$file" == *"/recommendations/"* ]] || [[ "$file" == *"/boxplots/"* ]]); then
 			continue
 		fi
 
@@ -289,7 +289,7 @@ function monitoring_recommendations_demo_with_data() {
 	done
 
 	# Cleaning up all temp files
-	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv
+	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv metrics_recommendations_data.json
 
 	if [[ ${validate_status} == 0 ]]; then
 		return 0
