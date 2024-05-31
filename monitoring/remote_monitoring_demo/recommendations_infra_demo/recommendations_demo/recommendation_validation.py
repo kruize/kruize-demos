@@ -181,7 +181,7 @@ def aggregateWorkloads(filename, outputResults):
     df1 = pd.read_csv('final.csv')
     df1.drop(columns_to_ignore, axis=1, inplace=True)
     df1.to_csv(outputResults, index=False)
-    #os.remove('final.csv')
+    os.remove('final.csv')
 
 
 def convert_date_format(input_date_str):
