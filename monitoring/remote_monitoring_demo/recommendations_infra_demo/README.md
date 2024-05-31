@@ -33,15 +33,20 @@ Option                  Description
 
 ## Usage Examples
 
-###  Generate Recommendations for ROS Data:
+###  Generate Recommendations using CSV's:
 
-`./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --dataDrivenRecommendations --dataDir="./recommendations_demo/csv-data/" --mode=crc`
+When csv's has individual POD data:
+
+`./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --dataDrivenRecommendations --dataDir="./recommendations_demo/crc-results/" --mode=crc`
+
+When csv's has aggregated data:
+
+`./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --dataDrivenRecommendations --dataDir="./recommendations_demo/tfb-results/"`
 
 ### Validate Recommendations and Boxplot data for Existing Experiments in CSV Format:
 `./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --validate`
 
 It processes the multiple experiment files(csv format) in [validateResults](recommendations_demo/validateResults) to generate recommendations and boxplot data and validates them against the the respective output files for [recommendations](recommendations_demo/validateResults/recommendations) and [boxplots](recommendations_demo/validateResults/boxplots).
-
 
 ### Run Demo Benchmark:
 `./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --demoBenchmark -d 24h`
