@@ -24,7 +24,7 @@ source ${common_dir}/common_helper.sh
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 
 # Default cluster
-export CLUSTER_TYPE="minikube"
+export CLUSTER_TYPE="kind"
 
 # Default duration of benchmark warmup/measurement cycles in seconds.
 export DURATION=60
@@ -34,7 +34,7 @@ export target="crc"
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
-	echo "c = supports minikube and openshift cluster-type"
+	echo "c = supports kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
@@ -152,17 +152,20 @@ function get_urls() {
 	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 
-		MINIKUBE_IP=$(minikube ip)
+		#TODO: below IPs needs to be updated
+		KIND_IP=127.0.0.1
+		$(${kubectl_cmd} port-forward svc/kruize 8080:80 &)
+		$(${kubectl_cmd} port-forward svc/kruize-ui-nginx-service 8080:80 &)
 
 		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 
-		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
-		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
-		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
+		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
+		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
 
@@ -208,7 +211,7 @@ function kruize_local_patch() {
 		# Checkout mvp_demo to get the latest mvp_demo release version
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
@@ -231,12 +234,12 @@ function kruize_local_demo_setup() {
 	if [ ${kruize_restart} -eq 0 ]; then
 		clone_repos autotune
 		clone_repos benchmarks
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			check_minikube
-			minikube >/dev/null
-			check_err "ERROR: minikube not installed"
-			minikube_start
-			prometheus_install autotune
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			check_kind
+			kind >/dev/null
+			check_err "ERROR: kind not installed"
+			kind_start
+			prometheus_install_kind
 		fi
 		benchmarks_install
 	fi
@@ -268,8 +271,8 @@ function kruize_local_demo_terminate() {
 	echo "#       Kruize Demo Terminate       #"
 	echo "#######################################"
 	echo
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		minikube_delete
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		kind_delete
 	else
 		kruize_uninstall
 	fi

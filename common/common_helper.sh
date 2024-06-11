@@ -127,6 +127,9 @@ function kruize_install() {
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			CLUSTER_TYPE="minikube"
+		fi
 
 		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
 		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
@@ -201,11 +204,44 @@ function minikube_start() {
 }
 
 ###########################################
+#   Kind Start
+###########################################
+function kind_start() {
+	echo
+	echo "#######################################"
+	echo "2. Deleting kind clusters, if any"
+	kind delete clusters --all
+	sleep 2
+	echo "3. Starting new kind cluster"
+	echo
+
+	kind create cluster
+	kubectl cluster-info --context kind-kind
+	kubectl config use-context kind-kind
+	check_err "ERROR: kind failed to start, exiting"
+	echo -n "Waiting for cluster to be up..."
+	sleep 10
+	echo "done"
+	echo "#######################################"
+	echo
+}
+
+###########################################
 #   Minikube Delete
 ###########################################
 function minikube_delete() {
 	echo "2. Deleting minikube cluster"
 	minikube delete
+	sleep 2
+	echo
+}
+
+###########################################
+#   Kind Delete
+###########################################
+function kind_delete() {
+	echo "2. Deleting kind cluster"
+	kind delete clusters --all
 	sleep 2
 	echo
 }
@@ -219,6 +255,24 @@ function prometheus_install() {
 	echo "4. Installing Prometheus and Grafana"
 	pushd autotune >/dev/null
 		./scripts/prometheus_on_minikube.sh -as
+		check_err "ERROR: Prometheus failed to start, exiting"
+		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
+		sleep 30
+		echo "done"
+	popd >/dev/null
+	echo "#######################################"
+	echo
+}
+
+###########################################
+#   Prometheus Install on Kind
+###########################################
+function prometheus_install_kind() {
+	echo
+	echo "#######################################"
+	echo "4. Installing Prometheus and Grafana"
+	pushd autotune >/dev/null
+		./scripts/prometheus_on_kind.sh -as
 		check_err "ERROR: Prometheus failed to start, exiting"
 		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
 		sleep 30
@@ -263,7 +317,7 @@ function apply_benchmark_load() {
 	APP_NAMESPACE=default
 	# 20 mins = 1200 seconds
 	# LOAD_DURATION=1200
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
@@ -294,3 +348,13 @@ function check_minikube() {
 	fi
 }
 
+###########################################
+#   Check if kind is installed
+###########################################
+function check_kind() {
+	if ! which kind >/dev/null 2>/dev/null; then
+		echo "ERROR: Please install kind and try again"
+		print_min_resources
+		exit 1
+	fi
+}
