@@ -18,7 +18,7 @@
 # Minimum resources required to run the demo
 MIN_CPU=8
 MIN_MEM=16384
-
+KIND_KUBERNETES_VERSION=v1.24.0
 # Change both of these to docker if you are using docker
 DRIVER="podman"
 CRUNTIME="cri-o"
@@ -127,12 +127,14 @@ function kruize_install() {
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
+		# assign cluster_type to a temp variable in order to apply the correct yaml
+		CLUSTER_TYPE_TEMP=${CLUSTER_TYPE}
 		if [ ${CLUSTER_TYPE} == "kind" ]; then
-			CLUSTER_TYPE="minikube"
+			CLUSTER_TYPE_TEMP="minikube"
 		fi
 
-		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t"
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t >/dev/null 2>/dev/null
 		sleep 5
 		if [ -z "${KRUIZE_DOCKER_IMAGE}" ]; then
 			KRUIZE_DOCKER_IMAGE=${KRUIZE_DOCKER_REPO}:${KRUIZE_VERSION}
@@ -145,10 +147,10 @@ function kruize_install() {
 			DOCKER_IMAGES="${DOCKER_IMAGES} -u ${KRUIZE_UI_DOCKER_IMAGE}"
 		fi
 		echo
-		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target}"
 		echo
 
-		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target}
 		check_err "ERROR: kruize failed to start, exiting"
 
 		echo -n "Waiting 40 seconds for Kruize to sync with Prometheus..."
@@ -215,7 +217,7 @@ function kind_start() {
 	echo "3. Starting new kind cluster"
 	echo
 
-	kind create cluster
+	kind create cluster --image kindest/node:${KIND_KUBERNETES_VERSION}
 	kubectl cluster-info --context kind-kind
 	kubectl config use-context kind-kind
 	check_err "ERROR: kind failed to start, exiting"

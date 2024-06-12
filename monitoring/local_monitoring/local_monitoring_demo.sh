@@ -149,25 +149,43 @@ function kruize_local() {
 ###########################################
 function get_urls() {
 	kubectl_cmd="kubectl -n default"
-	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 
-		#TODO: below IPs needs to be updated
 		KIND_IP=127.0.0.1
-		$(${kubectl_cmd} port-forward svc/kruize 8080:80 &)
-		$(${kubectl_cmd} port-forward svc/kruize-ui-nginx-service 8080:80 &)
+		KRUIZE_PORT=8080
+		KRUIZE_UI_PORT=8081
+		TECHEMPOWER_PORT=8082
 
-		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
+		# Start port forwarding for kruize service in the background
+		if is_port_in_use ${KRUIZE_PORT}; then
+			echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
+		else
+			${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 &
+			KRUIZE_PID=$!
+		fi
+		# Start port forwarding for kruize-ui-nginx-service in the background
+		if is_port_in_use ${KRUIZE_UI_PORT}; then
+			echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
+		else
+			${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 &
+			KRUIZE_UI_PID=$!
+		fi
+		# Start port forwarding for tfb-service in the background
+		if is_port_in_use ${TECHEMPOWER_PORT}; then
+			echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
+		else
+			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 &
+			TECHEMPOWER_PID=$!
+		fi
 
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
+		TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
 		${kubectl_cmd} expose service kruize
 		${kubectl_cmd} expose service kruize-ui-nginx-service
@@ -179,6 +197,15 @@ function get_urls() {
 	fi
 }
 
+# Function to check if a port is in use
+function is_port_in_use() {
+  local port=$1
+  if lsof -i :$port -t >/dev/null 2>&1; then
+    return 0 # Port is in use
+  else
+    return 1 # Port is not in use
+  fi
+}
 
 ###########################################
 #  Show URLs
