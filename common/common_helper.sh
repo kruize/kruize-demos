@@ -54,18 +54,20 @@ function err_exit() {
 
 # Prints the minimum system resources required to run the demo
 function print_min_resources() {
-	echo "       Minikube resource config needed for demo:"
+	cluster_name=$1
+	echo "       ${cluster_name} resource config needed for demo:"
 	echo "       CPUs=8, Memory=16384MB"
 }
 
 # Checks if the system which tries to run kruize is having minimum resources required
 function sys_cpu_mem_check() {
+	cluster_name=$1
 	SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
 	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
 
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
 		echo "CPU's on system : ${SYS_CPU} | Minimum CPU's required for demo : ${MIN_CPU}"
-		print_min_resources
+		print_min_resources ${cluster_name}
 		echo "ERROR: Exiting due to lack of system resources."
 		exit 1
 	fi

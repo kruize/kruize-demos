@@ -311,7 +311,7 @@ function kruize_local_demo_terminate() {
 }
 
 # Check system configs
-sys_cpu_mem_check
+sys_cpu_mem_check ${CLUSTER_TYPE}
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
