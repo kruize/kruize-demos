@@ -156,11 +156,13 @@ function get_urls() {
 		KRUIZE_PORT=8080
 		KRUIZE_UI_PORT=8081
 		TECHEMPOWER_PORT=8082
+		port_flag="false"
 
 		# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
 		# Start port forwarding for kruize service in the background
 		if is_port_in_use ${KRUIZE_PORT}; then
 			echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
+			port_flag="true"
 		else
 			${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 &
 			KRUIZE_PID=$!
@@ -168,6 +170,7 @@ function get_urls() {
 		# Start port forwarding for kruize-ui-nginx-service in the background
 		if is_port_in_use ${KRUIZE_UI_PORT}; then
 			echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
+			port_flag="true"
 		else
 			${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 &
 			KRUIZE_UI_PID=$!
@@ -175,9 +178,15 @@ function get_urls() {
 		# Start port forwarding for tfb-service in the background
 		if is_port_in_use ${TECHEMPOWER_PORT}; then
 			echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
+			port_flag="true"
 		else
 			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 &
 			TECHEMPOWER_PID=$!
+		fi
+
+		if ${port_flag} = "true"; then
+			echo "Exiting..."
+			exit 1
 		fi
 
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
