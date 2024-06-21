@@ -10,7 +10,7 @@
     {
       "type": "deployment",
       "name": "tfb-qrh-sample",
-      "namespace": "default",
+      "namespace": "test-multiple-import",
       "containers": [
         {
           "container_image_name": "kruize/tfb-qrh:1.13.2.F_et17",

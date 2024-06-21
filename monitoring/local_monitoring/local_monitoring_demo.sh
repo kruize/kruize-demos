@@ -194,7 +194,50 @@ function kruize_local() {
 
   echo
   echo "######################################################"
-  echo "#     Create kruize experiment - 2nd iteration"
+  echo "#     Multiple Import Metadata from prometheus-1 datasource"
+  echo "######################################################"
+  echo
+  create_namespace_and_install_benchmarks
+  sleep 35
+  get_urls "test-multiple-import"
+  apply_benchmark_load "test-multiple-import"
+  curl --location http://"${KRUIZE_URL}"/dsmetadata \
+  --header 'Content-Type: application/json' \
+  --data '{
+     "version": "v1.0",
+     "datasource_name": "prometheus-1"
+  }'
+
+  echo
+  echo "######################################################"
+  echo "#     Display metadata from prometheus-1 datasource"
+  echo "######################################################"
+  echo
+  curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Display metadata for test-multiple-import namespace"
+  echo "######################################################"
+  echo
+  curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=test-multiple-import&verbose=true"
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Delete previously created experiment"
+  echo "######################################################"
+  echo
+  echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
+  curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
+  echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
+  curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
+  echo
+
+  echo
+  echo "######################################################"
+  echo "#     Create kruize experiment"
   echo "######################################################"
   echo
   echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
@@ -205,7 +248,7 @@ function kruize_local() {
 
   echo
   echo "######################################################"
-  echo "#     Generate recommendations - 2nd iteration"
+  echo "#     Generate recommendations"
   echo "######################################################"
   echo
   curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
@@ -215,7 +258,7 @@ function kruize_local() {
   echo
   echo "######################################################"
   echo
-  echo "Generate fresh recommendations - 2nd iteration using"
+  echo "Generate fresh recommendations using"
   echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
   echo
   echo "List Recommendations using "
@@ -230,7 +273,15 @@ function kruize_local() {
 #  Get URLs
 ###########################################
 function get_urls() {
-	kubectl_cmd="kubectl -n default"
+  local namespace="${1:-$NAMESPACE}"
+  local kubectl_cmd
+
+  if [ -n "$namespace" ]; then
+    kubectl_cmd="kubectl -n $namespace"
+  else
+	  kubectl_cmd="kubectl -n default"
+	fi
+  echo "Using namespace: ${kubectl_cmd}"
 	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 

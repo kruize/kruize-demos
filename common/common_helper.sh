@@ -260,7 +260,7 @@ function apply_benchmark_load() {
 	echo
 
 	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
-	APP_NAMESPACE=default
+	APP_NAMESPACE="${1:-default}"
 	# 20 mins = 1200 seconds
 	# LOAD_DURATION=1200
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
@@ -292,5 +292,25 @@ function check_minikube() {
 		print_min_resources
 		exit 1
 	fi
+}
+
+###########################################
+#   Deploy TFB Benchmarks - multiple import
+###########################################
+function create_namespace_and_install_benchmarks() {
+	echo
+	echo "#######################################"
+	echo "Creating new namespace: test-multiple-import"
+  kubectl create namespace test-multiple-import
+	echo "#######################################"
+	pushd benchmarks >/dev/null
+		pushd techempower >/dev/null
+		  echo "Installing TechEmpower (Quarkus REST EASY) benchmark in new namespace"
+			kubectl apply -f manifests -n test-multiple-import
+			check_err "ERROR: TechEmpower app failed to start, exiting"
+		popd >/dev/null
+	popd >/dev/null
+	echo "#######################################"
+	echo
 }
 

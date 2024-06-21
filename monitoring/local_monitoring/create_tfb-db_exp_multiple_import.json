@@ -10,7 +10,7 @@
     {
       "type": "deployment",
       "name": "tfb-database",
-      "namespace": "default",
+      "namespace": "test-multiple-import",
       "containers": [
         {
           "container_image_name": "kruize/tfb-postgres-openshift:latest",
