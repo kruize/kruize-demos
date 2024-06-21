@@ -301,7 +301,7 @@ function create_namespace_and_install_benchmarks() {
 	echo
 	echo "#######################################"
 	echo "Creating new namespace: test-multiple-import"
-  kubectl create namespace test-multiple-import
+  	kubectl create namespace test-multiple-import
 	echo "#######################################"
 	pushd benchmarks >/dev/null
 		pushd techempower >/dev/null
