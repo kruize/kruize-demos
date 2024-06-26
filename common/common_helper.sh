@@ -232,12 +232,13 @@ function prometheus_install() {
 #   Benchmarks Install
 ###########################################
 function benchmarks_install() {
+  	NAMESPACE="${1:-default}"
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
-			kubectl apply -f manifests
+			kubectl apply -f manifests/default_manifests -n ${NAMESPACE}
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
 	popd >/dev/null
@@ -297,19 +298,11 @@ function check_minikube() {
 ###########################################
 #   Deploy TFB Benchmarks - multiple import
 ###########################################
-function create_namespace_and_install_benchmarks() {
+function create_namespace() {
 	echo
 	echo "#######################################"
 	echo "Creating new namespace: test-multiple-import"
   	kubectl create namespace test-multiple-import
-	echo "#######################################"
-	pushd benchmarks >/dev/null
-		pushd techempower >/dev/null
-		  echo "Installing TechEmpower (Quarkus REST EASY) benchmark in new namespace"
-			kubectl apply -f manifests -n test-multiple-import
-			check_err "ERROR: TechEmpower app failed to start, exiting"
-		popd >/dev/null
-	popd >/dev/null
 	echo "#######################################"
 	echo
 }

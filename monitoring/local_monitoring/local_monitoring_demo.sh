@@ -156,17 +156,17 @@ function kruize_local() {
   	echo
 
   	echo
-  	echo "######################################################"
+  	echo "######################################################################"
   	echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
-  	echo "######################################################"
+  	echo "######################################################################"
   	echo
   	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
   	echo
 
   	echo
-  	echo "######################################################"
+  	echo "#####################################################################"
   	echo "#     Import metadata from prometheus-1 datasource - 2nd iteration"
-  	echo "######################################################"
+  	echo "#####################################################################"
   	echo
   	curl --location http://"${KRUIZE_URL}"/dsmetadata \
   	--header 'Content-Type: application/json' \
@@ -177,27 +177,28 @@ function kruize_local() {
 
 
   	echo
-  	echo "######################################################"
+  	echo "######################################################################"
   	echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
-  	echo "######################################################"
+  	echo "######################################################################"
   	echo
   	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
   	echo
 
   	echo
-  	echo "######################################################"
+  	echo "###############################################################"
   	echo "#     Display metadata for default namespace - 2nd iteration"
-  	echo "######################################################"
+  	echo "###############################################################"
   	echo
   	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
   	echo
 
   	echo
-  	echo "######################################################"
+  	echo "##############################################################"
   	echo "#     Multiple Import Metadata from prometheus-1 datasource"
-  	echo "######################################################"
+  	echo "##############################################################"
   	echo
-  	create_namespace_and_install_benchmarks
+  	create_namespace
+  	benchmarks_install "test-multiple-import"
   	sleep 35
   	get_urls "test-multiple-import"
   	apply_benchmark_load "test-multiple-import"
@@ -217,9 +218,9 @@ function kruize_local() {
   	echo
 
   	echo
-  	echo "######################################################"
+  	echo "############################################################"
   	echo "#     Display metadata for test-multiple-import namespace"
-  	echo "######################################################"
+  	echo "############################################################"
   	echo
   	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=test-multiple-import&verbose=true"
   	echo
