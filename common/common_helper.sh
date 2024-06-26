@@ -232,12 +232,13 @@ function prometheus_install() {
 #   Benchmarks Install
 ###########################################
 function benchmarks_install() {
+  	NAMESPACE="${1:-default}"
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
-			kubectl apply -f manifests
+			kubectl apply -f manifests/default_manifests -n ${NAMESPACE}
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
 	popd >/dev/null
@@ -260,7 +261,7 @@ function apply_benchmark_load() {
 	echo
 
 	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
-	APP_NAMESPACE=default
+	APP_NAMESPACE="${1:-default}"
 	# 20 mins = 1200 seconds
 	# LOAD_DURATION=1200
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
@@ -292,5 +293,17 @@ function check_minikube() {
 		print_min_resources
 		exit 1
 	fi
+}
+
+###########################################
+#   Deploy TFB Benchmarks - multiple import
+###########################################
+function create_namespace() {
+	echo
+	echo "#######################################"
+	echo "Creating new namespace: test-multiple-import"
+  	kubectl create namespace test-multiple-import
+	echo "#######################################"
+	echo
 }
 
