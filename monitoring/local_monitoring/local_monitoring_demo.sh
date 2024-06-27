@@ -122,27 +122,6 @@ function kruize_local() {
 	echo
 
 	echo
-	echo "######################################################"
-	echo "#     Generate recommendations"
-	echo "######################################################"
-	echo
-	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
-	echo ""
-
-	echo
-	echo "######################################################"
-	echo
-	echo "Generate fresh recommendations using"
-	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	echo
-	echo "List Recommendations using "
-	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
-	echo
-	echo "######################################################"
-	echo
-
-	echo
   	echo "######################################################"
   	echo "#     Delete previously imported metadata"
   	echo "######################################################"
@@ -198,7 +177,7 @@ function kruize_local() {
   	echo "##############################################################"
   	echo
   	create_namespace
-  	benchmarks_install "test-multiple-import"
+  	benchmarks_install "test-multiple-import" "resource_provisioning_manifests"
   	sleep 35
   	get_urls "test-multiple-import"
   	apply_benchmark_load "test-multiple-import"
@@ -247,11 +226,16 @@ function kruize_local() {
   	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
   	echo
 
+	echo "Sleeping for 3mins before generating the recommendations!"
+	sleep 3m
+
   	echo
   	echo "######################################################"
-  	echo "#     Generate recommendations"
+  	echo "#     Generate recommendations for every experiment"
   	echo "######################################################"
   	echo
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
   	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
   	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
   	echo ""
@@ -260,10 +244,16 @@ function kruize_local() {
   	echo "######################################################"
   	echo
   	echo "Generate fresh recommendations using"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
   	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
   	echo
   	echo "List Recommendations using "
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark"
   	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
   	echo
   	echo "######################################################"
   	echo
