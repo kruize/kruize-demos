@@ -1,6 +1,6 @@
-# Local Monitoring with Kruize-Autotune
+# Local Monitoring with Kruize
 
-With Kruize-Autotune's local monitoring mode, we'll explore a demonstration of local monitoring on OpenShift, highlighting how it provides customized recommendations for various load scenarios.
+With Kruize's local monitoring mode, let's explore a demonstration of local monitoring, highlighting how it provides customized recommendations for various load scenarios in Openshift.
 
 ## Getting Started with the Demo
 
@@ -30,7 +30,7 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
       - tfb-qrh: Serving as the application server.
       - tfb-database: Database to the server.
 - Install Kruize
-  - Installs kruze under openshift-tuning name.
+  - Installs kruize under openshift-tuning name.
 - Metadata Collection and Experiment Creation
   - Kruize gathers data sources and metadata from the cluster.
   - Experiments `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` are created for the server and database deployments respectively in the `default` namespace.
