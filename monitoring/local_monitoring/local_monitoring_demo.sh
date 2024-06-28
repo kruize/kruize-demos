@@ -26,14 +26,11 @@ export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 # Default cluster
 export CLUSTER_TYPE="minikube"
 
-# Default duration of benchmark warmup/measurement cycles in seconds.
-export DURATION=60
-
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
 	echo "c = supports minikube and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
@@ -41,6 +38,9 @@ function usage() {
 	echo "r = restart kruize only"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "b = deploy the benchmark."
+	echo "n = namespace of benchmark. Default - default"
+	echo "d = duration to run the benchmark load"
 
 	exit 1
 }
