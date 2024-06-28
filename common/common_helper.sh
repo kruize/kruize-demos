@@ -267,7 +267,7 @@ function apply_benchmark_load() {
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 	fi
 	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
-	podman run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 1024 8096
+	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 1024 8096
 
 }
 
