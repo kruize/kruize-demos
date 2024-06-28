@@ -369,7 +369,6 @@ function kruize_local_demo_setup() {
 	echo
 
 	get_urls
-	apply_benchmark_load
 
 	# Run the Kruize Local experiments
 	kruize_local
@@ -384,6 +383,38 @@ function kruize_local_demo_setup() {
 		expose_prometheus
 	fi
 }
+
+function kruize_local_demo_update() {
+        # Start all the installs
+        start_time=$(get_date)
+	if [ ${benchmark} -eq 1 ]; then
+		echo
+                echo "############################################"
+                echo "#     Deploy TFB on ${APP_NAMESPACE}        "
+                echo "############################################"
+                echo
+		create_namespace ${APP_NAMESPACE}
+		benchmarks_install ${APP_NAMESPACE} "resource_provisioning_manifests"
+                echo "Success! Running the benchmark in ${APP_NAMESPACE}"
+                echo
+	fi
+	if [ ${benchmark_load} -eq 1 ]; then
+		echo
+		echo "#######################################"
+		echo "#     Apply the benchmark load        #"
+		echo "#######################################"
+		echo
+		apply_benchmark_load ${APP_NAMESPACE} ${LOAD_DURATION}
+		echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
+		echo
+	fi
+
+        end_time=$(get_date)
+        elapsed_time=$(time_diff "${start_time}" "${end_time}")
+        echo "Success! Benchmark updates took ${elapsed_time} seconds"
+        echo
+}
+
 
 function kruize_local_demo_terminate() {
 	start_time=$(get_date)
@@ -411,11 +442,14 @@ sys_cpu_mem_check
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
 export benchmark_load=0
+export benchmark=0
 export prometheus=0
 export kruize_restart=0
 export start_demo=1
+export APP_NAMESPACE="default"
+export LOAD_DURATION="1200"
 # Iterate through the commandline options
-while getopts c:i:lprstu: gopts
+while getopts c:i:n:d:lbprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -425,7 +459,12 @@ do
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
 			;;
 		l)
+			start_demo=2
 			benchmark_load=1
+			;;
+		b)
+			start_demo=2
+			benchmark=1
 			;;
 		p)
 			prometheus=1
@@ -442,6 +481,12 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
+		n)
+			APP_NAMESPACE="${OPTARG}"
+			;;
+		d)
+			LOAD_DURATION="${OPTARG}"
+			;;
 		*)
 			usage
 	esac
@@ -449,6 +494,8 @@ done
 
 if [ ${start_demo} -eq 1 ]; then
 	kruize_local_demo_setup
+elif [ ${start_demo} -eq 2 ]; then
+	kruize_local_demo_update
 else
 	kruize_local_demo_terminate
 fi

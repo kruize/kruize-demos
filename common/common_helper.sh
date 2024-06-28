@@ -251,27 +251,23 @@ function benchmarks_install() {
 # Start a background load on the benchmark for 20 mins
 #
 function apply_benchmark_load() {
-	if [ ${benchmark_load} -eq 0 ]; then
-		return;
-	fi
-
-	echo
-	echo "###################################################################"
-	echo " Starting 20 min background load against the techempower benchmark "
-	echo "###################################################################"
-	echo
-
 	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
 	APP_NAMESPACE="${1:-default}"
-	# 20 mins = 1200 seconds
-	# LOAD_DURATION=1200
+	LOAD_DURATION="${2:-1200}"
+
+	echo
+	echo "################################################################################################################"
+	echo " Starting ${LOAD_DURATION} secs background load against the techempower benchmark in ${APP_NAMESPACE} namespace "
+	echo "################################################################################################################"
+	echo
+
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 	fi
 	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
-	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 1200 1024 8096
+	podman run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 1024 8096
 
 }
 
@@ -300,11 +296,12 @@ function check_minikube() {
 #   Deploy TFB Benchmarks - multiple import
 ###########################################
 function create_namespace() {
+	CAPP_NAMESPACE="${1:-test-multiple-import}"
 	echo
-	echo "#######################################"
-	echo "Creating new namespace: test-multiple-import"
-  	kubectl create namespace test-multiple-import
-	echo "#######################################"
+	echo "#########################################"
+	echo "Creating new namespace: ${CAPP_NAMESPACE}"
+  	kubectl create namespace ${CAPP_NAMESPACE}
+	echo "#########################################"
 	echo
 }
 
