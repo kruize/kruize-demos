@@ -164,7 +164,7 @@ function get_urls() {
 			echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
 			port_flag="true"
 		else
-			${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 &
+			${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
 			KRUIZE_PID=$!
 		fi
 		# Start port forwarding for kruize-ui-nginx-service in the background
@@ -172,7 +172,7 @@ function get_urls() {
 			echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
 			port_flag="true"
 		else
-			${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 &
+			${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
 			KRUIZE_UI_PID=$!
 		fi
 		# Start port forwarding for tfb-service in the background
@@ -180,7 +180,7 @@ function get_urls() {
 			echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
 			port_flag="true"
 		else
-			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 &
+			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
 			TECHEMPOWER_PID=$!
 		fi
 

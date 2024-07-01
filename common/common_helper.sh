@@ -18,7 +18,7 @@
 # Minimum resources required to run the demo
 MIN_CPU=8
 MIN_MEM=16384
-KIND_KUBERNETES_VERSION=v1.24.0
+KIND_KUBERNETES_VERSION=v1.28.0
 # Change both of these to docker if you are using docker
 DRIVER="podman"
 CRUNTIME="cri-o"
@@ -295,7 +295,7 @@ function benchmarks_install() {
 	pushd benchmarks >/dev/null
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
-			kubectl apply -f manifests
+			kubectl apply -R -f manifests
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
 	popd >/dev/null
