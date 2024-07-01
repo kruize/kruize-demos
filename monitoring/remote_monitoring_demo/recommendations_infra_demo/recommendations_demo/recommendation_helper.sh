@@ -233,7 +233,7 @@ function monitoring_recommendations_demo_with_data() {
 	fi
 	
 	for file in $(find "$BENCHMARK_RESULTS_DIR" -name "*.csv"); do
-		if [[ ${VALIDATE} == "true" ]] && [[ "$file" == *"/output/"* ]]; then
+		if [[ ${VALIDATE} == "true" ]] && ([[ "$file" == *"/recommendations/"* ]] || [[ "$file" == *"/boxplots/"* ]]); then
 			continue
 		fi
 
@@ -251,11 +251,9 @@ function monitoring_recommendations_demo_with_data() {
 				## Convert the csv into json
 				run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA}
 			fi
-			# Commenting this out as we are not using /listRecommendations now
-			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.update_recomm_csv("recommendations_data.json")'
-			#python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.get_recommondations("recommendations_data.json")'
 		fi
 	done
+	
 	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
 	names=$(cat expoutput.txt | tail -n 1)
 	cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
@@ -268,13 +266,16 @@ function monitoring_recommendations_demo_with_data() {
 	for exp_name in ${expnames_array[@]}; do
 		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
 		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
 		if [[ ${VALIDATE} == "true" ]]; then    
 			IFS="|" read -ra parts <<< "${exp_name}"
 			recommendation_file="${parts[1]}.csv"
-			recommendation_filepath="${BENCHMARK_RESULTS_DIR}/output/${recommendation_file}"
+			recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
 			if [[ -f ${recommendation_filepath} ]]; then
-				recommendation_file_path="./recommendations_demo/validateResults/output/"${recommendation_file}
-				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendation('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}')"
+				recommendation_file_path="./recommendations_demo/validateResults/recommendations/"${recommendation_file}
+				boxplot_file_path="./recommendations_demo/validateResults/boxplots/"${recommendation_file}
+				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}',\"RECOMMENDATIONS\")"
+				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentPlotData_sorted.csv\", '${boxplot_file_path}',\"BOX PLOTS\")"
 				exit_code=$?
 				validate_status=$((validate_status + exit_code))
 				#validate_recommendations metrics_recommendations_data.json
@@ -288,7 +289,8 @@ function monitoring_recommendations_demo_with_data() {
 	done
 
 	# Cleaning up all temp files
-	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv	
+	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv metrics_recommendations_data.json
+
 	if [[ ${validate_status} == 0 ]]; then
 		return 0
 	else
@@ -386,6 +388,21 @@ function get_metrics_recommendations() {
                 python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
                 python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
         done
+}
+
+function get_metrics_boxplots() {
+	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
+        names=$(cat expoutput.txt | tail -n 1)
+        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+        # Convert the cleaned names into an array
+        IFS=',' read -ra expnames_array <<< "$cleaned_names"
+
+        # Iterate over the names
+        for exp_name in ${expnames_array[@]}; do
+                echo "exp_name is $exp_name"
+                python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+                python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
+	done
 }
 
 function summarize_cluster_data() {

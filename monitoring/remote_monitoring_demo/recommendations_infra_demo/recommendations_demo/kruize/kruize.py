@@ -77,7 +77,7 @@ def create_experiment(input_json_file):
         url = URL + "/createExperiment"
         response = requests.post(url, json=input_json)
         print("URL = ", url, "   Response status code = ", response.status_code)
-        print(response.text)
+        #print(response.text)
 
 # Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
 # Input Parameters: resource usage metrics json
@@ -92,7 +92,7 @@ def update_results(result_json_file):
     url = URL + "/updateResults"
     response = requests.post(url, json=result_json)
     print("URL = ", url, "  Response status code = ", response.status_code)
-    print(response.text)
+    #print(response.text)
     return response
 
 # Description: This function generates the recommendations for an experiment
@@ -107,7 +107,7 @@ def update_recommendations(experiment_name, end_time=None):
 
     response = requests.post(url, params = PARAMS )
     print("URL = ", url, "  Response status code = ", response.status_code)
-    print(response.text)
+    #print(response.text)
     return response
 
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
@@ -130,7 +130,7 @@ def create_performance_profile(perf_profile_json_file):
     url = URL + "/createPerformanceProfile"
     response = requests.post(url, json=perf_profile_json)
     print("URL = ", url , "   Response status code = ", response.status_code)
-    print(response.text)
+    #print(response.text)
     return response
 
 # Description: This function obtains the experiments from Kruize using listExperiments API

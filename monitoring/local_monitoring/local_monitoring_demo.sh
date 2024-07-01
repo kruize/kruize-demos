@@ -26,14 +26,11 @@ export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 # Default cluster
 export CLUSTER_TYPE="kind"
 
-# Default duration of benchmark warmup/measurement cycles in seconds.
-export DURATION=60
-
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
 	echo "c = supports kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
@@ -41,6 +38,9 @@ function usage() {
 	echo "r = restart kruize only"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "b = deploy the benchmark."
+	echo "n = namespace of benchmark. Default - default"
+	echo "d = duration to run the benchmark load"
 
 	exit 1
 }
@@ -122,25 +122,141 @@ function kruize_local() {
 	echo
 
 	echo
-	echo "######################################################"
-	echo "#     Generate recommendations"
-	echo "######################################################"
-	echo
+  	echo "######################################################"
+  	echo "#     Delete previously imported metadata"
+  	echo "######################################################"
+  	echo
+  	curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
+  	--header 'Content-Type: application/json' \
+  	--data '{
+  	   "version": "v1.0",
+  	   "datasource_name": "prometheus-1"
+  	}'
+  	echo
+
+  	echo
+  	echo "######################################################################"
+  	echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
+  	echo "######################################################################"
+  	echo
+  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+  	echo
+
+  	echo
+  	echo "#####################################################################"
+  	echo "#     Import metadata from prometheus-1 datasource - 2nd iteration"
+  	echo "#####################################################################"
+  	echo
+  	curl --location http://"${KRUIZE_URL}"/dsmetadata \
+  	--header 'Content-Type: application/json' \
+  	--data '{
+     	   "version": "v1.0",
+     	   "datasource_name": "prometheus-1"
+  	}'
+
+
+  	echo
+  	echo "######################################################################"
+  	echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
+  	echo "######################################################################"
+  	echo
+  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+  	echo
+
+  	echo
+  	echo "###############################################################"
+  	echo "#     Display metadata for default namespace - 2nd iteration"
+  	echo "###############################################################"
+  	echo
+  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+  	echo
+
+  	echo
+  	echo "##############################################################"
+  	echo "#     Multiple Import Metadata from prometheus-1 datasource"
+  	echo "##############################################################"
+  	echo
+  	create_namespace
+  	benchmarks_install "test-multiple-import" "resource_provisioning_manifests"
+  	sleep 35
+  	get_urls "test-multiple-import"
+  	apply_benchmark_load "test-multiple-import"
+  	curl --location http://"${KRUIZE_URL}"/dsmetadata \
+  	--header 'Content-Type: application/json' \
+  	--data '{
+     	   "version": "v1.0",
+           "datasource_name": "prometheus-1"
+  	}'
+
+       	echo
+  	echo "######################################################"
+  	echo "#     Display metadata from prometheus-1 datasource"
+  	echo "######################################################"
+  	echo
+  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+  	echo
+
+  	echo
+  	echo "############################################################"
+  	echo "#     Display metadata for test-multiple-import namespace"
+  	echo "############################################################"
+  	echo
+  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=test-multiple-import&verbose=true"
+  	echo
+
+  	echo
+  	echo "######################################################"
+  	echo "#     Delete previously created experiment"
+  	echo "######################################################"
+  	echo
+  	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
+  	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
+  	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
+  	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
+  	echo
+
+  	echo
+  	echo "######################################################"
+  	echo "#     Create kruize experiment"
+  	echo "######################################################"
+  	echo
+  	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
+  	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
+  	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
+  	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
+  	echo
+
+	echo "Sleeping for 3mins before generating the recommendations!"
+	sleep 3m
+
+  	echo
+  	echo "######################################################"
+  	echo "#     Generate recommendations for every experiment"
+  	echo "######################################################"
+  	echo
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
-	echo ""
+  	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+  	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
+  	echo ""
 
-	echo
-	echo "######################################################"
-	echo
-	echo "Generate fresh recommendations using"
+  	echo
+  	echo "######################################################"
+  	echo
+  	echo "Generate fresh recommendations using"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	echo
-	echo "List Recommendations using "
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
+  	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
+  	echo
+  	echo "List Recommendations using "
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
-	echo
-	echo "######################################################"
-	echo
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark"
+  	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
+  	echo
+  	echo "######################################################"
+  	echo
 }
 
 
@@ -148,7 +264,18 @@ function kruize_local() {
 #  Get URLs
 ###########################################
 function get_urls() {
-	kubectl_cmd="kubectl -n default"
+  	local namespace="${1:-$NAMESPACE}"
+  	local kubectl_cmd
+
+  	if [ -n "$namespace" ]; then
+    		kubectl_cmd="kubectl -n $namespace"
+  	else
+		kubectl_cmd="kubectl -n default"
+	fi
+
+	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 
@@ -284,7 +411,6 @@ function kruize_local_demo_setup() {
 	echo
 
 	get_urls
-	apply_benchmark_load
 
 	# Run the Kruize Local experiments
 	kruize_local
@@ -299,6 +425,38 @@ function kruize_local_demo_setup() {
 		expose_prometheus
 	fi
 }
+
+function kruize_local_demo_update() {
+        # Start all the installs
+        start_time=$(get_date)
+	if [ ${benchmark} -eq 1 ]; then
+		echo
+                echo "############################################"
+                echo "#     Deploy TFB on ${APP_NAMESPACE}        "
+                echo "############################################"
+                echo
+		create_namespace ${APP_NAMESPACE}
+		benchmarks_install ${APP_NAMESPACE} "resource_provisioning_manifests"
+                echo "Success! Running the benchmark in ${APP_NAMESPACE}"
+                echo
+	fi
+	if [ ${benchmark_load} -eq 1 ]; then
+		echo
+		echo "#######################################"
+		echo "#     Apply the benchmark load        #"
+		echo "#######################################"
+		echo
+		apply_benchmark_load ${APP_NAMESPACE} ${LOAD_DURATION}
+		echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
+		echo
+	fi
+
+        end_time=$(get_date)
+        elapsed_time=$(time_diff "${start_time}" "${end_time}")
+        echo "Success! Benchmark updates took ${elapsed_time} seconds"
+        echo
+}
+
 
 function kruize_local_demo_terminate() {
 	start_time=$(get_date)
@@ -326,11 +484,14 @@ sys_cpu_mem_check ${CLUSTER_TYPE}
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
 export benchmark_load=0
+export benchmark=0
 export prometheus=0
 export kruize_restart=0
 export start_demo=1
+export APP_NAMESPACE="default"
+export LOAD_DURATION="1200"
 # Iterate through the commandline options
-while getopts c:i:lprstu: gopts
+while getopts c:i:n:d:lbprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -340,7 +501,12 @@ do
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
 			;;
 		l)
+			start_demo=2
 			benchmark_load=1
+			;;
+		b)
+			start_demo=2
+			benchmark=1
 			;;
 		p)
 			prometheus=1
@@ -357,6 +523,12 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
+		n)
+			APP_NAMESPACE="${OPTARG}"
+			;;
+		d)
+			LOAD_DURATION="${OPTARG}"
+			;;
 		*)
 			usage
 	esac
@@ -364,6 +536,8 @@ done
 
 if [ ${start_demo} -eq 1 ]; then
 	kruize_local_demo_setup
+elif [ ${start_demo} -eq 2 ]; then
+	kruize_local_demo_update
 else
 	kruize_local_demo_terminate
 fi

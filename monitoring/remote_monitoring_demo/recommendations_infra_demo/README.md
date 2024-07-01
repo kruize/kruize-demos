@@ -6,7 +6,7 @@ This script facilitates recommendation generation and validation through various
 - Data-Driven Recommendations: Utilize existing data from ROS or in-house benchmarks. (--dataDrivenRecommendations)
 - Cluster Monitoring: Gather live metrics for a specified cluster. (--monitorRecommendations)
 - Demo Benchmark: Use metrics from demo benchmarks. (--demoBenchmark)
-- Validation: Match recommendations with existing data. (--validate)
+- Validation: Match recommendations and boxplots with existing data. (--validate)
 - Summarization: Summarize cluster and namespace data. (--summarize-clusters, --summarize-namespaces, --summarize-all)
 
 ## Script Options
@@ -22,7 +22,7 @@ Option                  Description
 -d                      Specify duration for demo or monitoring.
 -a                      Use existing Kruize deployment and append experiments.
 -u                      Enable Kruize recommendations to the demo app every 6 hours.
--g                      Get metrics recommendations.
+-g                      Get metrics recommendations and boxplots.
 -b                      Enable bulk results (default: disabled).
 --mode=MODE             Specify mode (e.g., crc for CSV data with individual pod data).
 --daysData=DAYS         Specify number of days of data to be pushed.
@@ -33,12 +33,20 @@ Option                  Description
 
 ## Usage Examples
 
-###  Generate Recommendations for ROS Data:
+###  Generate Recommendations using CSV's:
 
-`./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --dataDrivenRecommendations --dataDir="./recommendations_demo/csv-data/" --mode=crc`
+When csv's has individual POD data:
 
-### Validate Recommendations for Existing CSV Files:
+`./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --dataDrivenRecommendations --dataDir="./recommendations_demo/crc-results/" --mode=crc`
+
+When csv's has aggregated data:
+
+`./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --dataDrivenRecommendations --dataDir="./recommendations_demo/tfb-results/"`
+
+### Validate Recommendations and Boxplot data for Existing Experiments in CSV Format:
 `./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --validate`
+
+It processes the multiple experiment files(csv format) in [validateResults](recommendations_demo/validateResults) to generate recommendations and boxplot data and validates them against the respective output files for [recommendations](recommendations_demo/validateResults/recommendations) and [boxplots](recommendations_demo/validateResults/boxplots).
 
 ### Run Demo Benchmark:
 `./recommendations_demo.sh -c minikube -o quay.io/kruize/autotune_operator:0.0.19_rm --demoBenchmark -d 24h`

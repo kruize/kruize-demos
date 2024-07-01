@@ -290,13 +290,15 @@ function prometheus_install_kind() {
 #   Benchmarks Install
 ###########################################
 function benchmarks_install() {
+  	NAMESPACE="${1:-default}"
+	MANIFESTS="${2:-default_manifests}"
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
-			kubectl apply -R -f manifests
-			check_err "ERROR: TechEmpower app failed to start, exiting"
+		kubectl apply -f manifests/${MANIFESTS} -n ${NAMESPACE}
+		check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
 	popd >/dev/null
 	echo "#######################################"
@@ -307,27 +309,23 @@ function benchmarks_install() {
 # Start a background load on the benchmark for 20 mins
 #
 function apply_benchmark_load() {
-	if [ ${benchmark_load} -eq 0 ]; then
-		return;
-	fi
-
-	echo
-	echo "###################################################################"
-	echo " Starting 20 min background load against the techempower benchmark "
-	echo "###################################################################"
-	echo
-
 	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
-	APP_NAMESPACE=default
-	# 20 mins = 1200 seconds
-	# LOAD_DURATION=1200
+	APP_NAMESPACE="${1:-default}"
+	LOAD_DURATION="${2:-1200}"
+
+	echo
+	echo "################################################################################################################"
+	echo " Starting ${LOAD_DURATION} secs background load against the techempower benchmark in ${APP_NAMESPACE} namespace "
+	echo "################################################################################################################"
+	echo
+
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 	fi
 	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
-	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 1200 1024 8096
+	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 1024 8096
 
 }
 
@@ -350,6 +348,19 @@ function check_minikube() {
 		print_min_resources
 		exit 1
 	fi
+}
+
+###########################################
+#   Deploy TFB Benchmarks - multiple import
+###########################################
+function create_namespace() {
+	CAPP_NAMESPACE="${1:-test-multiple-import}"
+	echo
+	echo "#########################################"
+	echo "Creating new namespace: ${CAPP_NAMESPACE}"
+  	kubectl create namespace ${CAPP_NAMESPACE}
+	echo "#########################################"
+	echo
 }
 
 ###########################################
