@@ -87,11 +87,11 @@ function clone_repos() {
 	echo "#######################################"
 	echo "1. Cloning ${repo_name} git repos"
 	if [ ! -d ${repo_name} ]; then
-		git clone git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
+		git clone git@github.com:krishvoor/${repo_name}.git >/dev/null 2>/dev/null
 		if [ $? -ne 0 ]; then
-			git clone https://github.com/kruize/${repo_name}.git 2>/dev/null
+			git clone https://github.com/krishvoor/${repo_name}.git 2>/dev/null
 		fi
-		check_err "ERROR: git clone of kruize/${repo_name} failed."
+		check_err "ERROR: git clone of krishvoor/${repo_name} failed."
 	fi
 
 	echo "done"
@@ -238,6 +238,7 @@ function benchmarks_install() {
 	pushd benchmarks >/dev/null
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
+			# Check this on AKS
 			kubectl apply -f manifests/default_manifests -n ${NAMESPACE}
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
@@ -265,6 +266,8 @@ function apply_benchmark_load() {
 	# 20 mins = 1200 seconds
 	# LOAD_DURATION=1200
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+	elif [ ${CLUSTER_TYPE} == "aks" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')

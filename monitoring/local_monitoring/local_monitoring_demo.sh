@@ -34,7 +34,7 @@ export target="crc"
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
-	echo "c = supports minikube and openshift cluster-type"
+	echo "c = supports minikube, aks and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
@@ -297,6 +297,18 @@ function get_urls() {
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+
+	elif [ ${CLUSTER_TYPE} == "aks"]; then
+		kubectl_cmd="kubectl -n monitoring"
+		# Expose via Kruize Public Service
+
+		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+
+		export KRUIZE_URL="${AKS_PUBLIC_SERVICE_IP}:${KRUIZE_PORT}"
+		export KRUIZE_UI_URL="${AKS_PUBLIC_SERVICE_IP}:${KRUIZE_UI_PORT}"
+		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:${TECHEMPOWER_PORT}"
+	
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
 
@@ -337,6 +349,7 @@ function kruize_local_patch() {
 	CRC_DIR="./manifests/crc/default-db-included-installation"
 	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
 	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
 
 	pushd autotune >/dev/null
 		# Checkout mvp_demo to get the latest mvp_demo release version
@@ -346,6 +359,8 @@ function kruize_local_patch() {
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+		elif [ ${CLUSTER_TYPE} == "aks" ]; then
+			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS} 
 		fi
 	popd >/dev/null
 }
@@ -370,7 +385,7 @@ function kruize_local_demo_setup() {
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"
 			minikube_start
-			prometheus_install autotune
+			prometheus_install
 		fi
 		benchmarks_install
 	fi
@@ -415,7 +430,9 @@ function kruize_local_demo_terminate() {
 }
 
 # Check system configs
-sys_cpu_mem_check
+if [ ${CLUSTER_TYPE} == "minikube" ]; then
+	sys_cpu_mem_check
+fi
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
