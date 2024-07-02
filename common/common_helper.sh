@@ -264,7 +264,6 @@ function apply_benchmark_load() {
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
- 		oc expose svc/tfb-qrh-service -n ${APP_NAMESPACE}
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 	fi
 	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
