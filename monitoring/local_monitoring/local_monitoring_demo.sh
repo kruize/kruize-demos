@@ -24,14 +24,19 @@ source ${common_dir}/common_helper.sh
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 
 # Default cluster
-export CLUSTER_TYPE="minikube"
+export CLUSTER_TYPE="kind"
 
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
 
+KIND_IP=127.0.0.1
+KRUIZE_PORT=8080
+KRUIZE_UI_PORT=8081
+TECHEMPOWER_PORT=8082
+
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
-	echo "c = supports minikube and openshift cluster-type"
+	echo "c = supports kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
@@ -276,19 +281,13 @@ function get_urls() {
 	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		kubectl_cmd="kubectl -n monitoring"
-
-		MINIKUBE_IP=$(minikube ip)
-
-		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-
-		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
-		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
-		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
+		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
+		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
+		TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
 		${kubectl_cmd} expose service kruize
 		${kubectl_cmd} expose service kruize-ui-nginx-service
@@ -300,6 +299,15 @@ function get_urls() {
 	fi
 }
 
+# Function to check if a port is in use
+function is_port_in_use() {
+  local port=$1
+  if lsof -i :$port -t >/dev/null 2>&1; then
+    return 0 # Port is in use
+  else
+    return 1 # Port is not in use
+  fi
+}
 
 ###########################################
 #  Show URLs
@@ -332,7 +340,7 @@ function kruize_local_patch() {
 		# Checkout mvp_demo to get the latest mvp_demo release version
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
@@ -355,18 +363,22 @@ function kruize_local_demo_setup() {
 	if [ ${kruize_restart} -eq 0 ]; then
 		clone_repos autotune
 		clone_repos benchmarks
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			check_minikube
-			minikube >/dev/null
-			check_err "ERROR: minikube not installed"
-			minikube_start
-			prometheus_install autotune
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			check_kind
+			kind >/dev/null
+			check_err "ERROR: kind not installed"
+			kind_start
+			prometheus_install_kind
 		fi
 		benchmarks_install
 	fi
 	kruize_local_patch
 	kruize_install
 	echo
+	# port forward the urls in case of kind
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		port_forward
+	fi
 
 	get_urls
 
@@ -381,6 +393,42 @@ function kruize_local_demo_setup() {
 	echo
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
+	fi
+}
+
+###########################################
+#  Port forward the URLs
+###########################################
+function port_forward() {
+	kubectl_cmd="kubectl -n monitoring"
+	port_flag="false"
+
+	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
+	# Start port forwarding for kruize service in the background
+	if is_port_in_use ${KRUIZE_PORT}; then
+		echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
+		port_flag="true"
+	else
+		${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
+	fi
+	# Start port forwarding for kruize-ui-nginx-service in the background
+	if is_port_in_use ${KRUIZE_UI_PORT}; then
+		echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
+		port_flag="true"
+	else
+		${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
+	fi
+	# Start port forwarding for tfb-service in the background
+	if is_port_in_use ${TECHEMPOWER_PORT}; then
+		echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
+		port_flag="true"
+	else
+		kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
+	fi
+
+	if ${port_flag} = "true"; then
+		echo "Exiting..."
+		exit 1
 	fi
 }
 
@@ -423,8 +471,8 @@ function kruize_local_demo_terminate() {
 	echo "#       Kruize Demo Terminate       #"
 	echo "#######################################"
 	echo
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		minikube_delete
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		kind_delete
 	else
 		kruize_uninstall
 	fi
@@ -436,7 +484,7 @@ function kruize_local_demo_terminate() {
 }
 
 # Check system configs
-sys_cpu_mem_check
+sys_cpu_mem_check ${CLUSTER_TYPE}
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
