@@ -29,6 +29,11 @@ export CLUSTER_TYPE="kind"
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
 
+KIND_IP=127.0.0.1
+KRUIZE_PORT=8080
+KRUIZE_UI_PORT=8081
+TECHEMPOWER_PORT=8082
+
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
 	echo "c = supports kind and openshift cluster-type"
@@ -277,45 +282,6 @@ function get_urls() {
 	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
-		kubectl_cmd="kubectl -n monitoring"
-
-		KIND_IP=127.0.0.1
-		KRUIZE_PORT=8080
-		KRUIZE_UI_PORT=8081
-		TECHEMPOWER_PORT=8082
-		port_flag="false"
-
-		# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
-		# Start port forwarding for kruize service in the background
-		if is_port_in_use ${KRUIZE_PORT}; then
-			echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
-			port_flag="true"
-		else
-			${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
-			KRUIZE_PID=$!
-		fi
-		# Start port forwarding for kruize-ui-nginx-service in the background
-		if is_port_in_use ${KRUIZE_UI_PORT}; then
-			echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
-			port_flag="true"
-		else
-			${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
-			KRUIZE_UI_PID=$!
-		fi
-		# Start port forwarding for tfb-service in the background
-		if is_port_in_use ${TECHEMPOWER_PORT}; then
-			echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
-			port_flag="true"
-		else
-			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
-			TECHEMPOWER_PID=$!
-		fi
-
-		if ${port_flag} = "true"; then
-			echo "Exiting..."
-			exit 1
-		fi
-
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
@@ -409,6 +375,10 @@ function kruize_local_demo_setup() {
 	kruize_local_patch
 	kruize_install
 	echo
+	# port forward the urls in case of kind
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		port_forward
+	fi
 
 	get_urls
 
@@ -423,6 +393,42 @@ function kruize_local_demo_setup() {
 	echo
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
+	fi
+}
+
+###########################################
+#  Port forward the URLs
+###########################################
+function port_forward() {
+	kubectl_cmd="kubectl -n monitoring"
+	port_flag="false"
+
+	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
+	# Start port forwarding for kruize service in the background
+	if is_port_in_use ${KRUIZE_PORT}; then
+		echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
+		port_flag="true"
+	else
+		${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
+	fi
+	# Start port forwarding for kruize-ui-nginx-service in the background
+	if is_port_in_use ${KRUIZE_UI_PORT}; then
+		echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
+		port_flag="true"
+	else
+		${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
+	fi
+	# Start port forwarding for tfb-service in the background
+	if is_port_in_use ${TECHEMPOWER_PORT}; then
+		echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
+		port_flag="true"
+	else
+		kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
+	fi
+
+	if ${port_flag} = "true"; then
+		echo "Exiting..."
+		exit 1
 	fi
 }
 
