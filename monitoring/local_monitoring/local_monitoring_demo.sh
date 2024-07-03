@@ -299,7 +299,7 @@ function get_urls() {
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
 
-	elif [ ${CLUSTER_TYPE} == "aks"]; then
+	elif [ "${CLUSTER_TYPE}" == "aks" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 
 		# Expose kruize/kruize-ui-nginx-service via LoadBalancer
