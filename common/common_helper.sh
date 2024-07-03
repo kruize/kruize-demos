@@ -62,8 +62,22 @@ function print_min_resources() {
 # Checks if the system which tries to run kruize is having minimum resources required
 function sys_cpu_mem_check() {
 	cluster_name=$1
-	SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
-	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
+	if [[ "$OSTYPE" == "linux"* ]]; then
+    # Linux
+    SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
+    SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
+	elif [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    SYS_CPU=$(sysctl -n hw.ncpu)
+    SYS_MEM=$(sysctl -n hw.memsize | awk '{printf ("%.0f\n", $1/1024/1024)}')
+	elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    # Windows
+    SYS_CPU=$(powershell -Command "Get-WmiObject -Class Win32_Processor | Measure-Object -Property NumberOfCores -Sum | Select-Object -ExpandProperty Sum")
+    SYS_MEM=$(powershell -Command "[math]::truncate((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1MB)")
+	else
+    echo "Unsupported OS: $OSTYPE"
+    exit 1
+	fi
 
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
 		echo "CPU's on system : ${SYS_CPU} | Minimum CPU's required for demo : ${MIN_CPU}"
@@ -258,25 +272,11 @@ function prometheus_install() {
 	echo "#######################################"
 	echo "4. Installing Prometheus and Grafana"
 	pushd autotune >/dev/null
-		./scripts/prometheus_on_minikube.sh -as
-		check_err "ERROR: Prometheus failed to start, exiting"
-		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
-		sleep 30
-		echo "done"
-	popd >/dev/null
-	echo "#######################################"
-	echo
-}
-
-###########################################
-#   Prometheus Install on Kind
-###########################################
-function prometheus_install_kind() {
-	echo
-	echo "#######################################"
-	echo "4. Installing Prometheus and Grafana"
-	pushd autotune >/dev/null
-		./scripts/prometheus_on_kind.sh -as
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			./scripts/prometheus_on_minikube.sh -as
+		else
+			./scripts/prometheus_on_kind.sh -as
+		fi
 		check_err "ERROR: Prometheus failed to start, exiting"
 		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
 		sleep 30
@@ -319,7 +319,7 @@ function apply_benchmark_load() {
 	echo "################################################################################################################"
 	echo
 
-	if [ ${CLUSTER_TYPE} == "kind" ]; then
+	if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')

@@ -36,7 +36,7 @@ TECHEMPOWER_PORT=8082
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
-	echo "c = supports kind and openshift cluster-type"
+	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
@@ -281,7 +281,18 @@ function get_urls() {
 	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
-	if [ ${CLUSTER_TYPE} == "kind" ]; then
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		kubectl_cmd="kubectl -n monitoring"
+
+		MINIKUBE_IP=$(minikube ip)
+
+		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+
+		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
+		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
+		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
@@ -363,12 +374,18 @@ function kruize_local_demo_setup() {
 	if [ ${kruize_restart} -eq 0 ]; then
 		clone_repos autotune
 		clone_repos benchmarks
-		if [ ${CLUSTER_TYPE} == "kind" ]; then
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			check_minikube
+			minikube >/dev/null
+			check_err "ERROR: minikube not installed"
+#			minikube_start
+			prometheus_install autotune
+		elif [ ${CLUSTER_TYPE} == "kind" ]; then
 			check_kind
 			kind >/dev/null
 			check_err "ERROR: kind not installed"
 			kind_start
-			prometheus_install_kind
+			prometheus_install
 		fi
 		benchmarks_install
 	fi
@@ -471,7 +488,9 @@ function kruize_local_demo_terminate() {
 	echo "#       Kruize Demo Terminate       #"
 	echo "#######################################"
 	echo
-	if [ ${CLUSTER_TYPE} == "kind" ]; then
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		minikube_delete
+	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		kind_delete
 	else
 		kruize_uninstall
