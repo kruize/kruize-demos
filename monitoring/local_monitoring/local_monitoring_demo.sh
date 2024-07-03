@@ -284,7 +284,7 @@ function get_urls() {
 		kubectl_cmd="kubectl -n default"
 	fi
 
-	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service -o=custom-columns=PORT:.spec.ports[*].nodePort --no-headers)
 	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
@@ -301,14 +301,18 @@ function get_urls() {
 
 	elif [ ${CLUSTER_TYPE} == "aks"]; then
 		kubectl_cmd="kubectl -n monitoring"
-		# Expose via Kruize Public Service
 
-		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		# Expose kruize/kruize-ui-nginx-service via LoadBalancer
+		# KRUIZE_SERVICE_PORT=$(${kubectl_cmd} get svc kruize -o=custom-columns=PORT:.spec.ports[*].nodePort --no-headers)
+		KRUIZE_SERVICE_URL=$(${kubectl_cmd} get svc kruize -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		# KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service -o=custom-columns=PORT:.spec.ports[*].nodePort --no-headers)
+		KRUIZE_UI_SERVICE_URL=$(${kubectl_cmd} get svc kruize-ui-nginx-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
 
-		export KRUIZE_URL="${AKS_PUBLIC_SERVICE_IP}:${KRUIZE_PORT}"
-		export KRUIZE_UI_URL="${AKS_PUBLIC_SERVICE_IP}:${KRUIZE_UI_PORT}"
-		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:${TECHEMPOWER_PORT}"
+		export KRUIZE_URL="${KRUIZE_SERVICE_URL}:8080"
+		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
+		unset TECHEMPOWER_IP
+		export TECHEMPOWER_IP=$(kubectl -n default get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:8080"
 	
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
