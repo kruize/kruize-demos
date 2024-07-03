@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 #
 # Copyright (c) 2020, 2022 Red Hat, IBM Corporation and others.
 #
@@ -24,7 +25,7 @@ source ${common_dir}/common_helper.sh
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 
 # Default cluster
-export CLUSTER_TYPE="minikube"
+export CLUSTER_TYPE="aks"
 
 # Default duration of benchmark warmup/measurement cycles in seconds.
 export DURATION=60
@@ -360,7 +361,7 @@ function kruize_local_patch() {
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 		elif [ ${CLUSTER_TYPE} == "aks" ]; then
-			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS} 
+                        perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
 		fi
 	popd >/dev/null
 }
@@ -381,6 +382,7 @@ function kruize_local_demo_setup() {
 		clone_repos autotune
 		clone_repos benchmarks
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			sys_cpu_mem_check
 			check_minikube
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"
@@ -428,11 +430,6 @@ function kruize_local_demo_terminate() {
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
 	echo
 }
-
-# Check system configs
-if [ ${CLUSTER_TYPE} == "minikube" ]; then
-	sys_cpu_mem_check
-fi
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
