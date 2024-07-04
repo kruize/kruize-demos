@@ -16,6 +16,12 @@ git clone git@github.com:kruize/kruize-demos.git
 ```sh
 cd kruize-demos/monitoring/local_monitoring
 ```
+***Note*** : We support `Kind`, `Minikube` and `Openshift` clusters.
+By default, it runs on the `Kind` cluster.
+##### Execute the demo script on kind as: 
+```sh
+./local_monitoring_demo.sh
+```
 ##### Execute the demo script in openshift as: 
 ```sh
 ./local_monitoring_demo.sh -c openshift
