@@ -269,25 +269,18 @@ function kruize_local() {
 #  Get URLs
 ###########################################
 function get_urls() {
-  	local namespace="${1:-$NAMESPACE}"
-  	local kubectl_cmd
-
-  	if [ -n "$namespace" ]; then
-    		kubectl_cmd="kubectl -n $namespace"
-  	else
-		kubectl_cmd="kubectl -n default"
-	fi
-
-	TECHEMPOWER_PORT=$(${kubectl_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-	TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-
+  	APP_NAMESPACE="${1:-default}"
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		kubectl_cmd="kubectl -n monitoring"
+		kubectl_app_cmd="kubectl -n ${APP_NAMESPACE}"
 
 		MINIKUBE_IP=$(minikube ip)
 
 		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+
+		TECHEMPOWER_PORT=$(${kubectl_app_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		TECHEMPOWER_IP=$(${kubectl_app_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
@@ -298,15 +291,17 @@ function get_urls() {
 		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
-		TECHEMPOWER_IP=$(${kubectl_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
 		${kubectl_cmd} expose service kruize
 		${kubectl_cmd} expose service kruize-ui-nginx-service
 		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
+		${kubectl_app_cmd} expose service tfb-qrh-service
+
 		export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
-		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:${TECHEMPOWER_PORT}"
+		export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 	fi
 }
 
@@ -378,7 +373,7 @@ function kruize_local_demo_setup() {
 			check_minikube
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"
-#			minikube_start
+			minikube_start
 			prometheus_install autotune
 		elif [ ${CLUSTER_TYPE} == "kind" ]; then
 			check_kind
