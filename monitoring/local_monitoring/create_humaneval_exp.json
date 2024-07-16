@@ -1,6 +1,6 @@
 [{
   "version": "v2.0",
-  "experiment_name": "monitor_llm-rag_workload",
+  "experiment_name": "monitor_humaneval_workload",
   "cluster_name": "default",
   "performance_profile": "resource-optimization-openshift",
   "mode": "monitor",
@@ -8,12 +8,12 @@
   "datasource": "prometheus-1",
   "kubernetes_objects": [
     {
-      "type": "deployment",
-      "name": "llm",
+      "type": "statefulset",
+      "name": "human-eval-benchmark",
       "namespace": "kruize-hackathon",
       "containers": [
         {
-          "container_name": "server"
+          "container_name": "human-eval-benchmark"
         }
       ]
     }
