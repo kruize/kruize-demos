@@ -9,11 +9,11 @@
   "kubernetes_objects": [
     {
       "type": "statefulset",
-      "name": "training-gpt",
+      "name": "training-ttm",
       "namespace": "kruize-hackathon",
       "containers": [
         {
-          "container_name": "training-gpt"
+          "container_name": "training-ttm"
         }
       ]
     }
