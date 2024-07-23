@@ -232,7 +232,9 @@ function kruize_local() {
   	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
   	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
   	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
-  	echo
+  	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json"
+  	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
+	echo
 
 	echo "Sleeping for 3mins before generating the recommendations!"
 	sleep 3m
@@ -246,7 +248,9 @@ function kruize_local() {
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
   	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
   	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
-  	echo ""
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=namespace-demo"
+  	
+	echo ""
 
   	echo
   	echo "######################################################"
@@ -256,13 +260,14 @@ function kruize_local() {
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
   	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
-  	echo
+  	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=namespace-demo"
+	echo
   	echo "List Recommendations using "
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark"
   	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
-  	echo
+	echo
   	echo "######################################################"
   	echo
 }
