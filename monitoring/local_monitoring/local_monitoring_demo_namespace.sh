@@ -24,19 +24,14 @@ source ${common_dir}/common_helper.sh
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 
 # Default cluster
-export CLUSTER_TYPE="kind"
+export CLUSTER_TYPE="minikube"
 
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
 
-KIND_IP=127.0.0.1
-KRUIZE_PORT=8080
-KRUIZE_UI_PORT=8081
-TECHEMPOWER_PORT=8082
-
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
-	echo "c = supports minikube, kind, aks and openshift cluster-type"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
+	echo "c = supports minikube and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
@@ -60,9 +55,6 @@ function kruize_local() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
 	export NAMESPACE="default"
-
-       # Metric Profile JSON
-       resource_optimization_local_monitoring="${current_dir}/autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json"
 
 	echo
 	echo "######################################################"
@@ -93,91 +85,11 @@ function kruize_local() {
 
 	echo
 	echo "######################################################"
-	echo "#     Display metadata for default namespace"
+	echo "#     Install default performance profile"
 	echo "######################################################"
 	echo
-	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+	curl -X POST http://${KRUIZE_URL}/createPerformanceProfile -d @./resource_optimization_openshift.json
 	echo
-
-	echo
-	echo "######################################################"
-	echo "#     Delete previously created experiment"
-	echo "######################################################"
-	echo
-	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json"
-	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json
-	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json"
-	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
-	echo
-
-	echo
-	echo "######################################################"
-	echo "#     Install default metric profile"
-	echo "######################################################"
-	echo
-	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring
-	echo
-
-	echo
-	echo "######################################################"
-	echo "#     Create kruize experiment"
-	echo "######################################################"
-	echo
-	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json"
-	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json
-	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json"
-	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
-	echo
-
-	echo
-  	echo "######################################################"
-  	echo "#     Delete previously imported metadata"
-  	echo "######################################################"
-  	echo
-  	curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
-  	--header 'Content-Type: application/json' \
-  	--data '{
-  	   "version": "v1.0",
-  	   "datasource_name": "prometheus-1"
-  	}'
-  	echo
-
-  	echo
-  	echo "######################################################################"
-  	echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
-  	echo "######################################################################"
-  	echo
-  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
-  	echo
-
-  	echo
-  	echo "#####################################################################"
-  	echo "#     Import metadata from prometheus-1 datasource - 2nd iteration"
-  	echo "#####################################################################"
-  	echo
-  	curl --location http://"${KRUIZE_URL}"/dsmetadata \
-  	--header 'Content-Type: application/json' \
-  	--data '{
-     	   "version": "v1.0",
-     	   "datasource_name": "prometheus-1"
-  	}'
-
-
-  	echo
-  	echo "######################################################################"
-  	echo "#     Display metadata from prometheus-1 datasource - 2nd iteration"
-  	echo "######################################################################"
-  	echo
-  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
-  	echo
-
-  	echo
-  	echo "###############################################################"
-  	echo "#     Display metadata for default namespace - 2nd iteration"
-  	echo "###############################################################"
-  	echo
-  	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
-  	echo
 
   	echo
   	echo "##############################################################"
@@ -185,7 +97,8 @@ function kruize_local() {
   	echo "##############################################################"
   	echo
   	create_namespace
-  	benchmarks_install "test-multiple-import" "resource_provisioning_manifests"
+	kubectl apply -f namespace_quota.yaml
+  	benchmarks_install "test-multiple-import" "resource_provisioning_manifests"	
   	sleep 35
   	get_urls "test-multiple-import"
   	apply_benchmark_load "test-multiple-import"
@@ -217,10 +130,8 @@ function kruize_local() {
   	echo "#     Delete previously created experiment"
   	echo "######################################################"
   	echo
-  	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
-  	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
-  	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
-  	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
+  	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json"
+  	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
   	echo
 
   	echo
@@ -228,10 +139,8 @@ function kruize_local() {
   	echo "#     Create kruize experiment"
   	echo "######################################################"
   	echo
-  	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json"
-  	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp_multiple_import.json
-  	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json"
-  	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp_multiple_import.json
+  	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json"
+  	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
 	echo
 
 	echo "Sleeping for 3mins before generating the recommendations!"
@@ -242,10 +151,7 @@ function kruize_local() {
   	echo "#     Generate recommendations for every experiment"
   	echo "######################################################"
   	echo
-	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
-  	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
-  	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=namespace-demo"
   	
 	echo ""
 
@@ -253,18 +159,9 @@ function kruize_local() {
   	echo "######################################################"
   	echo
   	echo "Generate fresh recommendations using"
-	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
-  	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
-	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=namespace-demo"
 	echo
-  	echo "List Recommendations using "
-	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
-	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark"
-  	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark_multiple_import"
-	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark_multiple_import"
-	echo
-	echo "######################################################"
+  	echo "######################################################"
   	echo
 }
 
@@ -289,24 +186,6 @@ function get_urls() {
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
-
-	elif [ "${CLUSTER_TYPE}" == "aks" ]; then
-		kubectl_cmd="kubectl -n monitoring"
-
-		# Expose kruize/kruize-ui-nginx-service via LoadBalancer
-		KRUIZE_SERVICE_URL=$(${kubectl_cmd} get svc kruize -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
-		KRUIZE_UI_SERVICE_URL=$(${kubectl_cmd} get svc kruize-ui-nginx-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
-
-		export KRUIZE_URL="${KRUIZE_SERVICE_URL}:8080"
-		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
-		unset TECHEMPOWER_IP
-		export TECHEMPOWER_IP=$(kubectl -n default get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
-		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:8080"
-	
-	elif [ ${CLUSTER_TYPE} == "kind" ]; then
-		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
-		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
-		export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
@@ -323,15 +202,6 @@ function get_urls() {
 	fi
 }
 
-# Function to check if a port is in use
-function is_port_in_use() {
-  local port=$1
-  if lsof -i :$port -t >/dev/null 2>&1; then
-    return 0 # Port is in use
-  else
-    return 1 # Port is not in use
-  fi
-}
 
 ###########################################
 #  Show URLs
@@ -359,18 +229,15 @@ function kruize_local_patch() {
 	CRC_DIR="./manifests/crc/default-db-included-installation"
 	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
 	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
-	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
 
 	pushd autotune >/dev/null
 		# Checkout mvp_demo to get the latest mvp_demo release version
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
-		if [ ${CLUSTER_TYPE} == "kind" ]; then
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-		elif [ ${CLUSTER_TYPE} == "aks" ]; then
-                        perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
 		fi
 	popd >/dev/null
 }
@@ -391,28 +258,17 @@ function kruize_local_demo_setup() {
 		clone_repos autotune
 		clone_repos benchmarks
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			sys_cpu_mem_check
 			check_minikube
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"
 			minikube_start
 			prometheus_install autotune
-		elif [ ${CLUSTER_TYPE} == "kind" ]; then
-			check_kind
-			kind >/dev/null
-			check_err "ERROR: kind not installed"
-			kind_start
-			prometheus_install
 		fi
 		benchmarks_install
 	fi
 	kruize_local_patch
 	kruize_install
 	echo
-	# port forward the urls in case of kind
-	if [ ${CLUSTER_TYPE} == "kind" ]; then
-		port_forward
-	fi
 
 	get_urls
 
@@ -427,42 +283,6 @@ function kruize_local_demo_setup() {
 	echo
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
-	fi
-}
-
-###########################################
-#  Port forward the URLs
-###########################################
-function port_forward() {
-	kubectl_cmd="kubectl -n monitoring"
-	port_flag="false"
-
-	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
-	# Start port forwarding for kruize service in the background
-	if is_port_in_use ${KRUIZE_PORT}; then
-		echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
-		port_flag="true"
-	else
-		${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
-	fi
-	# Start port forwarding for kruize-ui-nginx-service in the background
-	if is_port_in_use ${KRUIZE_UI_PORT}; then
-		echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
-		port_flag="true"
-	else
-		${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
-	fi
-	# Start port forwarding for tfb-service in the background
-	if is_port_in_use ${TECHEMPOWER_PORT}; then
-		echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
-		port_flag="true"
-	else
-		kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
-	fi
-
-	if ${port_flag} = "true"; then
-		echo "Exiting..."
-		exit 1
 	fi
 }
 
@@ -507,13 +327,10 @@ function kruize_local_demo_terminate() {
 	echo
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube_delete
-	elif [ ${CLUSTER_TYPE} == "kind" ]; then
-		kind_delete
 	else
 		kruize_uninstall
 	fi
 	delete_repos autotune
-	delete_namespace "test-multiple-import"
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
@@ -521,7 +338,7 @@ function kruize_local_demo_terminate() {
 }
 
 # Check system configs
-sys_cpu_mem_check ${CLUSTER_TYPE}
+sys_cpu_mem_check
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
