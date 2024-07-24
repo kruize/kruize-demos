@@ -8,7 +8,7 @@
     "datasource": "prometheus-1",
     "kubernetes_objects": [
       {
-        "namespace": "kruize-hackathon"
+        "namespace": "test-multiple-import"
       }
     ],
     "trial_settings": {

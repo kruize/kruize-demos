@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ResourceQuota
 metadata:
   name: default-quota
-  namespace: kruize-hackathon
+  namespace: test-multiple-import
 spec:
   hard:
     pods: "40"
