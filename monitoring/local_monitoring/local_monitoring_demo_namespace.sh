@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2022 Red Hat, IBM Corporation and others.
+# Copyright (c) 2024 Red Hat, IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -331,6 +331,7 @@ function kruize_local_demo_terminate() {
 		kruize_uninstall
 	fi
 	delete_repos autotune
+	kubectl delete resourcequota default-quota -n test-multiple-import
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
