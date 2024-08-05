@@ -1,0 +1,27 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "monitor_traininggpt_workload",
+  "cluster_name": "default",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "local",
+  "datasource": "prometheus-1",
+  "kubernetes_objects": [
+    {
+      "type": "statefulset",
+      "name": "training-gpt",
+      "namespace": "kruize-hackathon",
+      "containers": [
+        {
+          "container_name": "training-gpt"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
