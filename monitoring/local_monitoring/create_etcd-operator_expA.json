@@ -1,0 +1,29 @@
+[{
+    "version": "v2.0",
+    "experiment_name": "openshift-etcd-operator_expA",
+    "cluster_name": "default",
+    "performance_profile": "resource-optimization-local-monitoring",
+    "mode": "monitor",
+    "target_cluster": "local",
+    "datasource": "prometheus-1",
+    "kubernetes_objects": [
+      {
+        "type": "deployment",
+        "name": "etcd-operator",
+        "namespace": "openshift-etcd-operator",
+        "containers": [
+          {
+            "container_name": "etcd-operator",
+            "container_image_name": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:29989d87e4ce13ff9bef21bb73b47c0cb5fbeed7dc035dfe9021934b9b0920c"
+          }
+        ]
+      }
+    ],
+    "trial_settings": {
+      "measurement_duration": "15min"
+    },
+    "recommendation_settings": {
+      "threshold": "0.1"
+    }
+  }
+  ]
