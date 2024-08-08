@@ -109,10 +109,10 @@ function kruize_local() {
 
 	echo
 	echo "######################################################"
-	echo "#     Install default performance profile"
+	echo "#     Install default metric profile"
 	echo "######################################################"
 	echo
-	curl -X POST http://${KRUIZE_URL}/createPerformanceProfile -d @./resource_optimization_openshift.json
+	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./resource_optimization_openshift.json
 	echo
 
 	echo
