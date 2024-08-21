@@ -491,6 +491,7 @@ function kruize_local_demo_terminate() {
 		kruize_uninstall
 	fi
 	delete_repos autotune
+	delete_namespace "test-multiple-import"
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
