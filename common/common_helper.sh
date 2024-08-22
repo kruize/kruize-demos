@@ -373,3 +373,21 @@ function check_kind() {
 		exit 1
 	fi
 }
+
+###########################################
+#   Delete namespace
+###########################################
+function delete_namespace() {
+  DAPP_NAMESPACE=$1
+  echo
+  echo "#########################################"
+  # Check if the namespace exists
+    if kubectl get namespace "${DAPP_NAMESPACE}" > /dev/null 2>&1; then
+      echo "Deleting namespace: ${DAPP_NAMESPACE}"
+      kubectl delete namespace "${DAPP_NAMESPACE}"
+    else
+      echo "Namespace '${DAPP_NAMESPACE}' does not exist."
+    fi
+  echo "#########################################"
+  echo
+}
