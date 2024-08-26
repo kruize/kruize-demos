@@ -73,43 +73,36 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
 ```
 
 
-## To refresh metadata
+## To refresh datasource metadata
 
-    To refresh the datasource metadata,
+To refresh the datasource metadata,
 - Delete the previosuly imported metadata
 - Import the metdata from the datasource
 
 Commands to refresh metadata
 
-```
-        echo "######################################################"
-        echo "#     Delete previously imported metadata"
-        echo "######################################################"
-        curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
-        --header 'Content-Type: application/json' \
-        --data '{
-           "version": "v1.0",
-           "datasource_name": "prometheus-1"
-        }'
+```sh
+# Replace KRUIZE_URL with the URL to connect to Kruize
 
-        echo "#####################################################################"
-        echo "#     Import metadata from prometheus-1 datasource                   "
-        echo "#####################################################################"
-        curl --location http://"${KRUIZE_URL}"/dsmetadata \
-        --header 'Content-Type: application/json' \
-        --data '{
-           "version": "v1.0",
-           "datasource_name": "prometheus-1"
-        }'
+# Delete previously imported metadata
+curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
+--header 'Content-Type: application/json' \
+--data '{
+     "version": "v1.0",
+     "datasource_name": "prometheus-1"
+}'
 
-        echo "######################################################################"
-        echo "#     Display metadata from prometheus-1 datasource                   "
-        echo "######################################################################"
-        curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+# Import metadata from prometheus-1 datasource                   
+curl --location http://"${KRUIZE_URL}"/dsmetadata \
+--header 'Content-Type: application/json' \
+--data '{
+     "version": "v1.0",
+     "datasource_name": "prometheus-1"
+}'
 
-        echo "###############################################################"
-        echo "#     Display metadata for a namespace                         "
-        echo "###############################################################"
-        curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+# Display metadata from prometheus-1 datasource
+curl "http://${KRUIZE_URL}/dsmetadata?datasource=prometheus-1&verbose=true"
 
+# Display metadata for a "prometheus-1" datasource in "default" namespace and "default" cluster
+curl "http://${KRUIZE_URL}/dsmetadata?datasource=prometheus-1&cluster_name=default&namespace=default&verbose=true"
 ``` 
