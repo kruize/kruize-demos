@@ -205,7 +205,7 @@ function autotune_terminate() {
 
 # Check if minikube exists and check system configs
 check_minikube
-sys_cpu_mem_check
+sys_cpu_mem_check "Minikube"
 
 # By default we start the demo and dont expose prometheus port
 prometheus=0

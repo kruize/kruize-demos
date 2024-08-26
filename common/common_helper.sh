@@ -18,7 +18,7 @@
 # Minimum resources required to run the demo
 MIN_CPU=8
 MIN_MEM=16384
-
+KIND_KUBERNETES_VERSION=v1.28.0
 # Change both of these to docker if you are using docker
 DRIVER="podman"
 CRUNTIME="cri-o"
@@ -54,18 +54,34 @@ function err_exit() {
 
 # Prints the minimum system resources required to run the demo
 function print_min_resources() {
-	echo "       Minikube resource config needed for demo:"
+	cluster_name=$1
+	echo "       ${cluster_name} resource config needed for demo:"
 	echo "       CPUs=8, Memory=16384MB"
 }
 
 # Checks if the system which tries to run kruize is having minimum resources required
 function sys_cpu_mem_check() {
-	SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
-	SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
+	cluster_name=$1
+	if [[ "$OSTYPE" == "linux"* ]]; then
+    # Linux
+    SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
+    SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
+	elif [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    SYS_CPU=$(sysctl -n hw.ncpu)
+    SYS_MEM=$(sysctl -n hw.memsize | awk '{printf ("%.0f\n", $1/1024/1024)}')
+	elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    # Windows
+    SYS_CPU=$(powershell -Command "Get-WmiObject -Class Win32_Processor | Measure-Object -Property NumberOfCores -Sum | Select-Object -ExpandProperty Sum")
+    SYS_MEM=$(powershell -Command "[math]::truncate((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1MB)")
+	else
+    echo "Unsupported OS: $OSTYPE"
+    exit 1
+	fi
 
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
 		echo "CPU's on system : ${SYS_CPU} | Minimum CPU's required for demo : ${MIN_CPU}"
-		print_min_resources
+		print_min_resources ${cluster_name}
 		echo "ERROR: Exiting due to lack of system resources."
 		exit 1
 	fi
@@ -127,9 +143,14 @@ function kruize_install() {
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
+		# assign cluster_type to a temp variable in order to apply the correct yaml
+		CLUSTER_TYPE_TEMP=${CLUSTER_TYPE}
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			CLUSTER_TYPE_TEMP="minikube"
+		fi
 
-		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
+		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t"
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t >/dev/null 2>/dev/null
 		sleep 5
 		if [ -z "${KRUIZE_DOCKER_IMAGE}" ]; then
 			KRUIZE_DOCKER_IMAGE=${KRUIZE_DOCKER_REPO}:${KRUIZE_VERSION}
@@ -142,10 +163,10 @@ function kruize_install() {
 			DOCKER_IMAGES="${DOCKER_IMAGES} -u ${KRUIZE_UI_DOCKER_IMAGE}"
 		fi
 		echo
-		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}"
+		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target}"
 		echo
 
-		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target}
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target}
 		check_err "ERROR: kruize failed to start, exiting"
 
 		echo -n "Waiting 40 seconds for Kruize to sync with Prometheus..."
@@ -201,11 +222,44 @@ function minikube_start() {
 }
 
 ###########################################
+#   Kind Start
+###########################################
+function kind_start() {
+	echo
+	echo "#######################################"
+	echo "2. Deleting kind clusters, if any"
+	kind delete clusters --all
+	sleep 2
+	echo "3. Starting new kind cluster"
+	echo
+
+	kind create cluster --image kindest/node:${KIND_KUBERNETES_VERSION}
+	kubectl cluster-info --context kind-kind
+	kubectl config use-context kind-kind
+	check_err "ERROR: kind failed to start, exiting"
+	echo -n "Waiting for cluster to be up..."
+	sleep 10
+	echo "done"
+	echo "#######################################"
+	echo
+}
+
+###########################################
 #   Minikube Delete
 ###########################################
 function minikube_delete() {
 	echo "2. Deleting minikube cluster"
 	minikube delete
+	sleep 2
+	echo
+}
+
+###########################################
+#   Kind Delete
+###########################################
+function kind_delete() {
+	echo "2. Deleting kind cluster"
+	kind delete clusters --all
 	sleep 2
 	echo
 }
@@ -218,7 +272,11 @@ function prometheus_install() {
 	echo "#######################################"
 	echo "4. Installing Prometheus and Grafana"
 	pushd autotune >/dev/null
-		./scripts/prometheus_on_minikube.sh -as
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			./scripts/prometheus_on_minikube.sh -as
+		else
+			./scripts/prometheus_on_kind.sh -as
+		fi
 		check_err "ERROR: Prometheus failed to start, exiting"
 		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
 		sleep 30
@@ -261,7 +319,7 @@ function apply_benchmark_load() {
 	echo "################################################################################################################"
 	echo
 
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+	if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
@@ -305,3 +363,31 @@ function create_namespace() {
 	echo
 }
 
+###########################################
+#   Check if kind is installed
+###########################################
+function check_kind() {
+	if ! which kind >/dev/null 2>/dev/null; then
+		echo "ERROR: Please install kind and try again"
+		print_min_resources
+		exit 1
+	fi
+}
+
+###########################################
+#   Delete namespace
+###########################################
+function delete_namespace() {
+  DAPP_NAMESPACE=$1
+  echo
+  echo "#########################################"
+  # Check if the namespace exists
+    if kubectl get namespace "${DAPP_NAMESPACE}" > /dev/null 2>&1; then
+      echo "Deleting namespace: ${DAPP_NAMESPACE}"
+      kubectl delete namespace "${DAPP_NAMESPACE}"
+    else
+      echo "Namespace '${DAPP_NAMESPACE}' does not exist."
+    fi
+  echo "#########################################"
+  echo
+}
