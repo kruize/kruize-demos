@@ -71,4 +71,45 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
 ./local_monitoring_demo.sh -c openshift -l -n <APP_NAMESPACE> -d <LOAD_DURATION>
 ./local_monitoring_demo.sh -c openshift -l -n "test-multiple-import" -d "1200"
 ```
-  
+
+
+## To refresh metadata
+
+    To refresh the datasource metadata,
+- Delete the previosuly imported metadata
+- Import the metdata from the datasource
+
+Commands to refresh metadata
+
+```
+        echo "######################################################"
+        echo "#     Delete previously imported metadata"
+        echo "######################################################"
+        curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
+        --header 'Content-Type: application/json' \
+        --data '{
+           "version": "v1.0",
+           "datasource_name": "prometheus-1"
+        }'
+
+        echo "#####################################################################"
+        echo "#     Import metadata from prometheus-1 datasource                   "
+        echo "#####################################################################"
+        curl --location http://"${KRUIZE_URL}"/dsmetadata \
+        --header 'Content-Type: application/json' \
+        --data '{
+           "version": "v1.0",
+           "datasource_name": "prometheus-1"
+        }'
+
+        echo "######################################################################"
+        echo "#     Display metadata from prometheus-1 datasource                   "
+        echo "######################################################################"
+        curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
+
+        echo "###############################################################"
+        echo "#     Display metadata for a namespace                         "
+        echo "###############################################################"
+        curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+
+``` 
