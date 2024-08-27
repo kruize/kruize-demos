@@ -35,7 +35,7 @@ KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] "
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
@@ -46,6 +46,7 @@ function usage() {
 	echo "b = deploy the benchmark."
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
+	echo "m = manifests of the benchmark"
 
 	exit 1
 }
@@ -273,7 +274,7 @@ function kruize_local_demo_setup() {
 			kind_start
 			prometheus_install
 		fi
-		benchmarks_install
+		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK_MANIFESTS}
 	fi
 	kruize_local_patch
 	kruize_install
@@ -381,6 +382,7 @@ function kruize_local_demo_terminate() {
 	else
 		kruize_uninstall
 	fi
+	benchmarks_uninstall ${APP_NAMESPACE} ${BENCHMARK_MANIFESTS}
 	delete_repos autotune
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
@@ -401,8 +403,10 @@ export kruize_restart=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
+export BENCHMARK_MANIFESTS="default_manifests"
+
 # Iterate through the commandline options
-while getopts c:i:n:d:lbprstu: gopts
+while getopts c:i:n:d:m:lbprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -439,6 +443,9 @@ do
 			;;
 		d)
 			LOAD_DURATION="${OPTARG}"
+			;;
+		m)
+			BENCHMARK_MANIFESTS="${OPTARG}"
 			;;
 		*)
 			usage

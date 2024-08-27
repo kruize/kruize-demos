@@ -69,7 +69,7 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
 ##### To apply the load to TFB benchmark: 
 ```sh
 ./local_monitoring_demo.sh -c openshift -l -n <APP_NAMESPACE> -d <LOAD_DURATION>
-./local_monitoring_demo.sh -c openshift -l -n "test-multiple-import" -d "1200"
+./local_monitoring_demo.sh -c openshift -l -n "default" -d "1200"
 ```
 
 

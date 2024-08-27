@@ -305,6 +305,25 @@ function benchmarks_install() {
 	echo
 }
 
+###########################################
+#   Benchmarks Uninstall
+###########################################
+function benchmarks_uninstall() {
+        NAMESPACE="${1:-default}"
+        MANIFESTS="${2:-default_manifests}"
+        echo
+        echo "#######################################"
+        pushd benchmarks >/dev/null
+                echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
+                pushd techempower >/dev/null
+                kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
+                check_err "ERROR: TechEmpower app failed to delete, exiting"
+                popd >/dev/null
+        popd >/dev/null
+        echo "#######################################"
+        echo
+}
+
 #
 # Start a background load on the benchmark for 20 mins
 #
