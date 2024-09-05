@@ -27,6 +27,21 @@ By default, it runs on the `Kind` cluster.
 ./local_monitoring_demo.sh -c openshift
 ```
 
+```
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
+c = supports minikube, kind and openshift cluster-type
+i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
+l = Run a load against the benchmark
+p = expose prometheus port
+r = restart kruize only
+s = start (default), t = terminate
+u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
+b = deploy the benchmark.
+n = namespace where benchmark is deployed. Default - default
+d = duration to run the benchmark load
+m = manifests of the benchmark
+```
+
 ## Understanding the Demo
 
 This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark to simulate different load conditions and observe how Kruize-Autotune reacts with its recommendations. Here’s a breakdown of what happens during the demo:
@@ -35,18 +50,12 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
     - The TFB benchmark is initially deployed in the default namespace, comprising two key deployments
       - tfb-qrh: Serving as the application server.
       - tfb-database: Database to the server.
+    - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
 - Install Kruize
   - Installs kruize under openshift-tuning name.
 - Metadata Collection and Experiment Creation
   - Kruize gathers data sources and metadata from the cluster.
   - Experiments `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` are created for the server and database deployments respectively in the `default` namespace.
-- Creating a New Namespace and Application deployment
-  - A new namespace named test-multiple-import is created.
-  - The TFB benchmark is deployed in the test-multiple-import namespace.
-  - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios.
-- Metadata Refresh and Experiment Setup
-  - Kruize updates its metadata to include the test-multiple-import namespace.
-  - New experiments `monitor_tfb_benchmark_multiple_import` and `monitor_tfb-db_benchmark_multiple_import` are created for the server and database deployments in `test-multiple-import` namespace.
 - Generate Recommendations
   - Generates Recommendations for all the experiments created.
 
@@ -73,7 +82,7 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
 ```
 
 
-## To refresh datasource metadata
+#### To refresh datasource metadata
 
 To refresh the datasource metadata,
 - Delete the previosuly imported metadata
