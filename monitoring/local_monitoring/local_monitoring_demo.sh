@@ -60,7 +60,6 @@ function kruize_local() {
 	#
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
-	export NAMESPACE="default"
 
 	echo
 	echo "######################################################"
@@ -94,7 +93,7 @@ function kruize_local() {
 	echo "#     Display metadata for default namespace"
 	echo "######################################################"
 	echo
-	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${NAMESPACE}&verbose=true"
+	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${APP_NAMESPACE}&verbose=true"
 	echo
 
 	echo
@@ -117,6 +116,15 @@ function kruize_local() {
 	echo
 
 	echo
+        echo "######################################################"
+        echo "#     Update kruize experiment jsons"
+        echo "######################################################"
+        echo
+	sed -i 's/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/' ./create_tfb_exp.json
+	sed -i 's/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/' ./create_tfb-db_exp.json
+	echo
+
+	echo
 	echo "######################################################"
 	echo "#     Create kruize experiment"
 	echo "######################################################"
@@ -127,22 +135,28 @@ function kruize_local() {
 	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
 	echo
 
-  	apply_benchmark_load "default"
+	apply_benchmark_load ${APP_NAMESPACE}
 
   	echo
   	echo "######################################################"
   	echo "#     Generate recommendations for every experiment"
   	echo "######################################################"
   	echo
-	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
-  	echo ""
-	echo ""
-	echo "Recommendations might be empty if there is no enough data available!"
-	echo "Please wait for few mins and generate the recommendations again!"
+	tfb_recommendations=$(curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark")
+	echo $tfb_recommendations
+	tfb_db_recommendations=$(curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark")
+	echo $tfb_db_recommendations
 
-  	echo
-  	echo "######################################################"
+	if [ -z "$tfb_recommendations" ] || [ -z "${tfb_db_recommendations}" ]; then
+		echo ""
+		echo "######################################################"
+		echo "RECOMMENDATIONS MIGHT BE EMPTY IF THERE IS NO ENOUGH DATA AVAILABLE!"
+		echo "PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN!"
+		echo
+		echo "######################################################"
+		echo
+	fi
+
   	echo
   	echo "Generate fresh recommendations using"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
@@ -246,6 +260,7 @@ function kruize_local_patch() {
 	popd >/dev/null
 }
 
+
 #
 #
 #
@@ -274,6 +289,7 @@ function kruize_local_demo_setup() {
 			kind_start
 			prometheus_install
 		fi
+		create_namespace ${APP_NAMESPACE}
 		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK_MANIFESTS}
 	fi
 	kruize_local_patch
@@ -284,7 +300,7 @@ function kruize_local_demo_setup() {
 		port_forward
 	fi
 
-	get_urls
+	get_urls ${APP_NAMESPACE}
 
 	# Run the Kruize Local experiments
 	kruize_local
@@ -439,7 +455,7 @@ do
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
 		n)
-			APP_NAMESPACE="${OPTARG}"
+			export APP_NAMESPACE="${OPTARG}"
 			;;
 		d)
 			LOAD_DURATION="${OPTARG}"
