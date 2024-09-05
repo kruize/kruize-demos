@@ -36,7 +36,7 @@ TECHEMPOWER_PORT=8082
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
-	echo "c = supports minikube, kind and openshift cluster-type"
+	echo "c = supports minikube, kind, aks and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
@@ -191,6 +191,20 @@ function get_urls() {
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+
+	elif [ "${CLUSTER_TYPE}" == "aks" ]; then
+		kubectl_cmd="kubectl -n monitoring"
+
+		# Expose kruize/kruize-ui-nginx-service via LoadBalancer
+		KRUIZE_SERVICE_URL=$(${kubectl_cmd} get svc kruize -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		KRUIZE_UI_SERVICE_URL=$(${kubectl_cmd} get svc kruize-ui-nginx-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+
+		export KRUIZE_URL="${KRUIZE_SERVICE_URL}:8080"
+		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
+		unset TECHEMPOWER_IP
+		export TECHEMPOWER_IP=$(kubectl -n default get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		export TECHEMPOWER_URL="${TECHEMPOWER_IP}:8080"
+	
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
@@ -247,6 +261,7 @@ function kruize_local_patch() {
 	CRC_DIR="./manifests/crc/default-db-included-installation"
 	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
 	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
 
 	pushd autotune >/dev/null
 		# Checkout mvp_demo to get the latest mvp_demo release version
@@ -256,6 +271,8 @@ function kruize_local_patch() {
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+		elif [ ${CLUSTER_TYPE} == "aks" ]; then
+                        perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
 		fi
 	popd >/dev/null
 }
@@ -277,6 +294,7 @@ function kruize_local_demo_setup() {
 		clone_repos autotune
 		clone_repos benchmarks
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			sys_cpu_mem_check
 			check_minikube
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"

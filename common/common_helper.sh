@@ -340,6 +340,8 @@ function apply_benchmark_load() {
 
 	if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
 		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+	elif [ ${CLUSTER_TYPE} == "aks" ]; then
+		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 	fi
