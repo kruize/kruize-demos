@@ -1,0 +1,8 @@
+{
+  "unique_identifiers1": "values1",
+  "unique_identifiers2": "values2",
+  "time_range": {
+	"start": "2024-09-08T00:00:00Z",
+	"end": "2024-09-10T00:00:00Z"
+  }
+}
