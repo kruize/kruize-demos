@@ -61,6 +61,9 @@ function kruize_local() {
 	export CLUSTER_NAME="default"
 	export NAMESPACE="default"
 
+       # Metric Profile JSON
+       resource_optimization_local_monitoring="${current_dir}/autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json"
+
 	echo
 	echo "######################################################"
 	echo "#     Listing all datsources known to Kruize"
@@ -112,7 +115,7 @@ function kruize_local() {
 	echo "#     Install default metric profile"
 	echo "######################################################"
 	echo
-	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./resource_optimization_openshift.json
+	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring
 	echo
 
 	echo
