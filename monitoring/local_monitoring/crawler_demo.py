@@ -22,6 +22,7 @@ import json
 import sys
 import time
 from datetime import datetime
+from time import sleep
 
 from kruize.kruize import *
 
@@ -86,8 +87,11 @@ def main(argv):
 
     # Loop until job status is COMPLETED
     job_status = job_status_json['status']
-   # while job_status != "COMPLETED":
-    #    job_status = job_status_json['status']
+    while job_status != "COMPLETED":
+        response = get_crawler_job_status(job_id)
+        job_status_json = response.json()
+        job_status = job_status_json['status']
+        sleep(5)
 
     print(job_status)
 
@@ -100,12 +104,15 @@ def main(argv):
 
     if exp_list != "":
         for exp_name in exp_list:
-            reco = list_recommendations(exp_name)
+            response = list_recommendations(exp_name)
+            reco = response.json()
             recommendations_json_arr.append(reco)
 
         # Dump the recommendations into json files
         with open('recommendations_data.json', 'w') as f:
             json.dump(recommendations_json_arr, f, indent=4)
+    else:
+        print("Something went wrong! There are no experiments with recommendations!")
 
 if __name__ == '__main__':
     main(sys.argv[1:])
