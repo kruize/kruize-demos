@@ -69,23 +69,43 @@ def main(argv):
     metric_profile_json_file = "./resource_optimization_openshift.json"
     create_metric_profile(metric_profile_json_file)
 
-    # Invoke the crawler service
+    # Invoke the crawler service with the specified json
     crawler_json_file = "./crawler_input.json"
     response = crawler(crawler_json_file)
-    print(response)
-    #print(response.json())
 
-    # List recommendations
-#    recommendations_json_arr = []
-#    for uid in ids_list:
-#        reco = list_recommendations(experiment_name)
-#        recommendations_json_arr.append(reco)
+    # Obtain the job id from the response from crawler service
+    job_id_json = response.json()
 
-    # Dump the recommendations into json files
-#   with open('recommendations_data.json', 'w') as f:
-#       json.dump(recommendations_json_arr, f, indent=4)
+    print(job_id_json)
+    job_id = job_id_json['jobID']
+    print(job_id)
 
+    # Get the crawler job status using the job id
+    response = get_crawler_job_status(job_id)
+    job_status_json = response.json()
 
+    # Loop until job status is COMPLETED
+    job_status = job_status_json['status']
+   # while job_status != "COMPLETED":
+    #    job_status = job_status_json['status']
+
+    print(job_status)
+
+    # Fetch the list of experiments for which recommendations are available
+    exp_list = job_status_json['data']['recommendations']['data']['completed']
+    print(exp_list)
+
+    # List recommendations for the experiments for which recommendations are available
+    recommendations_json_arr = []
+
+    if exp_list != "":
+        for exp_name in exp_list:
+            reco = list_recommendations(exp_name)
+            recommendations_json_arr.append(reco)
+
+        # Dump the recommendations into json files
+        with open('recommendations_data.json', 'w') as f:
+            json.dump(recommendations_json_arr, f, indent=4)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
