@@ -76,7 +76,7 @@ function kruize_local_crawler() {
 	echo "#     Install default metric profile"
 	echo "######################################################"
 	echo
-	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./resource_optimization_openshift.json
+	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json
 	echo
 
 	echo
@@ -211,6 +211,9 @@ function kruize_local_demo_setup() {
 
 	if [ ${kruize_restart} -eq 0 ]; then
 		clone_repos autotune
+		cd autotune
+		git checkout mvp_demo
+		cd ..
 		clone_repos benchmarks
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			check_minikube
@@ -264,9 +267,9 @@ function kruize_local_demo_terminate() {
 	else
 		kruize_uninstall
 	fi
-	delete_repos autotune
-	delete_repos benchmarks
-	for ((loop=1; loop<=${count}; loop++)); 
+	delete_repos "autotune"
+	delete_repos "benchmarks"
+	for ((loop=1; loop<=count; loop++));
 	do                      
 		delete_namespace ${ns_name}-${loop}
 	done

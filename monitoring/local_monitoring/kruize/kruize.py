@@ -192,6 +192,23 @@ def crawler(crawler_json_file):
     print(response.text)
     return response
 
+# Description: This function invokes the Kruize crawler service API
+# Input Parameters: job id returned from crawler service
+def get_crawler_job_status(job_id):
+    print("\nGet the crawler job status for job id \n for %s " % (job_id))
+    queryString = "?"
+    if job_id:
+        queryString = queryString + "jobID=%s" % (job_id)
+
+    url = URL + "/crawler%s" % (queryString)
+    print("URL = ", url)
+    response = requests.get(url, )
+
+    print("Response status code = ", response.status_code)
+    print(response.text)
+    return response
+
+
 
 # Description: This function obtains the experiments from Kruize Autotune using listExperiments API
 # Input Parameters: None
