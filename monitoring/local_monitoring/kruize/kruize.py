@@ -189,7 +189,6 @@ def crawler(crawler_json_file):
 
     response = requests.post(url, json=crawler_json)
     print("Response status code = ", response.status_code)
-    print(response.text)
     return response
 
 # Description: This function invokes the Kruize crawler service API
@@ -205,7 +204,6 @@ def get_crawler_job_status(job_id):
     response = requests.get(url, )
 
     print("Response status code = ", response.status_code)
-    print(response.text)
     return response
 
 
