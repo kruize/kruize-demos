@@ -27,6 +27,21 @@ By default, it runs on the `Kind` cluster.
 ./local_monitoring_demo.sh -c openshift
 ```
 
+### Run the Namespace Recommendations Demo
+
+##### Clone the demo repository:
+```sh
+git clone git@github.com:kruize/kruize-demos.git
+```
+##### Change directory to the local monitoring demo:
+```sh
+cd kruize-demos/monitoring/local_monitoring
+```
+##### Execute the demo script in openshift as: 
+```sh
+./local_monitoring_demo_namespace.sh -c openshift
+```
+
 ## Understanding the Demo
 
 This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark to simulate different load conditions and observe how Kruize-Autotune reacts with its recommendations. Here’s a breakdown of what happens during the demo:

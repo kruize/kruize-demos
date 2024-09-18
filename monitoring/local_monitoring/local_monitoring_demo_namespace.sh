@@ -55,7 +55,8 @@ function kruize_local() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
 	export NAMESPACE="default"
-
+	
+	echo $resource_optimization_local_monitoring
 	echo
 	echo "######################################################"
 	echo "#     Listing all datsources known to Kruize"
@@ -88,7 +89,7 @@ function kruize_local() {
 	echo "#     Install default performance profile"
 	echo "######################################################"
 	echo
-	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./resource_optimization_openshift.json
+	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json
 	echo
 
   	echo
@@ -152,15 +153,15 @@ function kruize_local() {
   	echo "######################################################"
   	echo
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=namespace-demo"
-  	
-	echo ""
-
   	echo
   	echo "######################################################"
-  	echo
-  	echo "Generate fresh recommendations using"
+	echo
+	echo "Generate fresh recommendations using"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=namespace-demo"
 	echo
+  	echo "List Recommendations using "
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=namespace-demo"
+  	echo
   	echo "######################################################"
   	echo
 }

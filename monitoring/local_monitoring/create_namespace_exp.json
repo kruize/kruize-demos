@@ -2,13 +2,16 @@
     "version": "v2.0",
     "experiment_name": "namespace-demo",
     "cluster_name": "default",
-    "performance_profile": "resource-optimization-openshift",
+    "performance_profile": "resource-optimization-local-monitoring",
     "mode": "monitor",
     "target_cluster": "local",
     "datasource": "prometheus-1",
     "kubernetes_objects": [
       {
-        "namespace": "test-multiple-import"
+        "experiment_type": "namespace",
+        "namespaces": {
+          "namespace_name": "test-multiple-import"
+        }
       }
     ],
     "trial_settings": {
