@@ -440,7 +440,7 @@ export kruize_restart=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
-export BENCHMARK_MANIFESTS="default_manifests"
+export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 
 # Iterate through the commandline options
 while getopts c:i:n:d:m:lbprstu: gopts
