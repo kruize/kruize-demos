@@ -90,7 +90,7 @@ function kruize_local() {
 
 	echo
 	echo "######################################################"
-	echo "#     Display metadata for default namespace"
+	echo "#     Display metadata for ${APP_NAMESPACE} namespace"
 	echo "######################################################"
 	echo
 	curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&cluster_name=${CLUSTER_NAME}&namespace=${APP_NAMESPACE}&verbose=true"
@@ -120,8 +120,8 @@ function kruize_local() {
         echo "#     Update kruize experiment jsons"
         echo "######################################################"
         echo
-	sed -i 's/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/' ./create_tfb_exp.json
-	sed -i 's/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/' ./create_tfb-db_exp.json
+	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_tfb_exp.json
+	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_tfb-db_exp.json
 	echo
 
 	echo
