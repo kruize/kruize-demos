@@ -67,7 +67,7 @@ def main(argv):
     form_kruize_url(cluster_type)
 
     # Create the metric profile
-    metric_profile_json_file = "./resource_optimization_openshift.json"
+    metric_profile_json_file = "./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json"
     create_metric_profile(metric_profile_json_file)
 
     # Invoke the crawler service with the specified json
@@ -87,17 +87,21 @@ def main(argv):
 
     # Loop until job status is COMPLETED
     job_status = job_status_json['status']
+    print(job_status)
     while job_status != "COMPLETED":
         response = get_crawler_job_status(job_id)
         job_status_json = response.json()
         job_status = job_status_json['status']
         sleep(5)
 
+    # Dump the job status json into a file
+    with open('job_status.json', 'w') as f:
+        json.dump(job_status_json, f, indent=4)
+
     print(job_status)
 
     # Fetch the list of experiments for which recommendations are available
     exp_list = job_status_json['data']['recommendations']['data']['completed']
-    print(exp_list)
 
     # List recommendations for the experiments for which recommendations are available
     recommendations_json_arr = []
@@ -108,11 +112,12 @@ def main(argv):
             reco = response.json()
             recommendations_json_arr.append(reco)
 
-        # Dump the recommendations into json files
+        # Dump the recommendations into a json file
         with open('recommendations_data.json', 'w') as f:
             json.dump(recommendations_json_arr, f, indent=4)
     else:
         print("Something went wrong! There are no experiments with recommendations!")
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
