@@ -145,20 +145,17 @@ function kruize_local() {
   	echo "#     Generate recommendations for every experiment"
   	echo "######################################################"
   	echo
-	tfb_recommendations=$(curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark")
-	echo $tfb_recommendations
-	tfb_db_recommendations=$(curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark")
-	echo $tfb_db_recommendations
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
 
-	if [ -z "$tfb_recommendations" ] || [ -z "${tfb_db_recommendations}" ]; then
-		echo ""
-		echo "######################################################"
-		echo "RECOMMENDATIONS MIGHT BE EMPTY IF THERE IS NO ENOUGH DATA AVAILABLE!"
-		echo "PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN!"
-		echo
-		echo "######################################################"
-		echo
-	fi
+	echo ""
+	echo "######################################################"
+	echo "ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!"
+	echo "PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN IF NO RECOMMENDATIONS ARE AVAILABLE!"
+	echo "######################################################"
+	echo
 
   	echo
   	echo "Generate fresh recommendations using"

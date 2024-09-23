@@ -298,7 +298,6 @@ function benchmarks_install() {
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
 		# Reduce the requests to 1core-512Mi to accomodate the benchmark in resourcehub
-		echo "sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\)/\11/}'./manifests/${MANIFESTS}/postgres.yam"
 		sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\10.5/}' ./manifests/${MANIFESTS}/postgres.yaml
 		sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/postgres.yaml
 		sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\11.5/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
