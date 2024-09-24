@@ -135,6 +135,15 @@ function get_urls() {
 	fi
 }
 
+# Function to check if a port is in use
+function is_port_in_use() {
+  local port=$1
+  if lsof -i :$port -t >/dev/null 2>&1; then
+    return 0 # Port is in use
+  else
+    return 1 # Port is not in use
+  fi
+}
 
 ###########################################
 #  Show URLs
@@ -159,10 +168,11 @@ function kruize_local_patch() {
 	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
 
 	pushd autotune >/dev/null
+
 		# Checkout mvp_demo to get the latest mvp_demo release version
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		if [[ ${CLUSTER_TYPE} == "minikube" || ${CLUSTER_TYPE} == "kind" ]]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
@@ -197,9 +207,7 @@ function setup_workload() {
 	done
 }
 
-#
-#
-#
+
 function kruize_local_demo_setup() {
 	# Start all the installs
 	start_time=$(get_date)
@@ -252,6 +260,43 @@ function kruize_local_demo_setup() {
 		expose_prometheus
 	fi
 }
+
+###########################################
+#  Port forward the URLs
+###########################################
+function port_forward() {
+	kubectl_cmd="kubectl -n monitoring"
+	port_flag="false"
+
+	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
+	# Start port forwarding for kruize service in the background
+	if is_port_in_use ${KRUIZE_PORT}; then
+		echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
+		port_flag="true"
+	else
+		${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
+	fi
+	# Start port forwarding for kruize-ui-nginx-service in the background
+	if is_port_in_use ${KRUIZE_UI_PORT}; then
+		echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
+		port_flag="true"
+	else
+		${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
+	fi
+	# Start port forwarding for tfb-service in the background
+	if is_port_in_use ${TECHEMPOWER_PORT}; then
+		echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
+		port_flag="true"
+	else
+		kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
+	fi
+
+	if ${port_flag} = "true"; then
+		echo "Exiting..."
+		exit 1
+	fi
+}
+
 
 function kruize_local_demo_terminate() {
 	start_time=$(get_date)

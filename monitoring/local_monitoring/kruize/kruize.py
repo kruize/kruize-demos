@@ -22,6 +22,8 @@ import requests
 
 def form_kruize_url(cluster_type, SERVER_IP=None):
     global URL
+    KIND_IP="127.0.0.1"
+    KRUIZE_PORT=8080
 
     if SERVER_IP != None:
         URL = "http://" + str(SERVER_IP)
@@ -38,7 +40,8 @@ def form_kruize_url(cluster_type, SERVER_IP=None):
         ip = subprocess.run(['minikube ip'], shell=True, stdout=subprocess.PIPE)
         SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
         URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
-
+    elif (cluster_type == "kind"):
+        URL = "http://" + KIND_IP + ":" + str(KRUIZE_PORT)
     elif (cluster_type == "openshift"):
 
         subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
@@ -194,7 +197,7 @@ def crawler(crawler_json_file):
 # Description: This function invokes the Kruize crawler service API
 # Input Parameters: job id returned from crawler service
 def get_crawler_job_status(job_id):
-    print("\nGet the crawler job status for job id \n for %s " % (job_id))
+    print("\nGet the crawler job status for job id %s " % (job_id))
     queryString = "?"
     if job_id:
         queryString = queryString + "jobID=%s" % (job_id)
