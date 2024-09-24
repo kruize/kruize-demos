@@ -23,9 +23,7 @@ import sys
 import time
 from datetime import datetime
 from time import sleep
-
 from kruize.kruize import *
-
 
 def generate_json(find_arr, json_file, filename, i):
     with open(json_file, 'r') as file:
@@ -57,9 +55,6 @@ def main(argv):
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
-        elif opt == '-d' and arg is not None:
-            num_entries = int(arg) * 96
-            num_entries += 1
 
     print("crawler_demo.py -c %s" % (cluster_type))
 
