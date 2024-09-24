@@ -60,9 +60,12 @@ function kruize_local() {
 	#
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
-
-       # Metric Profile JSON
-       resource_optimization_local_monitoring="${current_dir}/autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json"
+	# Metric Profile JSON
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		resource_optimization_local_monitoring="${current_dir}/autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring_norecordingrules.json"
+	else
+		resource_optimization_local_monitoring="${current_dir}/autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json"
+	fi
 
 	echo
 	echo "######################################################"
@@ -267,7 +270,7 @@ function kruize_local_patch() {
 		# Checkout mvp_demo to get the latest mvp_demo release version
 		git checkout mvp_demo >/dev/null 2>/dev/null
 
-		if [ ${CLUSTER_TYPE} == "kind" ]; then
+		if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
