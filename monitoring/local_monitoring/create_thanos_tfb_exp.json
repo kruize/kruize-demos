@@ -1,0 +1,29 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "monitor_tfb_benchmark",
+  "cluster_name": "eu-1",
+  "performance_profile": "resource-optimization-local-monitoring-thanos",
+  "mode": "monitor",
+  "target_cluster": "local",
+  "datasource": "thanos",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "tfb-qrh-sample-0",
+      "namespace": "msc-0",
+      "containers": [
+        {
+          "container_image_name": "kruize/tfb-qrh:1.13.2.F_et17",
+          "container_name": "tfb-0"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
+
