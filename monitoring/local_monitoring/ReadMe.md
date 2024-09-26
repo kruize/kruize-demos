@@ -27,6 +27,22 @@ By default, it runs on the `Kind` cluster.
 ./local_monitoring_demo.sh -c openshift
 ```
 
+```
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
+c = supports minikube, kind and openshift cluster-type
+i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
+l = Run a load against the benchmark
+p = expose prometheus port
+r = restart kruize only
+s = start (default), t = terminate
+u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
+b = deploy the benchmark.
+n = namespace where benchmark is deployed. Default - default
+d = duration to run the benchmark load
+m = manifests of the benchmark
+
+```
+
 ### Run the Namespace Recommendations Demo
 
 ##### Clone the demo repository:
@@ -40,7 +56,6 @@ cd kruize-demos/monitoring/local_monitoring
 ##### Execute the demo script in openshift as: 
 ```sh
 ./local_monitoring_demo_namespace.sh -c openshift
-```
 
 ## Understanding the Demo
 
@@ -50,18 +65,12 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
     - The TFB benchmark is initially deployed in the default namespace, comprising two key deployments
       - tfb-qrh: Serving as the application server.
       - tfb-database: Database to the server.
+    - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
 - Install Kruize
   - Installs kruize under openshift-tuning name.
 - Metadata Collection and Experiment Creation
   - Kruize gathers data sources and metadata from the cluster.
   - Experiments `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` are created for the server and database deployments respectively in the `default` namespace.
-- Creating a New Namespace and Application deployment
-  - A new namespace named test-multiple-import is created.
-  - The TFB benchmark is deployed in the test-multiple-import namespace.
-  - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios.
-- Metadata Refresh and Experiment Setup
-  - Kruize updates its metadata to include the test-multiple-import namespace.
-  - New experiments `monitor_tfb_benchmark_multiple_import` and `monitor_tfb-db_benchmark_multiple_import` are created for the server and database deployments in `test-multiple-import` namespace.
 - Generate Recommendations
   - Generates Recommendations for all the experiments created.
 
@@ -84,6 +93,40 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
 ##### To apply the load to TFB benchmark: 
 ```sh
 ./local_monitoring_demo.sh -c openshift -l -n <APP_NAMESPACE> -d <LOAD_DURATION>
-./local_monitoring_demo.sh -c openshift -l -n "test-multiple-import" -d "1200"
+./local_monitoring_demo.sh -c openshift -l -n "default" -d "1200"
 ```
-  
+
+
+#### To refresh datasource metadata
+
+To refresh the datasource metadata,
+- Delete the previosuly imported metadata
+- Import the metdata from the datasource
+
+Commands to refresh metadata
+
+```sh
+# Replace KRUIZE_URL with the URL to connect to Kruize
+
+# Delete previously imported metadata
+curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
+--header 'Content-Type: application/json' \
+--data '{
+     "version": "v1.0",
+     "datasource_name": "prometheus-1"
+}'
+
+# Import metadata from prometheus-1 datasource                   
+curl --location http://"${KRUIZE_URL}"/dsmetadata \
+--header 'Content-Type: application/json' \
+--data '{
+     "version": "v1.0",
+     "datasource_name": "prometheus-1"
+}'
+
+# Display metadata from prometheus-1 datasource
+curl "http://${KRUIZE_URL}/dsmetadata?datasource=prometheus-1&verbose=true"
+
+# Display metadata for a "prometheus-1" datasource in "default" namespace and "default" cluster
+curl "http://${KRUIZE_URL}/dsmetadata?datasource=prometheus-1&cluster_name=default&namespace=default&verbose=true"
+``` 

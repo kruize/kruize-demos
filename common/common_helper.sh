@@ -297,12 +297,37 @@ function benchmarks_install() {
 	pushd benchmarks >/dev/null
 		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
 		pushd techempower >/dev/null
+		# Reduce the requests to 1core-512Mi to accomodate the benchmark in resourcehub
+		sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\10.5/}' ./manifests/${MANIFESTS}/postgres.yaml
+		sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/postgres.yaml
+		sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\11.5/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
+		sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
+
 		kubectl apply -f manifests/${MANIFESTS} -n ${NAMESPACE}
 		check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
 	popd >/dev/null
 	echo "#######################################"
 	echo
+}
+
+###########################################
+#   Benchmarks Uninstall
+###########################################
+function benchmarks_uninstall() {
+        NAMESPACE="${1:-default}"
+        MANIFESTS="${2:-default_manifests}"
+        echo
+        echo "#######################################"
+        pushd benchmarks >/dev/null
+                echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
+                pushd techempower >/dev/null
+                kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
+                check_err "ERROR: TechEmpower app failed to delete, exiting"
+                popd >/dev/null
+        popd >/dev/null
+        echo "#######################################"
+        echo
 }
 
 #
@@ -327,7 +352,7 @@ function apply_benchmark_load() {
 		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 	fi
 	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
-	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 1024 8096
+	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 
 }
 
@@ -359,8 +384,12 @@ function create_namespace() {
 	CAPP_NAMESPACE="${1:-test-multiple-import}"
 	echo
 	echo "#########################################"
-	echo "Creating new namespace: ${CAPP_NAMESPACE}"
-  	kubectl create namespace ${CAPP_NAMESPACE}
+	if kubectl get namespace "${CAPP_NAMESPACE}" &> /dev/null; then
+		echo "Namespace ${CAPP_NAMESPACE} exists."
+	else
+		echo "Creating new namespace: ${CAPP_NAMESPACE}"
+		kubectl create namespace ${CAPP_NAMESPACE}
+	fi
 	echo "#########################################"
 	echo
 }
