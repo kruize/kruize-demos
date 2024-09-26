@@ -56,6 +56,7 @@ cd kruize-demos/monitoring/local_monitoring
 ##### Execute the demo script in openshift as: 
 ```sh
 ./local_monitoring_demo_namespace.sh -c openshift
+```
 
 ## Understanding the Demo
 
