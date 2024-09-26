@@ -89,7 +89,11 @@ function kruize_local() {
 	echo "#     Install default performance profile"
 	echo "######################################################"
 	echo
-	curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring_norecordingrules.json
+	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+		curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json
+	fi	
 	echo
 
   	echo
