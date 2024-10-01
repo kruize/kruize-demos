@@ -40,22 +40,6 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
-
-```
-
-### Run the Namespace Recommendations Demo
-
-##### Clone the demo repository:
-```sh
-git clone git@github.com:kruize/kruize-demos.git
-```
-##### Change directory to the local monitoring demo:
-```sh
-cd kruize-demos/monitoring/local_monitoring
-```
-##### Execute the demo script in openshift as: 
-```sh
-./local_monitoring_demo_namespace.sh -c openshift
 ```
 
 ## Understanding the Demo
