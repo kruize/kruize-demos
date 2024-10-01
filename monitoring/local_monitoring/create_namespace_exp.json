@@ -1,6 +1,6 @@
 [{
     "version": "v2.0",
-    "experiment_name": "namespace-demo",
+    "experiment_name": "monitor_app_namespace",
     "cluster_name": "default",
     "performance_profile": "resource-optimization-local-monitoring",
     "mode": "monitor",
@@ -10,7 +10,7 @@
     "kubernetes_objects": [
       {
         "namespaces": {
-          "namespace_name": "test-multiple-import"
+          "namespace_name": "default"
         }
       }
     ],

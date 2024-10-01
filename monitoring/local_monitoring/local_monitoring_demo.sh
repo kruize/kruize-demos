@@ -111,6 +111,8 @@ function kruize_local() {
 	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json
 	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json"
 	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
+	echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json"
+	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
 	echo
 
 	echo
@@ -128,6 +130,7 @@ function kruize_local() {
         echo
 	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_tfb_exp.json
 	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_tfb-db_exp.json
+	sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./create_namespace_exp.json
 	echo
 
 	echo
@@ -139,6 +142,8 @@ function kruize_local() {
 	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb_exp.json
 	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json"
 	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_tfb-db_exp.json
+	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json"
+	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
 	echo
 
 	apply_benchmark_load ${APP_NAMESPACE}
@@ -152,6 +157,8 @@ function kruize_local() {
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_app_namespace"
+	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_app_namespace"
 
 	echo ""
 	echo "######################################################"
@@ -164,10 +171,12 @@ function kruize_local() {
   	echo "Generate fresh recommendations using"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
+	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_app_namespace"
   	echo
   	echo "List Recommendations using "
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark"
+	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_app_namespace"
   	echo
   	echo "######################################################"
   	echo
@@ -287,6 +296,7 @@ function kruize_local_patch() {
 function kruize_local_demo_setup() {
 	# Start all the installs
 	start_time=$(get_date)
+	namespace_quota_yaml="${current_dir}/namespace_resource_quota.yaml"
 	echo
 	echo "#######################################"
 	echo "#       Kruize Local Demo Setup       #"
@@ -311,6 +321,7 @@ function kruize_local_demo_setup() {
 			prometheus_install
 		fi
 		create_namespace ${APP_NAMESPACE}
+		apply_namespace_resource_quota ${APP_NAMESPACE} ${namespace_quota_yaml}
 		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK_MANIFESTS}
 	fi
 	kruize_local_patch
@@ -420,6 +431,7 @@ function kruize_local_demo_terminate() {
 		kruize_uninstall
 	fi
 	benchmarks_uninstall ${APP_NAMESPACE} ${BENCHMARK_MANIFESTS}
+	delete_namespace_resource_quota ${APP_NAMESPACE}
 	delete_repos autotune
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
