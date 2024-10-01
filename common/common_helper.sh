@@ -422,3 +422,50 @@ function delete_namespace() {
   echo "#########################################"
   echo
 }
+
+###########################################
+#   Apply namespace resource quota
+###########################################
+function apply_namespace_resource_quota() {
+	# Define the namespace and resource quota file path
+	CAPP_NAMESPACE="${1:-default}"
+	RESOURCE_QUOTA_FILE="${2:-namespace_resource_quota.yaml}"
+
+	echo 
+	echo "Updating namespace resource quota YAML"
+	sed -i 's/namespace: default/namespace: "'"${CAPP_NAMESPACE}"'"/' "${RESOURCE_QUOTA_FILE}"
+	echo
+	echo "Applying namespace resource quota in namespace: ${CAPP_NAMESPACE}"
+	
+	# Apply the resource quota YAML to the namespace
+	if kubectl apply -f "${RESOURCE_QUOTA_FILE}" -n "${CAPP_NAMESPACE}" &> /dev/null; then
+		echo "Resource quota applied successfully."
+	else
+			echo "Failed to apply resource quota."
+	fi
+
+	echo "#########################################"
+	echo
+}
+
+###########################################
+#   Delete namespace resource quota
+###########################################
+function delete_namespace_resource_quota() {
+	# Define the namespace and resource quota name
+	CAPP_NAMESPACE="${1:-default}"
+	RESOURCE_QUOTA_NAME="${2:-default-ns-quota}"
+
+	echo
+	echo "Deleting namespace resource quota: ${RESOURCE_QUOTA_NAME} in namespace: ${CAPP_NAMESPACE}"
+	
+	# Delete the resource quota in the namespace
+	if kubectl delete resourcequota "${RESOURCE_QUOTA_NAME}" -n "${CAPP_NAMESPACE}" &> /dev/null; then
+		echo "Namespace resource quota ${RESOURCE_QUOTA_NAME} deleted successfully."
+	else
+		echo "Failed to delete namespace resource quota. It may not exist or there was an error."
+	fi
+
+	echo "#########################################"
+	echo
+}
