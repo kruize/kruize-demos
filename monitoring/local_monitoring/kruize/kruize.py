@@ -180,29 +180,29 @@ def delete_experiment(input_json_file, invalid_header=False):
     print("Response status code = ", response.status_code)
     return response
 
-# Description: This function invokes the Kruize crawler service API
-# Input Parameters: crawler json
-def crawler(crawler_json_file):
-    json_file = open(crawler_json_file, "r")
-    crawler_json = json.loads(json_file.read())
+# Description: This function invokes the Kruize bulk service API
+# Input Parameters: bulk json
+def bulk(bulk_json_file):
+    json_file = open(bulk_json_file, "r")
+    bulk_json = json.loads(json_file.read())
 
-    print("\nInvoking crawler service...")
-    url = URL + "/crawler"
+    print("\nInvoking bulk service...")
+    url = URL + "/bulk"
     print("URL = ", url)
 
-    response = requests.post(url, json=crawler_json)
+    response = requests.post(url, json=bulk_json)
     print("Response status code = ", response.status_code)
     return response
 
-# Description: This function invokes the Kruize crawler service API
-# Input Parameters: job id returned from crawler service
-def get_crawler_job_status(job_id):
-    print("\nGet the crawler job status for job id %s " % (job_id))
+# Description: This function invokes the Kruize bulk service API
+# Input Parameters: job id returned from bulk service
+def get_bulk_job_status(job_id):
+    print("\nGet the bulk job status for job id %s " % (job_id))
     queryString = "?"
     if job_id:
         queryString = queryString + "jobID=%s" % (job_id)
 
-    url = URL + "/crawler%s" % (queryString)
+    url = URL + "/bulk%s" % (queryString)
     print("URL = ", url)
     response = requests.get(url, )
 
