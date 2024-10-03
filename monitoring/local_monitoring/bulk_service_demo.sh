@@ -50,9 +50,9 @@ function usage() {
 	exit 1
 }
 
-function kruize_crawler() {
-  echo "Running crawler_demo.py..."
-  "${PYTHON_CMD}" crawler_demo.py -c "${CLUSTER_TYPE}"
+function kruize_bulk() {
+  echo "Running bulk_demo.py..."
+  "${PYTHON_CMD}" bulk_demo.py -c "${CLUSTER_TYPE}"
 
 }
 
@@ -60,9 +60,9 @@ function kruize_crawler() {
 #
 ###########################################
 
-function kruize_local_crawler() {
+function kruize_local_bulk() {
 	
-	crawler_input_json=./crawler_input.json
+	bulk_input_json=./bulk_input.json
 
 	echo
 	echo "######################################################"
@@ -81,11 +81,11 @@ function kruize_local_crawler() {
 
 	echo
 	echo "######################################################"
-	echo "#     Invoke Kruize crawler service API"
+	echo "#     Invoke Kruize bulk service API"
 	echo "######################################################"
 	echo
-	echo "curl -X POST http://${KRUIZE_URL}/crawler -d @./crawler_input.json"
-	curl -X POST http://${KRUIZE_URL}/crawler -d @./crawler_input.json
+	echo "curl -X POST http://${KRUIZE_URL}/bulk -d @./bulk_input.json"
+	curl -X POST http://${KRUIZE_URL}/bulk -d @./bulk_input.json
 	echo
 
 	echo "Sleeping for 20s before listing the recommendations!"
@@ -248,7 +248,7 @@ function kruize_local_demo_setup() {
 
 	get_urls
 
-	kruize_crawler
+	kruize_bulk
 
 	show_urls
 

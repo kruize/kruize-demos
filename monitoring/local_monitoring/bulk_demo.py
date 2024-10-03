@@ -40,23 +40,23 @@ def generate_json(find_arr, json_file, filename, i):
 def main(argv):
     cluster_type = "minikube"
 
-    #json_data = json.load(open(crawler_json_file))
+    #json_data = json.load(open(bulk_json_file))
     #with open(filename, 'w') as file:
     #    file.write(data)
 
     try:
         opts, args = getopt.getopt(argv, "h:c:d:")
     except getopt.GetoptError:
-        print("crawler_demo.py -c <cluster type>")
+        print("bulk_demo.py -c <cluster type>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print("crawler_demo.py -c <cluster type>")
+            print("bulk_demo.py -c <cluster type>")
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
 
-    print("crawler_demo.py -c %s" % (cluster_type))
+    print("bulk_demo.py -c %s" % (cluster_type))
 
     # Form the kruize url
     form_kruize_url(cluster_type)
@@ -65,26 +65,26 @@ def main(argv):
     metric_profile_json_file = "./autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json"
     create_metric_profile(metric_profile_json_file)
 
-    # Invoke the crawler service with the specified json
-    crawler_json_file = "./crawler_input.json"
-    response = crawler(crawler_json_file)
+    # Invoke the bulk service with the specified json
+    bulk_json_file = "bulk_input.json"
+    response = bulk(bulk_json_file)
 
-    # Obtain the job id from the response from crawler service
+    # Obtain the job id from the response from bulk service
     job_id_json = response.json()
 
     print(job_id_json)
     job_id = job_id_json['jobID']
     print(job_id)
 
-    # Get the crawler job status using the job id
-    response = get_crawler_job_status(job_id)
+    # Get the bulk job status using the job id
+    response = get_bulk_job_status(job_id)
     job_status_json = response.json()
 
     # Loop until job status is COMPLETED
     job_status = job_status_json['status']
     print(job_status)
     while job_status != "COMPLETED":
-        response = get_crawler_job_status(job_id)
+        response = get_bulk_job_status(job_id)
         job_status_json = response.json()
         job_status = job_status_json['status']
         sleep(5)
