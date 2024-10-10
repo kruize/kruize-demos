@@ -196,11 +196,13 @@ def bulk(bulk_json_file):
 
 # Description: This function invokes the Kruize bulk service API
 # Input Parameters: job id returned from bulk service
-def get_bulk_job_status(job_id):
+def get_bulk_job_status(job_id, verbose = None):
     print("\nGet the bulk job status for job id %s " % (job_id))
     queryString = "?"
     if job_id:
         queryString = queryString + "job_id=%s" % (job_id)
+    if verbose:
+        queryString = queryString + "&verbose=%s" % (verbose)
 
     url = URL + "/bulk%s" % (queryString)
     print("URL = ", url)
