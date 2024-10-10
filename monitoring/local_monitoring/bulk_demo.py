@@ -77,14 +77,15 @@ def main(argv):
     print(job_id)
 
     # Get the bulk job status using the job id
-    response = get_bulk_job_status(job_id)
+    verbose="true"
+    response = get_bulk_job_status(job_id, verbose)
     job_status_json = response.json()
 
     # Loop until job status is COMPLETED
     job_status = job_status_json['status']
     print(job_status)
     while job_status != "COMPLETED":
-        response = get_bulk_job_status(job_id)
+        response = get_bulk_job_status(job_id, verbose)
         job_status_json = response.json()
         job_status = job_status_json['status']
         sleep(5)
@@ -96,7 +97,7 @@ def main(argv):
     print(job_status)
 
     # Fetch the list of experiments for which recommendations are available
-    exp_list = job_status_json['data']['recommendations']['experiments']['completed']
+    exp_list = job_status_json['data']['recommendations']['data']['processed']
 
     # List recommendations for the experiments for which recommendations are available
     recommendations_json_arr = []
