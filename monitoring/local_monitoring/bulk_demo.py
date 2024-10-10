@@ -73,7 +73,7 @@ def main(argv):
     job_id_json = response.json()
 
     print(job_id_json)
-    job_id = job_id_json['jobID']
+    job_id = job_id_json['job_id']
     print(job_id)
 
     # Get the bulk job status using the job id
@@ -96,7 +96,7 @@ def main(argv):
     print(job_status)
 
     # Fetch the list of experiments for which recommendations are available
-    exp_list = job_status_json['data']['recommendations']['data']['completed']
+    exp_list = job_status_json['data']['recommendations']['experiments']['completed']
 
     # List recommendations for the experiments for which recommendations are available
     recommendations_json_arr = []

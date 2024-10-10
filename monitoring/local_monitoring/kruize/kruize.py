@@ -200,7 +200,7 @@ def get_bulk_job_status(job_id):
     print("\nGet the bulk job status for job id %s " % (job_id))
     queryString = "?"
     if job_id:
-        queryString = queryString + "jobID=%s" % (job_id)
+        queryString = queryString + "job_id=%s" % (job_id)
 
     url = URL + "/bulk%s" % (queryString)
     print("URL = ", url)
