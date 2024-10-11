@@ -54,6 +54,18 @@ function kruize_bulk() {
   echo "Running bulk_demo.py..."
   "${PYTHON_CMD}" bulk_demo.py -c "${CLUSTER_TYPE}"
 
+  echo
+  echo "Bulk API Job status is captured in job_status.json"
+  echo
+  echo "Recommendations for all experiments are available in recommendations_data.json"
+  echo
+  echo "List Recommendations using "
+  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name='prometheus-1|default|tfb-1|tfb-qrh-sample(deployment)|tfb-server'"
+  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name='prometheus-1|default|tfb-2|tfb-qrh-sample(deployment)|tfb-server'"
+  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name='prometheus-1|default|tfb-3|tfb-qrh-sample(deployment)|tfb-server'"
+  echo
+  echo "######################################################"
+  echo
 }
 
 # Check system configs
