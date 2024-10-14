@@ -9,12 +9,12 @@
   "kubernetes_objects": [
     {
       "type": "job",
-      "name": "human-eval",
+      "name": "human-eval-deployment-job",
       "namespace": "default",
       "containers": [
         {
-          "container_image_name": "kruizehub/human-eval",
-          "container_name": "human-eval"
+          "container_image_name": "kruizehub/human-eval-deployment:latest",
+          "container_name": "human-eval-benchmark"
         }
       ]
     }

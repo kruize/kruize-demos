@@ -312,25 +312,26 @@ function benchmarks_install() {
 
 		if [ ${GPUS} -gt 0 ];then
 			num_gpus=$((GPUS))
-			# Commenting for now
-			#if [ ${num_gpus} > 0 ]; then
-			#	echo "#######################################"
-			#	echo "Running HumanEval benchmark job in background"
-			#	echo
-			#	pushd AI-MLbenchmarks/human-eval >/dev/null
-			#	./deploy.sh ${NAMESPACE}
-			#	check_err "ERROR: Human eval job failed to start, exiting"
-			#	popd >/dev/null
-			#	num_gpus=$((num_gpus - 1))
-			#fi
+			if [ ${num_gpus} -gt 0 ]; then
+				echo "#######################################"
+				echo "Running HumanEval benchmark job in background"
+				echo
+				pushd human-eval-benchmark/manifests >/dev/null
+				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' pvc.yaml
+				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' job.yaml
+				oc apply -f pvc.yaml -n ${NAMESPACE}
+				oc apply -f job.yaml -n ${NAMESPACE}
+				check_err "ERROR: Human eval job failed to start, exiting"
+				popd >/dev/null
+				num_gpus=$((num_gpus - 1))
+			fi
 
 			if [ ${num_gpus} -gt 0 ]; then
 				echo "#######################################"
                                 echo "Running Training TTM benchmark job in background"
-				echo
                                 pushd AI-MLbenchmarks/ttm >/dev/null
 				echo ""
-                                #./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
+                                ./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
                                 check_err "ERROR: Training ttm jobs failed to start, exiting"
 				popd >/dev/null
                                 num_gpus=$((num_gpus - 1))
@@ -338,7 +339,6 @@ function benchmarks_install() {
 			if [ ${num_gpus} -gt 0 ]; then
 				echo "#######################################"
 				echo "Installing LLM-RAG benchmark into cluster"
-				echo
 				pushd AI-MLbenchmarks/llm-rag >/dev/null
 				./deploy.sh ${NAMESPACE}
 				check_err "ERROR: llm-rag benchmark failed to start, exiting"
