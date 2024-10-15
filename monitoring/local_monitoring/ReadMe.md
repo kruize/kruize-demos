@@ -28,7 +28,7 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-g num of unpartitioned gpu resources]
 c = supports minikube, kind and openshift cluster-type
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 l = Run a load against the benchmark
@@ -40,6 +40,7 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
+g = number of unpartitioned gpu resources available
 ```
 
 ## Understanding the Demo
