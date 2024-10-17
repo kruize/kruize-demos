@@ -10,14 +10,13 @@ recommendations. It also has settings to generate recommendations at both the co
 Bulk returns a `job_id` as a response to track the job status. The user can use the `job_id` to monitor the
 progress of the job. User can invoke listRecommendations API for the processed experiments to fetch the recommendations from Kruize. 
 
-Refer the documentation of the [Bulk API](https://raw.githubusercontent.com/kruize/autotune/refs/heads/mvp_demo/design/BulkAPI.md) for details.
+Refer the documentation of the [Bulk API](https://github.com/kruize/autotune/blob/master/design/BulkAPI.md) for details.
 
 ## Demo workflow
 
-- Deploys [TFB application](https://github.com/kruize/benchmarks/blob/master/techempower/README.md) into 3 different namespaces and applies load for these applications
 - Deploys Kruize and creates the metric profile
 - Invokes the Bulk API using the configuration in bulk_input.json
-- Obtains the bulk job status using the job_id returned from the bulk API invocation
+- Obtains the bulk job status using the job_id returned from the Bulk API
 - Waits until the job status is COMPLETED and fetches the recommendations for all the processed experiments
 - Stores the bulk job status in job_status.json and all the recommendations in recommendations_data.json
 
@@ -39,11 +38,12 @@ cd kruize-demos/monitoring/local_monitoring
 ```
 
 ```
-Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]
+Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]
 c = supports minikube, kind and openshift cluster-type
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 p = expose prometheus port
 r = restart kruize only
+l = deploy TFB app wih load
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
