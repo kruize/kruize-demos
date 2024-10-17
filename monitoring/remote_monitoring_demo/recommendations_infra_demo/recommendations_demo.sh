@@ -82,14 +82,7 @@ function kruize_install() {
 	pushd autotune >/dev/null
 		# Checkout the mvp_demo branch for now
 		git checkout mvp_demo
-
-		# Set local monitoring to false
-                if [ ${CLUSTER_TYPE} == "minikube" ]; then
-                        sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/minikube/kruize-crc-minikube.yaml
-                elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-                        sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml
-                fi
-
+		kruize_local_disable
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 
