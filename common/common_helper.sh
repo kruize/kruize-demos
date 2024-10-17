@@ -780,3 +780,11 @@ function kruize_local_demo_terminate() {
 	echo
 }
 
+function kruize_local_disable() {
+        if [ ${CLUSTER_TYPE} == "minikube" ]; then
+                sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/minikube/kruize-crc-minikube.yaml
+        elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+                sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml
+        fi
+}
+
