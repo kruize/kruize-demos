@@ -28,7 +28,7 @@ export CLUSTER_TYPE="kind"
 
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
-
+export LOG_FILE="demo-benchmarks.log"
 KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
@@ -47,6 +47,7 @@ function usage() {
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "m = manifests of the benchmark"
+	echo "g = number of unpartitioned gpus in cluster"
 
 	exit 1
 }
@@ -115,6 +116,15 @@ function kruize_local() {
 	curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
 	echo
 
+	if [ ${GPUS} -gt 0 ]; then
+		echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_human_eval_exp.json"
+		curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_human_eval_exp.json
+		echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_ttm_exp.json"
+		curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_ttm_exp.json
+		echo "curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_llm_rag_exp.json"
+		curl -X DELETE http://${KRUIZE_URL}/createExperiment -d @./create_llm_rag_exp.json
+	fi
+
 	echo
 	echo "######################################################"
 	echo "#     Install default metric profile"
@@ -131,6 +141,10 @@ function kruize_local() {
 	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_tfb_exp.json
 	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_tfb-db_exp.json
 	sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./create_namespace_exp.json
+	sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_human_eval_exp.json
+        sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_ttm_exp.json
+        sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./create_llm_rag_exp.json
+
 	echo
 
 	echo
@@ -145,6 +159,15 @@ function kruize_local() {
 	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json"
 	curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_namespace_exp.json
 	echo
+	if [ ${GPUS} -gt 0 ]; then
+		echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_human_eval_exp.json"
+		curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_human_eval_exp.json
+		echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_ttm_exp.json"
+		curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_ttm_exp.json
+		echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_llm_rag_exp.json"
+		curl -X POST http://${KRUIZE_URL}/createExperiment -d @./create_llm_rag_exp.json
+		echo
+	fi
 
 	apply_benchmark_load ${APP_NAMESPACE}
 
@@ -160,6 +183,16 @@ function kruize_local() {
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_app_namespace"
 	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_app_namespace"
 
+	if [ ${GPUS} -gt 0 ]; then
+		echo
+		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_human_eval_benchmark"
+		curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_human_eval_benchmark"
+		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_ttm_benchmark"
+		curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_ttm_benchmark"
+		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_llm_rag_benchmark"
+		curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_llm_rag_benchmark"
+	fi
+
 	echo ""
 	echo "######################################################"
 	echo "ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!"
@@ -172,11 +205,24 @@ function kruize_local() {
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb-db_benchmark"
 	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_app_namespace"
-  	echo
+	if [ ${GPUS} -gt 0 ]; then
+                echo "  for experiments using accelerators"
+		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_human_eval_benchmark"
+                echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_ttm_benchmark"
+                echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_llm_rag_benchmark"
+        fi
+	echo
+
   	echo "List Recommendations using "
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb-db_benchmark"
 	echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_app_namespace"
+	if [ ${GPUS} -gt 0 ]; then
+		echo "  for experiments using accelerators"
+                echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_human_eval_benchmark"
+                echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_ttm_benchmark"
+                echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_llm_rag_benchmark"
+        fi
   	echo
   	echo "######################################################"
   	echo
@@ -196,9 +242,10 @@ export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
+export GPUS="0"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:m:lbprstu: gopts
+while getopts c:i:n:d:m:g:lbprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -238,6 +285,9 @@ do
 			;;
 		m)
 			BENCHMARK_MANIFESTS="${OPTARG}"
+			;;
+		g)
+			GPUS="${OPTARG}"
 			;;
 		*)
 			usage

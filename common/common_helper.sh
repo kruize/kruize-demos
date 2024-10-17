@@ -293,6 +293,8 @@ function prometheus_install() {
 function benchmarks_install() {
   	NAMESPACE="${1:-default}"
 	MANIFESTS="${2:-default_manifests}"
+	GPUS="${3:-0}"
+
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
@@ -307,6 +309,43 @@ function benchmarks_install() {
 		kubectl apply -f manifests/${MANIFESTS} -n ${NAMESPACE}
 		check_err "ERROR: TechEmpower app failed to start, exiting"
 		popd >/dev/null
+
+		if [ ${GPUS} -gt 0 ];then
+			num_gpus=$((GPUS))
+			# Commenting for now
+			#if [ ${num_gpus} > 0 ]; then
+			#	echo "#######################################"
+			#	echo "Running HumanEval benchmark job in background"
+			#	echo
+			#	pushd AI-MLbenchmarks/human-eval >/dev/null
+			#	./deploy.sh ${NAMESPACE}
+			#	check_err "ERROR: Human eval job failed to start, exiting"
+			#	popd >/dev/null
+			#	num_gpus=$((num_gpus - 1))
+			#fi
+
+			if [ ${num_gpus} -gt 0 ]; then
+				echo "#######################################"
+                                echo "Running Training TTM benchmark job in background"
+				echo
+                                pushd AI-MLbenchmarks/ttm >/dev/null
+				echo ""
+                                #./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
+                                check_err "ERROR: Training ttm jobs failed to start, exiting"
+				popd >/dev/null
+                                num_gpus=$((num_gpus - 1))
+                        fi
+			if [ ${num_gpus} -gt 0 ]; then
+				echo "#######################################"
+				echo "Installing LLM-RAG benchmark into cluster"
+				echo
+				pushd AI-MLbenchmarks/llm-rag >/dev/null
+				./deploy.sh ${NAMESPACE}
+				check_err "ERROR: llm-rag benchmark failed to start, exiting"
+				popd >/dev/null
+			fi
+		fi
+
 	popd >/dev/null
 	echo "#######################################"
 	echo
@@ -318,6 +357,7 @@ function benchmarks_install() {
 function benchmarks_uninstall() {
         NAMESPACE="${1:-default}"
         MANIFESTS="${2:-default_manifests}"
+	GPUS="${3:-0}"
         echo
         echo "#######################################"
         pushd benchmarks >/dev/null
@@ -326,6 +366,28 @@ function benchmarks_uninstall() {
                 kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
                 check_err "ERROR: TechEmpower app failed to delete, exiting"
                 popd >/dev/null
+
+		if [ ${GPUS} > 0 ];then
+			# Commenting for now
+			# echo "Installing HumanEval benchmark job into cluster"
+			# pushd AI-MLbenchmarks/human-eval >/dev/null
+                        # ./cleanup.sh ${NAMESPACE}
+                        # check_err "ERROR: Human eval job failed to delete, exiting"
+			# popd >/dev/null
+
+			echo "Installing Training TTM benchmark job into cluster"
+			pushd AI-MLbenchmarks/ttm >/dev/null
+			./cleanup.sh ${NAMESPACE}
+			check_err "ERROR: Training ttm jobs failed to delete, exiting"
+			popd >/dev/null
+
+			echo "Installing LLM-RAG benchmark into cluster"
+			pushd AI-MLbenchmarks/llm-rag >/dev/null
+			./cleanup.sh ${NAMESPACE}
+			check_err "ERROR: llm-rag benchmark failed to delete, exiting"
+			popd >/dev/null
+                fi
+
         popd >/dev/null
         echo "#######################################"
         echo
@@ -339,21 +401,32 @@ function apply_benchmark_load() {
 	APP_NAMESPACE="${1:-default}"
 	LOAD_DURATION="${2:-1200}"
 
-	echo
-	echo "################################################################################################################"
-	echo " Starting ${LOAD_DURATION} secs background load against the techempower benchmark in ${APP_NAMESPACE} namespace "
-	echo "################################################################################################################"
-	echo
-
-	if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
-		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
-	elif [ ${CLUSTER_TYPE} == "aks" ]; then
-		TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
-	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-		TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
+	if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "tfb"; then
+		echo
+		echo "################################################################################################################"
+		echo " Starting ${LOAD_DURATION} secs background load against the techempower benchmark in ${APP_NAMESPACE} namespace "
+		echo "################################################################################################################"
+		echo
+		if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
+			TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+		elif [ ${CLUSTER_TYPE} == "aks" ]; then
+			TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+			TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
+		fi
+		# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
+		docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 	fi
-	# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
-	docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
+
+	if kubectl get pods --namespace testllm -o jsonpath='{.items[*].metadata.name}' | grep -q "llm"; then
+		pushd benchmarks/AI-MLbenchmarks/llm-rag >/dev/null
+		echo
+                echo "################################################################################################################"
+                echo " Starting background load against the llm-rag benchmark in ${APP_NAMESPACE} namespace "
+                echo "################################################################################################################"
+		./run_load.sh ${APP_NAMESPACE} >> ${LOG_FILE} &
+		popd >/dev/null
+	fi
 
 }
 
