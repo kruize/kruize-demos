@@ -682,12 +682,14 @@ function get_urls() {
 ###########################################
 function show_urls() {
 	if [ ${demo} == "local" ]; then
+		{
 		echo
 		echo "#######################################"
 		echo "#             Quarkus App             #"
 		echo "#######################################"
 		echo "Info: Access techempower app at http://${TECHEMPOWER_URL}/db"
 		echo "Info: Access techempower app metrics at http://${TECHEMPOWER_URL}/q/metrics"
+		} >> "${LOG_FILE}" 2>&1
 	fi
 
 	echo
@@ -737,6 +739,8 @@ function kruize_local_demo_setup() {
 	echo "#######################################"
 	echo
 
+	{
+
 	if [ ${kruize_restart} -eq 0 ]; then
 		clone_repos autotune
 		clone_repos benchmarks
@@ -773,6 +777,8 @@ function kruize_local_demo_setup() {
 	fi
 
 	get_urls
+
+	} >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "local" ]; then
 		kruize_local
