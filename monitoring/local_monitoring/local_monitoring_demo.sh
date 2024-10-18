@@ -69,7 +69,7 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export GPUS="0"
-
+export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
 while getopts c:i:e:n:d:m:g:lbprstu: gopts
 do
@@ -124,15 +124,15 @@ do
 done
 
 export demo="local"
-ALL_EXPERIMENTS=("create_human_eval_exp" "create_llm_rag_exp" "create_namespace_exp" "create_tfb-db_exp" "create_tfb_exp" "create_ttm_exp")
+#EXPERIMENTS=("create_human_eval_exp" "create_llm_rag_exp" "create_namespace_exp" "create_tfb-db_exp" "create_tfb_exp" "create_ttm_exp")
 
-if [ ${EXPERIMENT_TYPE} == "container" ]; then
+if [ "${EXPERIMENT_TYPE}" == "container" ]; then
 	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
 	BENCHMARK="tfb"
-elif [ ${EXPERIMENT_TYPE} == "namespace" ]; then
+elif [ "${EXPERIMENT_TYPE}" == "namespace" ]; then
         export EXPERIMENTS=("create_namespace_exp")
 	BENCHMARK="tfb"
-elif [ ${EXPERIMENT_TYPE} == "gpu" ]; then
+elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	export EXPERIMENTS=("create_human_eval_exp")
 	BENCHMARK="human-eval"
 	gpu_nodes=$(oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.allocatable.nvidia\.com/gpu}{"\n"}{end}' | grep -v '<none>' | awk '$2 > 0')
@@ -140,12 +140,14 @@ elif [ ${EXPERIMENT_TYPE} == "gpu" ]; then
 	    	echo "No GPU resources found in the cluster. Exiting!"
 	    	exit 0
 	fi
+else
+	export EXPERIMENTS=()
 fi
 
+echo | tee "${LOG_FILE}"
 if [ ${start_demo} -eq 1 ]; then
-	echo "Setting up a kruize local demo..." | tee "${LOG_FILE}"
-	echo "For installation logs, look in kruize-demo.log" | tee -a "${LOG_FILE}"
 	kruize_local_demo_setup ${BENCHMARK}
+	echo "For installation logs, look in kruize-demo.log" | tee -a "${LOG_FILE}"
 elif [ ${start_demo} -eq 2 ]; then
 	echo "Updating the kruize local demo..." | tee -a "${LOG_FILE}"
 	kruize_local_demo_update ${BENCHMARK} >> "${LOG_FILE}" 2>&1

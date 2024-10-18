@@ -110,7 +110,7 @@ function kruize_local_experiments() {
 		echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json"
 		curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json
 		} >> "${LOG_FILE}" 2>&1
-		echo "Created experiment using ${experiment}.json" | tee -a "${LOG_FILE}"
+
         done
 
 	apply_benchmark_load ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
