@@ -2,6 +2,10 @@
 
 With Kruize's local monitoring mode, let's explore a demonstration of local monitoring, highlighting how it provides customized recommendations for various load scenarios in Openshift.
 
+## Requirements 
+- Demo requires a kubernetes cluster. Currently, it supports `Kind`, `Minikube` and `Openshift`
+- To run this demo locally, demo expects minikube or kind cluster to be installed with atleast 8 CPUs and 16384 MB (16 GB) Memory. 
+
 ## Getting Started with the Demo
 
 To begin exploring local monitoring capabilities, follow these steps:
@@ -46,16 +50,22 @@ m = manifests of the benchmark
 
 This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark to simulate different load conditions and observe how Kruize-Autotune reacts with its recommendations. Here’s a breakdown of what happens during the demo:
 
-- TFB deployment in default Namespace
+- Benchmarks Installation
+  - For *conatiner* and *namespace* experiment type TFB deployment is created in default Namespace
     - The TFB benchmark is initially deployed in the default namespace, comprising two key deployments
       - tfb-qrh: Serving as the application server.
       - tfb-database: Database to the server.
     - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
+  - For *gpu* experiment type Human-Eval job is created in default Namespace
+    - The Human-Eval benchmark is deployed as a Job in the default namespace.
 - Install Kruize
   - Installs kruize under openshift-tuning name.
 - Metadata Collection and Experiment Creation
   - Kruize gathers data sources and metadata from the cluster.
-  - Experiments `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` are created for the server and database deployments respectively in the `default` namespace.
+  - Following experiments are created based on experiment type - 
+    - For *container* experiment type `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` experiments are created for the server and database deployments respectively in the `default` namespace.
+    - For *namespace* experiment type `monitor_app_namespace` experiment is created in the `default` namespace.
+    - For *gpu* experiment type `monitor_human_eval_benchmark` experiment is created for `human-eval-deployment-job` job in the `default` namespace.
 - Generate Recommendations
   - Generates Recommendations for all the experiments created.
 
