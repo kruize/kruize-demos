@@ -73,6 +73,10 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
   - Illustrates under-provisioning where CPU recommendations exceed the current CPU requests, suggesting adjustments for improved efficiency.
   ![underprovision](https://github.com/kusumachalasani/autotune-demo/assets/17760990/9005a59d-db4c-41b4-b170-90adf0fafff0)
 
+## Bulk Service Demo
+
+Kruize Local offers a bulk service that generates recommendations in bulk, based on the specified bulk service configuration. Refer this [README](https://github.com/kruize/kruize-demos/tree/main/monitoring/local_monitoring/bulk_demo/README.md) to try this.
+
 ## Misc
 
 ##### To apply the load to TFB benchmark: 

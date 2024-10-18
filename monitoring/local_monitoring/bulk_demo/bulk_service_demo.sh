@@ -17,7 +17,7 @@
 
 # include the common_utils.sh script to access methods
 current_dir="$(dirname "$0")"
-common_dir="${current_dir}/../../common/"
+common_dir="${current_dir}/../../../common/"
 source ${common_dir}/common_helper.sh
 
 # Default docker image repo
@@ -37,10 +37,11 @@ TECHEMPOWER_PORT=8082
 PYTHON_CMD=python3
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "p = expose prometheus port"
+	echo "l = to deploy TFB with load"
 	echo "r = restart kruize only"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
@@ -55,15 +56,6 @@ function kruize_bulk() {
   "${PYTHON_CMD}" bulk_demo.py -c "${CLUSTER_TYPE}"
 
   echo
-  echo "Bulk API Job status is captured in job_status.json"
-  echo
-  echo "Recommendations for all experiments are available in recommendations_data.json"
-  echo
-  echo "List Recommendations using "
-  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name='prometheus-1|default|tfb-1|tfb-qrh-sample(deployment)|tfb-server'"
-  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name='prometheus-1|default|tfb-2|tfb-qrh-sample(deployment)|tfb-server'"
-  echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name='prometheus-1|default|tfb-3|tfb-qrh-sample(deployment)|tfb-server'"
-  echo
   echo "######################################################"
   echo
 }
@@ -74,15 +66,14 @@ sys_cpu_mem_check
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
-export benchmark_load=0
-export benchmark=0
 export prometheus=0
 export kruize_restart=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
+
 # Iterate through the commandline options
-while getopts c:i:n:d:lbprstu: gopts
+while getopts c:i:n:d:lprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -96,6 +87,9 @@ do
 			;;
 		r)
 			kruize_restart=1
+			;;
+	  	l)
+			start_demo=2
 			;;
 		s)
 			start_demo=1
@@ -119,7 +113,9 @@ done
 
 export demo="bulk"
 if [ ${start_demo} -eq 1 ]; then
-	kruize_local_demo_setup 
+	kruize_local_demo_setup
+elif [ ${start_demo} -eq 2 ]; then
+	kruize_local_demo_update
 else
 	kruize_local_demo_terminate
 fi

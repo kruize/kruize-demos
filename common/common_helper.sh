@@ -471,29 +471,6 @@ function delete_namespace_resource_quota() {
 	echo
 }
 
-#
-# "local" flag is turned off by default for now. This needs to be set to true.
-#
-function kruize_local_patch() {
-	CRC_DIR="./manifests/crc/default-db-included-installation"
-	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
-	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
-	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
-
-	pushd autotune >/dev/null
-		# Checkout mvp_demo to get the latest mvp_demo release version
-		git checkout mvp_demo >/dev/null 2>/dev/null
-
-		if [ ${CLUSTER_TYPE} == "kind" ]; then
-			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
-		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-		elif [ ${CLUSTER_TYPE} == "aks" ]; then
-                        perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
-		fi
-	popd >/dev/null
-}
-
 # Function to check if a port is in use
 function is_port_in_use() {
   local port=$1
@@ -540,6 +517,30 @@ function port_forward() {
 		exit 1
 	fi
 }
+
+#
+# "local" flag is turned off by default for now. This needs to be set to true.
+#
+function kruize_local_patch() {
+	CRC_DIR="./manifests/crc/default-db-included-installation"
+	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
+
+	pushd autotune >/dev/null
+		# Checkout mvp_demo to get the latest mvp_demo release version
+		git checkout mvp_demo >/dev/null 2>/dev/null
+
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+		elif [ ${CLUSTER_TYPE} == "aks" ]; then
+                        perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
+		fi
+	popd >/dev/null
+}
+
 
 ###########################################
 #  Get URLs
@@ -685,8 +686,6 @@ function kruize_local_demo_setup() {
 		fi
 		if [ ${demo} == "local" ]; then
 			benchmarks_install
-		elif [ ${demo} == "bulk" ]; then
-			setup_workload
 		fi
 	fi
 	kruize_local_patch
@@ -702,11 +701,10 @@ function kruize_local_demo_setup() {
 	if [ ${demo} == "local" ]; then
 		# Run the Kruize Local experiments
 		kruize_local
+		show_urls
 	elif [ ${demo} == "bulk" ]; then
 		kruize_bulk
 	fi
-
-	show_urls
 
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
@@ -720,26 +718,31 @@ function kruize_local_demo_setup() {
 function kruize_local_demo_update() {
         # Start all the installs
         start_time=$(get_date)
-	if [ ${benchmark} -eq 1 ]; then
-		echo
-                echo "############################################"
-                echo "#     Deploy TFB on ${APP_NAMESPACE}        "
-                echo "############################################"
-                echo
-		create_namespace ${APP_NAMESPACE}
-		benchmarks_install ${APP_NAMESPACE} "resource_provisioning_manifests"
-                echo "Success! Running the benchmark in ${APP_NAMESPACE}"
-                echo
-	fi
-	if [ ${benchmark_load} -eq 1 ]; then
-		echo
-		echo "#######################################"
-		echo "#     Apply the benchmark load        #"
-		echo "#######################################"
-		echo
-		apply_benchmark_load ${APP_NAMESPACE} ${LOAD_DURATION}
-		echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
-		echo
+
+	if [ ${demo} == "local" ]; then
+		if [ ${benchmark} -eq 1 ]; then
+			echo
+	                echo "############################################"
+        	        echo "#     Deploy TFB on ${APP_NAMESPACE}        "
+                	echo "############################################"
+	                echo
+			create_namespace ${APP_NAMESPACE}
+			benchmarks_install ${APP_NAMESPACE} "resource_provisioning_manifests"
+	                echo "Success! Running the benchmark in ${APP_NAMESPACE}"
+        	        echo
+		fi
+		if [ ${benchmark_load} -eq 1 ]; then
+			echo
+			echo "#######################################"
+			echo "#     Apply the benchmark load        #"
+			echo "#######################################"
+			echo
+			apply_benchmark_load ${APP_NAMESPACE} ${LOAD_DURATION}
+			echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
+			echo
+		fi
+	elif [ ${demo} == "bulk" ]; then
+		setup_workload
 	fi
 
         end_time=$(get_date)
@@ -763,17 +766,21 @@ function kruize_local_demo_terminate() {
 	else
 		kruize_uninstall
 	fi
-	delete_repos autotune
-	delete_repos "benchmarks"
 	if [ ${demo} == "local" ]; then
 		delete_namespace "test-multiple-import"
 	elif [ ${demo} == "bulk" ]; then
+		ns_name="tfb"
+		count=3
 		for ((loop=1; loop<=count; loop++));
-		do                      
+		do         
+			echo "Uninstalling benchmarks..."             
 			benchmarks_uninstall ${ns_name}-${loop}
+			echo "Deleting namespaces..."
 			delete_namespace ${ns_name}-${loop}
 		done
 	fi
+	delete_repos autotune
+	delete_repos "benchmarks"
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
