@@ -1,0 +1,28 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "monitor_ttm_benchmark",
+  "cluster_name": "default",
+  "performance_profile": "resource-optimization-local-monitoring",
+  "mode": "monitor",
+  "target_cluster": "local",
+  "datasource": "prometheus-1",
+  "kubernetes_objects": [
+    {
+      "type": "job",
+      "name": "training-ttm",
+      "namespace": "default",
+      "containers": [
+        {
+          "container_image_name": "kruizehub/training_ttm:v1",
+          "container_name": "training-container"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
