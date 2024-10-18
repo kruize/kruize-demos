@@ -30,7 +30,7 @@ git clone git@github.com:kruize/kruize-demos.git
 ```
 ##### Change directory to the local monitoring demo:
 ```sh
-cd kruize-demos/monitoring/local_monitoring
+cd kruize-demos/monitoring/local_monitoring/bulk_demo
 ```
 ##### Execute the demo script in openshift as:
 ```sh
