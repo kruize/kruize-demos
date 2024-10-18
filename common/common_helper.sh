@@ -292,58 +292,54 @@ function prometheus_install() {
 ###########################################
 function benchmarks_install() {
   	NAMESPACE="${1:-default}"
-	MANIFESTS="${2:-default_manifests}"
-	GPUS="${3:-0}"
+	BENCHMARK="${2:-tfb}"
+	MANIFESTS="${3:-default_manifests}"
 
 	echo
 	echo "#######################################"
 	pushd benchmarks >/dev/null
-		echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
-		pushd techempower >/dev/null
-		# Reduce the requests to 1core-512Mi to accomodate the benchmark in resourcehub
-		sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\10.5/}' ./manifests/${MANIFESTS}/postgres.yaml
-		sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/postgres.yaml
-		sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\11.5/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
-		sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
-
-		kubectl apply -f manifests/${MANIFESTS} -n ${NAMESPACE}
-		check_err "ERROR: TechEmpower app failed to start, exiting"
-		popd >/dev/null
-
-		if [ ${GPUS} -gt 0 ];then
-			num_gpus=$((GPUS))
-			if [ ${num_gpus} -gt 0 ]; then
-				echo "#######################################"
-				echo "Running HumanEval benchmark job in background"
-				echo
-				pushd human-eval-benchmark/manifests >/dev/null
+		if [ ${BENCHMARK} == "tfb" ]; then
+			echo "5. Installing TechEmpower (Quarkus REST EASY) benchmark into cluster"
+			pushd techempower >/dev/null
+			# Reduce the requests to 1core-512Mi to accomodate the benchmark in resourcehub
+			sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\10.5/}' ./manifests/${MANIFESTS}/postgres.yaml
+			sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/postgres.yaml
+			sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\11.5/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
+			sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
+			kubectl apply -f manifests/${MANIFESTS} -n ${NAMESPACE}
+			check_err "ERROR: TechEmpower app failed to start, exiting"
+			popd >/dev/null
+		fi
+		if [ ${BENCHMARK} == "human-eval" ]; then
+			echo "#######################################"
+			echo "Running HumanEval benchmark job in background"
+			echo
+			pushd human-eval-benchmark/manifests >/dev/null
 				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' pvc.yaml
 				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' job.yaml
+				# Update num_prompts value to 150 to run the benchmark for atleast 15 mins
+				sed -i "s/value: '10'/value: '150'/" job.yaml
 				oc apply -f pvc.yaml -n ${NAMESPACE}
 				oc apply -f job.yaml -n ${NAMESPACE}
 				check_err "ERROR: Human eval job failed to start, exiting"
-				popd >/dev/null
-				num_gpus=$((num_gpus - 1))
-			fi
-
-			if [ ${num_gpus} -gt 0 ]; then
-				echo "#######################################"
-                                echo "Running Training TTM benchmark job in background"
-                                pushd AI-MLbenchmarks/ttm >/dev/null
+			popd >/dev/null
+		fi
+		if [ ${BENCHMARK} == "ttm" ]; then
+			echo "#######################################"
+			echo "Running Training TTM benchmark job in background"
+			pushd AI-MLbenchmarks/ttm >/dev/null
 				echo ""
                                 ./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
                                 check_err "ERROR: Training ttm jobs failed to start, exiting"
-				popd >/dev/null
-                                num_gpus=$((num_gpus - 1))
-                        fi
-			if [ ${num_gpus} -gt 0 ]; then
-				echo "#######################################"
-				echo "Installing LLM-RAG benchmark into cluster"
-				pushd AI-MLbenchmarks/llm-rag >/dev/null
+			popd >/dev/null
+		fi
+		if [ ${BENCHMARK} == "llm-rag" ]; then
+			echo "#######################################"
+			echo "Installing LLM-RAG benchmark into cluster"
+			pushd AI-MLbenchmarks/llm-rag >/dev/null
 				./deploy.sh ${NAMESPACE}
 				check_err "ERROR: llm-rag benchmark failed to start, exiting"
-				popd >/dev/null
-			fi
+			popd >/dev/null
 		fi
 
 	popd >/dev/null
@@ -732,6 +728,7 @@ function setup_workload() {
 #
 #
 function kruize_local_demo_setup() {
+	bench=$1
 	# Start all the installs
 	start_time=$(get_date)
 	echo
@@ -758,7 +755,13 @@ function kruize_local_demo_setup() {
 			prometheus_install
 		fi
 		if [ ${demo} == "local" ]; then
-			benchmarks_install
+			create_namespace ${APP_NAMESPACE}
+			if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+				benchmarks_install ${APP_NAMESPACE} ${bench}
+			fi
+			echo ""
+		elif [ ${demo} == "bulk" ]; then
+			setup_workload
 		fi
 	fi
 	kruize_local_patch
@@ -772,8 +775,10 @@ function kruize_local_demo_setup() {
 	get_urls
 
 	if [ ${demo} == "local" ]; then
-		# Run the Kruize Local experiments
 		kruize_local
+		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+			kruize_local_experiments
+		fi
 		show_urls
 	elif [ ${demo} == "bulk" ]; then
 		kruize_bulk
@@ -791,16 +796,12 @@ function kruize_local_demo_setup() {
 function kruize_local_demo_update() {
         # Start all the installs
         start_time=$(get_date)
-
+	bench=$1
 	if [ ${demo} == "local" ]; then
 		if [ ${benchmark} -eq 1 ]; then
-			echo
-	                echo "############################################"
-        	        echo "#     Deploy TFB on ${APP_NAMESPACE}        "
-                	echo "############################################"
 	                echo
 			create_namespace ${APP_NAMESPACE}
-			benchmarks_install ${APP_NAMESPACE} "resource_provisioning_manifests"
+			benchmarks_install ${APP_NAMESPACE} ${bench} "resource_provisioning_manifests"
 	                echo "Success! Running the benchmark in ${APP_NAMESPACE}"
         	        echo
 		fi

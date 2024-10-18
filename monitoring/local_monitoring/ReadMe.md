@@ -28,8 +28,9 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-g num of unpartitioned gpu resources]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-g num of unpartitioned gpu resources]
 c = supports minikube, kind and openshift cluster-type
+e = supports container, namespace and gpu
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 l = Run a load against the benchmark
 p = expose prometheus port
