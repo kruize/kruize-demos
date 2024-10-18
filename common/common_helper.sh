@@ -813,10 +813,6 @@ function kruize_local_demo_update() {
 		fi
 		if [ ${benchmark_load} -eq 1 ]; then
 			echo
-			echo "#######################################"
-			echo "#     Apply the benchmark load        #"
-			echo "#######################################"
-			echo
 			apply_benchmark_load ${APP_NAMESPACE} ${LOAD_DURATION}
 			echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
 			echo
@@ -847,7 +843,7 @@ function kruize_local_demo_terminate() {
 		kruize_uninstall
 	fi
 	if [ ${demo} == "local" ]; then
-		delete_namespace "test-multiple-import"
+		delete_namespace ${APP_NAMESPACE}
 	elif [ ${demo} == "bulk" ]; then
 		ns_name="tfb"
 		count=3
