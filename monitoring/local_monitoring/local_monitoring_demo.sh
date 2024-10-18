@@ -152,6 +152,5 @@ elif [ ${start_demo} -eq 2 ]; then
 	echo "Updating the kruize local demo..." | tee -a "${LOG_FILE}"
 	kruize_local_demo_update ${BENCHMARK} >> "${LOG_FILE}" 2>&1
 else
-	echo "Terminating kruize local demo..." | tee -a "${LOG_FILE}"
-	kruize_local_demo_terminate >> "${LOG_FILE}" 2>&1
+	kruize_local_demo_terminate
 fi

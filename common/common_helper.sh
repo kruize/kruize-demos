@@ -352,35 +352,32 @@ function benchmarks_install() {
 ###########################################
 function benchmarks_uninstall() {
         NAMESPACE="${1:-default}"
+	BENCHMARK="${1:-tfb}"
         MANIFESTS="${2:-default_manifests}"
-	GPUS="${3:-0}"
         echo
         echo "#######################################"
         pushd benchmarks >/dev/null
-                echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
-                pushd techempower >/dev/null
-                kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
-                check_err "ERROR: TechEmpower app failed to delete, exiting"
-                popd >/dev/null
-
-		if [ ${GPUS} > 0 ];then
-			# Commenting for now
-			# echo "Installing HumanEval benchmark job into cluster"
-			# pushd AI-MLbenchmarks/human-eval >/dev/null
-                        # ./cleanup.sh ${NAMESPACE}
-                        # check_err "ERROR: Human eval job failed to delete, exiting"
-			# popd >/dev/null
-
-			echo "Installing Training TTM benchmark job into cluster"
-			pushd AI-MLbenchmarks/ttm >/dev/null
-			./cleanup.sh ${NAMESPACE}
-			check_err "ERROR: Training ttm jobs failed to delete, exiting"
+		if [ ${BENCHMARK} == "tfb" ]; then
+			echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
+			pushd techempower >/dev/null
+				kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
+				check_err "ERROR: TechEmpower app failed to delete, exiting"
 			popd >/dev/null
+		fi
+		if [ ${BENCHMARK} == "human-eval" ]; then
+			echo "Uninstalling humanEval benchmark job in cluster"
+			pushd human-eval-benchmark >/dev/null
+				oc delete -f job.yaml
+				oc delete -f pvc.yaml
+				check_err "ERROR: human-eval benchmark failed to delete, exiting"
+			popd >/dev/null
+		fi
+		if [ ${BENCHMARK} == "ttm" ] || [${BENCHMARK} == "llm-rag"]; then
 
-			echo "Installing LLM-RAG benchmark into cluster"
-			pushd AI-MLbenchmarks/llm-rag >/dev/null
-			./cleanup.sh ${NAMESPACE}
-			check_err "ERROR: llm-rag benchmark failed to delete, exiting"
+			echo "Uninstalling ${BENCHMARK} benchmark in cluster"
+			pushd AI-MLbenchmarks/ttm >/dev/null
+				./cleanup.sh ${NAMESPACE}
+				check_err "ERROR: ${BENCHMARK} benchmark failed to delete, exiting"
 			popd >/dev/null
                 fi
 
@@ -395,33 +392,38 @@ function benchmarks_uninstall() {
 function apply_benchmark_load() {
 	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
 	APP_NAMESPACE="${1:-default}"
-	LOAD_DURATION="${2:-1200}"
+	BENCHMARK="${2:-tfb}"
+	LOAD_DURATION="${3:-1200}"
 
-	if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "tfb"; then
-		echo
-		echo "################################################################################################################"
-		echo " Starting ${LOAD_DURATION} secs background load against the techempower benchmark in ${APP_NAMESPACE} namespace "
-		echo "################################################################################################################"
-		echo
-		if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
-			TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
-		elif [ ${CLUSTER_TYPE} == "aks" ]; then
-			TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
-		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-			TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
+	if [ ${BENCHMARK} == "tfb" ]; then
+		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "tfb"; then
+			echo
+			echo "################################################################################################################"
+			echo " Starting ${LOAD_DURATION} secs background load against the techempower benchmark in ${APP_NAMESPACE} namespace "
+			echo "################################################################################################################"
+			echo
+			if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
+				TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+			elif [ ${CLUSTER_TYPE} == "aks" ]; then
+				TECHEMPOWER_ROUTE=${TECHEMPOWER_URL}
+			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+				TECHEMPOWER_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
+			fi
+			# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
+			docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 		fi
-		# docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} <END_POINT> <DURATION> <THREADS> <CONNECTIONS>
-		docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 	fi
 
-	if kubectl get pods --namespace testllm -o jsonpath='{.items[*].metadata.name}' | grep -q "llm"; then
-		pushd benchmarks/AI-MLbenchmarks/llm-rag >/dev/null
-		echo
-                echo "################################################################################################################"
-                echo " Starting background load against the llm-rag benchmark in ${APP_NAMESPACE} namespace "
-                echo "################################################################################################################"
-		./run_load.sh ${APP_NAMESPACE} >> ${LOG_FILE} &
-		popd >/dev/null
+	if [ ${BENCHMARK} == "llm-rag" ]; then
+		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "llm"; then
+			pushd benchmarks/AI-MLbenchmarks/llm-rag >/dev/null
+			echo
+			echo "################################################################################################################"
+			echo " Starting background load against the llm-rag benchmark in ${APP_NAMESPACE} namespace "
+			echo "################################################################################################################"
+			./run_load.sh ${APP_NAMESPACE} >> ${LOG_FILE} &
+			popd >/dev/null
+		fi
 	fi
 
 }
@@ -448,10 +450,10 @@ function check_minikube() {
 }
 
 ###########################################
-#   Deploy TFB Benchmarks - multiple import
+#   Create Namespace
 ###########################################
 function create_namespace() {
-	CAPP_NAMESPACE="${1:-test-multiple-import}"
+	CAPP_NAMESPACE=$1
 	echo
 	echo "#########################################"
 	if kubectl get namespace "${CAPP_NAMESPACE}" &> /dev/null; then
@@ -813,7 +815,7 @@ function kruize_local_demo_update() {
 		fi
 		if [ ${benchmark_load} -eq 1 ]; then
 			echo
-			apply_benchmark_load ${APP_NAMESPACE} ${LOAD_DURATION}
+			apply_benchmark_load ${APP_NAMESPACE} ${bench} ${LOAD_DURATION}
 			echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
 			echo
 		fi
@@ -835,6 +837,7 @@ function kruize_local_demo_terminate() {
 	echo "#       Kruize Demo Terminate       #"
 	echo "#######################################"
 	echo
+	{
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube_delete
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
@@ -857,6 +860,7 @@ function kruize_local_demo_terminate() {
 	fi
 	delete_repos autotune
 	delete_repos "benchmarks"
+	} >> "${LOG_FILE}" 2>&1
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
