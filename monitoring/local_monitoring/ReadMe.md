@@ -5,6 +5,7 @@ With Kruize's local monitoring mode, let's explore a demonstration of local moni
 ## Requirements 
 - Demo requires a kubernetes cluster. Currently, it supports `Kind`, `Minikube` and `Openshift`
 - To run this demo locally, demo expects minikube or kind cluster to be installed with atleast 8 CPUs and 16384 MB (16 GB) Memory. 
+
 ## Getting Started with the Demo
 
 To begin exploring local monitoring capabilities, follow these steps:
