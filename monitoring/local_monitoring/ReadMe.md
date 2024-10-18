@@ -75,7 +75,7 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
 
 ## Bulk Service Demo
 
-Kruize Local provides a bulk service to generate bulk recommendations based on the bulk service configuration. Refer this [README](https://github.com/kruize/kruize-demos/tree/main/monitoring/local_monitoring/bulk_demo/README.md) to explore bulk service.
+Kruize Local offers a bulk service that generates recommendations in bulk, based on the specified bulk service configuration. Refer this [README](https://github.com/kruize/kruize-demos/tree/main/monitoring/local_monitoring/bulk_demo/README.md) to try this.
 
 ## Misc
 
