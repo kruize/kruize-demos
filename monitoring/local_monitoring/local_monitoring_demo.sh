@@ -68,7 +68,6 @@ export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
-export GPUS="0"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
 while getopts c:i:e:n:d:m:g:lbprstu: gopts
@@ -115,9 +114,6 @@ do
 		m)
 			BENCHMARK_MANIFESTS="${OPTARG}"
 			;;
-		g)
-			GPUS="${OPTARG}"
-			;;
 		*)
 			usage
 	esac
@@ -153,4 +149,5 @@ elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update ${BENCHMARK} >> "${LOG_FILE}" 2>&1
 else
 	kruize_local_demo_terminate
+g = number of unpartitioned gpu resources available
 fi
