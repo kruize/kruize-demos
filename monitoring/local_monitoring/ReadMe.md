@@ -28,8 +28,9 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
 c = supports minikube, kind and openshift cluster-type
+e = supports container, namespace and gpu. Default - none.
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 l = Run a load against the benchmark
 p = expose prometheus port
@@ -44,13 +45,23 @@ m = manifests of the benchmark
 
 ## Understanding the Demo
 
-This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark to simulate different load conditions and observe how Kruize-Autotune reacts with its recommendations. Here’s a breakdown of what happens during the demo:
+This demo focuses on installing kruize and also install the benchmarks if asked for through `-e` parameter.
+- By default, it installs kruize and provides the URL to access the kruize UI service where the user can create experiments and generate recommendations.
+- To use demo benchmarks to create and generate recommendations through a script, pass -e for container, namespace and gpu benchmarks.
+    - For container and namespace type, benchmark 'TFB' is deployed in a namespace.
+    - For gpu type, benchmark 'human-eval' is deployed.
 
-- TFB deployment in default Namespace
-    - The TFB benchmark is initially deployed in the default namespace, comprising two key deployments
-      - tfb-qrh: Serving as the application server.
-      - tfb-database: Database to the server.
-    - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
+Here’s a breakdown of what happens during the demo:
+
+- Deploys benchmarks in a namespace (if -e is passed)
+    - If -e is container/namespace
+        - The TFB benchmark is initially deployed in the namespace, comprising two key deployments
+          - tfb-qrh: Serving as the application server.
+          - tfb-database: Database to the server.
+        - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
+    - If -e is gpu
+        - The human-eval benchmark is deployed as job in the namespace.
+        - The job is set to run for atleast 20 mins to generate the recommendations.
 - Install Kruize
   - Installs kruize under openshift-tuning name.
 - Metadata Collection and Experiment Creation
@@ -60,6 +71,9 @@ This demo focuses on using the TFB (TechEmpower Framework Benchmarks) benchmark 
   - Generates Recommendations for all the experiments created.
 
 ## Recommendations for different load Simulations observed on Openshift
+
+TFB (TechEmpower Framework Benchmarks) benchmark is simulated in different load conditions and below are the different recommendations observed from Kruize-Autotune.
+
 ### IDLE 
 - Experiment: `monitor_tfb-db_benchmark`
   - Shows an IDLE scenario where CPU recommendations are not generated due to minimal CPU usage (less than a millicore).
