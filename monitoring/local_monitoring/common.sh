@@ -88,37 +88,37 @@ function kruize_local() {
         echo
 
 	if [ ${THANOS} == 1 ]; then
-	echo
-        echo "######################################################"
-        echo "#     Create kruize experiment"
-        echo "######################################################"
-        echo
-        echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/create_thanos_exp.json"
-        curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/create_thanos_exp.json
-        echo
+		echo
+        	echo "######################################################"
+	        echo "#     Create kruize experiment"
+        	echo "######################################################"
+	        echo
+        	echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/create_thanos_exp.json"
+	        curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/create_thanos_exp.json
+        	echo
 
-        echo "Sleeping for 30s before generating the recommendations!"
-        sleep 30s
+	        echo "Sleeping for 30s before generating the recommendations!"
+        	sleep 30s
 
-        echo
-        echo "######################################################"
-        echo "#     Generate recommendations for every experiment"
-        echo "######################################################"
-        echo
-        curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-        echo ""
+	        echo
+        	echo "######################################################"
+	        echo "#     Generate recommendations for every experiment"
+        	echo "######################################################"
+	        echo
+        	curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	        echo ""
 
-        echo
-        echo "######################################################"
-        echo
-        echo "Generate fresh recommendations using"
-        echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
-        echo
-        echo "List Recommendations using "
-        echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
-        echo
-        echo "######################################################"
-        echo
+        	echo
+	        echo "######################################################"
+        	echo
+	        echo "Generate fresh recommendations using"
+        	echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+	        echo
+        	echo "List Recommendations using "
+	        echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
+        	echo
+	        echo "######################################################"
+        	echo
 	fi
 
 
