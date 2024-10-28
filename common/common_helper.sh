@@ -740,6 +740,7 @@ function kruize_local_demo_setup() {
 	echo "#       Kruize Local Demo Setup       #"
 	echo "#######################################"
 	echo
+        echo "Setting up the kruize... "
 
 	{
 
