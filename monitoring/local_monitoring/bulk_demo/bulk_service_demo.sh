@@ -35,6 +35,7 @@ KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 
 PYTHON_CMD=python3
+export LOG_FILE="${current_dir}/kruize-bulk-demo.log"
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
@@ -112,6 +113,7 @@ do
 done
 
 export demo="bulk"
+echo | tee "${LOG_FILE}"
 if [ ${start_demo} -eq 1 ]; then
 	kruize_local_demo_setup
 elif [ ${start_demo} -eq 2 ]; then
