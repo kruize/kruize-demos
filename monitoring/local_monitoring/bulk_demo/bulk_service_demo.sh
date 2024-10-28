@@ -70,11 +70,12 @@ export KRUIZE_DOCKER_IMAGE=""
 export prometheus=0
 export kruize_restart=0
 export start_demo=1
+export THANOS=0
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:lprstu: gopts
+while getopts c:i:n:d:lprstzu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -97,6 +98,9 @@ do
 			;;
 		t)
 			start_demo=0
+			;;
+		z)
+			THANOS=1
 			;;
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"

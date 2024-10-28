@@ -22,6 +22,11 @@
 function kruize_local() {
 	export DATASOURCE="prometheus-1"
         export CLUSTER_NAME="default"
+	if [ ${THANOS} == 1 ]; then
+		export DATASOURCE="thanos"
+	        export CLUSTER_NAME="eu-1"
+	fi
+
         # Metric Profile JSON
         if [ ${CLUSTER_TYPE} == "minikube" ]; then
                 resource_optimization_local_monitoring="${current_dir}/autotune/manifests/autotune/performance-profiles/resource_optimization_local_monitoring_norecordingrules.json"
@@ -39,19 +44,28 @@ function kruize_local() {
 
         echo
         echo "######################################################"
-        echo "#     Import metadata from prometheus-1 datasource"
+        echo "#     Import metadata from $DATASOURCE datasource"
         echo "######################################################"
         echo
-        curl --location http://"${KRUIZE_URL}"/dsmetadata \
-        --header 'Content-Type: application/json' \
-        --data '{
-           "version": "v1.0",
-           "datasource_name": "prometheus-1"
-        }'
+	if [ ${THANOS} == 0 ]; then
+	        curl --location http://"${KRUIZE_URL}"/dsmetadata \
+        	--header 'Content-Type: application/json' \
+	        --data '{
+        	   "version": "v1.0",
+	           "datasource_name": "prometheus-1"
+        	}'
+	else
+	        curl --location http://"${KRUIZE_URL}"/dsmetadata \
+        	--header 'Content-Type: application/json' \
+	        --data '{
+        	   "version": "v1.0",
+	           "datasource_name": "thanos"
+        	}'
+	fi
 
         echo
         echo "######################################################"
-        echo "#     Display metadata from prometheus-1 datasource"
+        echo "#     Display metadata from ${DATASOURCE} datasource"
         echo "######################################################"
         echo
         curl "http://${KRUIZE_URL}/dsmetadata?datasource=${DATASOURCE}&verbose=true"
@@ -72,6 +86,42 @@ function kruize_local() {
         echo
         curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring
         echo
+
+	if [ ${THANOS} == 1 ]; then
+	echo
+        echo "######################################################"
+        echo "#     Create kruize experiment"
+        echo "######################################################"
+        echo
+        echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/create_thanos_exp.json"
+        curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/create_thanos_exp.json
+        echo
+
+        echo "Sleeping for 30s before generating the recommendations!"
+        sleep 30s
+
+        echo
+        echo "######################################################"
+        echo "#     Generate recommendations for every experiment"
+        echo "######################################################"
+        echo
+        curl -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+        echo ""
+
+        echo
+        echo "######################################################"
+        echo
+        echo "Generate fresh recommendations using"
+        echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=monitor_tfb_benchmark"
+        echo
+        echo "List Recommendations using "
+        echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=monitor_tfb_benchmark"
+        echo
+        echo "######################################################"
+        echo
+	fi
+
+
 	} >> "${LOG_FILE}" 2>&1
 }
 

@@ -769,7 +769,13 @@ function kruize_local_demo_setup() {
 			echo ""
 		fi
 	fi
-	kruize_local_patch
+	if [ ${THANOS} == 0 ]; then
+		kruize_local_patch
+	else
+		echo "Invoking thanos patch..."
+		kruize_local_thanos_patch
+	fi
+
 	kruize_install
 	echo
 	# port forward the urls in case of kind
@@ -872,5 +878,33 @@ function kruize_local_disable() {
         elif [ ${CLUSTER_TYPE} == "openshift" ]; then
                 sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml
         fi
+}
+
+#
+# Update thanos datasource details in the manifest
+#
+function kruize_local_thanos_patch() {
+        CRC_DIR="./manifests/crc/default-db-included-installation"
+        KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
+        KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
+
+        pushd autotune >/dev/null
+                # Checkout mvp_demo to get the latest mvp_demo release version
+                git checkout mvp_demo >/dev/null 2>/dev/null
+
+                if [ ${CLUSTER_TYPE} == "kind" ]; then
+                        sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+                elif [ ${CLUSTER_TYPE} == "minikube" ]; then
+                        sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+                elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+                        sed -i 's/"name": "prometheus-1"/"name": "thanos"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                        #sed -i 's/"serviceName": "prometheus-k8s"/"serviceName": "thanos-query-frontend"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                        #sed -i 's/"namespace": "openshift-monitoring"/"namespace": "thanos-bench"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                        #sed -i 's/"url": "https:\/\/prometheus-k8s.openshift-monitoring.svc.cluster.local:9091"/"url": "https:\/\/thanos-query-frontend-thanos-bench.apps.kruize-scalelab.h0b5.p1.openshiftapps.com"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                        sed -i 's/"serviceName": "prometheus-k8s"/"serviceName": ""/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                        sed -i 's/"namespace": "openshift-monitoring"/"namespace": ""/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                        sed -i 's#"url": ""#"url": "http://thanos-query-frontend.thanos-bench.svc.cluster.local:9090/"#' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+                fi
+        popd >/dev/null
 }
 
