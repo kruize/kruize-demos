@@ -766,8 +766,6 @@ function kruize_local_demo_setup() {
 				benchmarks_install ${APP_NAMESPACE} ${bench}
 			fi
 			echo ""
-		elif [ ${demo} == "bulk" ]; then
-			setup_workload
 		fi
 	fi
 	kruize_local_patch
