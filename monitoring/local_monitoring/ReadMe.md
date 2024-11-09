@@ -1,6 +1,15 @@
 # Local Monitoring with Kruize
 
-With Kruize's local monitoring mode, let's explore a demonstration of local monitoring, highlighting how it provides customized recommendations for various load scenarios in Openshift.
+Kruize Local provides services to generate recommendations for both single and bulk experiments.
+
+- **For Bulk Services**: For detailed instructions, refer [this guide](https://github.com/kruize/kruize-demos/tree/main/monitoring/local_monitoring/bulk_demo/README.md).
+- **For Demo of Individual Experiments**: Continue with the steps below.
+- **For Advanced Local Monitoring Options**: Explore advanced testing details [./ReadMe-advancedusers.md].
+
+## Prerequisites
+Ensure you have one of the clusters: kind, minikube, or openShift.
+
+**WARNING:** Running the demo script will delete any existing minikube or kind clusters and create a fresh instance.
 
 ## Getting Started with the Demo
 
@@ -18,6 +27,7 @@ cd kruize-demos/monitoring/local_monitoring
 ```
 ***Note*** : We support `Kind`, `Minikube` and `Openshift` clusters.
 By default, it runs on the `Kind` cluster.
+
 ##### Execute the demo script on kind as: 
 ```sh
 ./local_monitoring_demo.sh
@@ -28,24 +38,16 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-n namespace]
 c = supports minikube, kind and openshift cluster-type
-e = supports container, namespace and gpu. Default - none.
-i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
-l = Run a load against the benchmark
-p = expose prometheus port
-r = restart kruize only
+e = supports container, namespace, gpu and none. Default - installs container and namespace experiments.
 s = start (default), t = terminate
-u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
-b = deploy the benchmark.
-n = namespace where benchmark is deployed. Default - default
-d = duration to run the benchmark load
-m = manifests of the benchmark
+n = namespace where demo benchmark is deployed. Default - default
 ```
 
 ## Understanding the Demo
 
-This demo focuses on installing kruize and also install the benchmarks if asked for through `-e` parameter.
+This demo focuses on installing kruize and also installs the demo benchmark
 - By default, it installs kruize and provides the URL to access the kruize UI service where the user can create experiments and generate recommendations.
 - To use demo benchmarks to create and generate recommendations through a script, pass -e for container, namespace and gpu benchmarks.
     - For container and namespace type, benchmark 'TFB' is deployed in a namespace.
@@ -66,7 +68,10 @@ Here’s a breakdown of what happens during the demo:
   - Installs kruize under openshift-tuning name.
 - Metadata Collection and Experiment Creation
   - Kruize gathers data sources and metadata from the cluster.
-  - Experiments `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` are created for the server and database deployments respectively in the `default` namespace.
+  - Experiments Created:
+        - container: `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` for the server and database deployments.
+        - namespace: `monitor_app_namespace`
+        - gpu: `monitor_human_eval_benchmark`
 - Generate Recommendations
   - Generates Recommendations for all the experiments created.
 
@@ -87,49 +92,3 @@ TFB (TechEmpower Framework Benchmarks) benchmark is simulated in different load 
   - Illustrates under-provisioning where CPU recommendations exceed the current CPU requests, suggesting adjustments for improved efficiency.
   ![underprovision](https://github.com/kusumachalasani/autotune-demo/assets/17760990/9005a59d-db4c-41b4-b170-90adf0fafff0)
 
-## Bulk Service Demo
-
-Kruize Local offers a bulk service that generates recommendations in bulk, based on the specified bulk service configuration. Refer this [README](https://github.com/kruize/kruize-demos/tree/main/monitoring/local_monitoring/bulk_demo/README.md) to try this.
-
-## Misc
-
-##### To apply the load to TFB benchmark: 
-```sh
-./local_monitoring_demo.sh -c openshift -l -n <APP_NAMESPACE> -d <LOAD_DURATION>
-./local_monitoring_demo.sh -c openshift -l -n "default" -d "1200"
-```
-
-
-#### To refresh datasource metadata
-
-To refresh the datasource metadata,
-- Delete the previosuly imported metadata
-- Import the metdata from the datasource
-
-Commands to refresh metadata
-
-```sh
-# Replace KRUIZE_URL with the URL to connect to Kruize
-
-# Delete previously imported metadata
-curl -X DELETE http://"${KRUIZE_URL}"/dsmetadata \
---header 'Content-Type: application/json' \
---data '{
-     "version": "v1.0",
-     "datasource_name": "prometheus-1"
-}'
-
-# Import metadata from prometheus-1 datasource                   
-curl --location http://"${KRUIZE_URL}"/dsmetadata \
---header 'Content-Type: application/json' \
---data '{
-     "version": "v1.0",
-     "datasource_name": "prometheus-1"
-}'
-
-# Display metadata from prometheus-1 datasource
-curl "http://${KRUIZE_URL}/dsmetadata?datasource=prometheus-1&verbose=true"
-
-# Display metadata for a "prometheus-1" datasource in "default" namespace and "default" cluster
-curl "http://${KRUIZE_URL}/dsmetadata?datasource=prometheus-1&cluster_name=default&namespace=default&verbose=true"
-``` 

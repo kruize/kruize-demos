@@ -43,6 +43,9 @@ function check_err() {
 	err=$?
 	if [ ${err} -ne 0 ]; then
 		echo "$*"
+		if [[ -f "${LOG_FILE}" ]]; then
+			echo "For detailed logs, look in ${LOG_FILE}"
+		fi
 		exit 1
 	fi
 }
@@ -129,9 +132,11 @@ function delete_repos() {
 #   Kruize Install
 ###########################################
 function kruize_install() {
+	{
 	echo
 	echo "#######################################"
 	echo "6. Installing Kruize"
+	} >> "${LOG_FILE}" 2>&1
 	if [ ! -d autotune ]; then
 		echo "ERROR: autotune dir not found."
 		if [[ ${autotune_restart} -eq 1 ]]; then
@@ -140,6 +145,7 @@ function kruize_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
+		{
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
@@ -165,29 +171,33 @@ function kruize_install() {
 		echo
 		echo "Starting kruize installation with  ./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target}"
 		echo
-
-		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target}
+		} >> "${LOG_FILE}" 2>&1
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target} >> "${LOG_FILE}" 2>&1
 		check_err "ERROR: kruize failed to start, exiting"
 
+		{
 		echo -n "Waiting 40 seconds for Kruize to sync with Prometheus..."
 		sleep 40
 		echo "done"
 	popd >/dev/null
 	echo "#######################################"
 	echo
+	} >> "${LOG_FILE}" 2>&1
 }
 
 function kruize_uninstall() {
+	{
 	echo
 	echo "Uninstalling Kruize"
 	echo
+	} >> "${LOG_FILE}" 2>&1
 	if [ ! -d autotune ]; then
 		return
 	fi
 	pushd autotune >/dev/null
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t
+		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t  >> "${LOG_FILE}" 2>&1
 		sleep 10
-		check_err "ERROR: Failed to terminate kruize"
+		check_err "ERROR: Failed to terminate kruize" | tee -a "${LOG_FILE}"
 		echo
 	popd >/dev/null
 }
@@ -196,6 +206,7 @@ function kruize_uninstall() {
 #   Minikube Start
 ###########################################
 function minikube_start() {
+	{
 	minikube config set cpus ${MIN_CPU} >/dev/null 2>/dev/null
 	minikube config set memory ${MIN_MEM}M >/dev/null 2>/dev/null
 	if [ -n "${DRIVER}" ]; then
@@ -214,18 +225,22 @@ function minikube_start() {
 	else
 		minikube start --cpus=${MIN_CPU} --memory=${MIN_MEM}M
 	fi
+	} >> "${LOG_FILE}" 2>&1
 	check_err "ERROR: minikube failed to start, exiting"
+	{
 	echo -n "Waiting for cluster to be up..."
 	sleep 10
 	echo "done"
 	echo "#######################################"
 	echo
+	} >> "${LOG_FILE}" 2>&1
 }
 
 ###########################################
 #   Kind Start
 ###########################################
 function kind_start() {
+	{
 	echo
 	echo "#######################################"
 	echo "2. Deleting kind clusters, if any"
@@ -237,12 +252,15 @@ function kind_start() {
 	kind create cluster --image kindest/node:${KIND_KUBERNETES_VERSION}
 	kubectl cluster-info --context kind-kind
 	kubectl config use-context kind-kind
+	} >> "${LOG_FILE}" 2>&1
 	check_err "ERROR: kind failed to start, exiting"
+	{
 	echo -n "Waiting for cluster to be up..."
 	sleep 10
 	echo "done"
 	echo "#######################################"
 	echo
+	} >> "${LOG_FILE}" 2>&1
 }
 
 ###########################################
@@ -269,6 +287,7 @@ function kind_delete() {
 #   Prometheus and Grafana Install
 ###########################################
 function prometheus_install() {
+	{
 	echo
 	echo "#######################################"
 	echo "4. Installing Prometheus and Grafana"
@@ -278,13 +297,16 @@ function prometheus_install() {
 		else
 			./scripts/prometheus_on_kind.sh -as
 		fi
+		} >> "${LOG_FILE}" 2>&1
 		check_err "ERROR: Prometheus failed to start, exiting"
+		{
 		echo -n "Waiting 30 seconds for Prometheus to get initialized..."
 		sleep 30
 		echo "done"
 	popd >/dev/null
 	echo "#######################################"
 	echo
+	} >> "${LOG_FILE}" 2>&1
 }
 
 ###########################################
@@ -351,9 +373,9 @@ function benchmarks_install() {
 #   Benchmarks Uninstall
 ###########################################
 function benchmarks_uninstall() {
-        NAMESPACE="${1:-default}"
-	BENCHMARK="${1:-tfb}"
-        MANIFESTS="${2:-default_manifests}"
+	NAMESPACE="${1:-default}"
+	BENCHMARK="${2:-tfb}"
+	MANIFESTS="${3:-default_manifests}"
         echo
         echo "#######################################"
         pushd benchmarks >/dev/null
@@ -361,7 +383,7 @@ function benchmarks_uninstall() {
 			echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
 			pushd techempower >/dev/null
 				kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
-				check_err "ERROR: TechEmpower app failed to delete, exiting"
+				#check_err "ERROR: TechEmpower app failed to delete, exiting"
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "human-eval" ]; then
@@ -369,7 +391,7 @@ function benchmarks_uninstall() {
 			pushd human-eval-benchmark >/dev/null
 				oc delete -f job.yaml
 				oc delete -f pvc.yaml
-				check_err "ERROR: human-eval benchmark failed to delete, exiting"
+				#check_err "ERROR: human-eval benchmark failed to delete, exiting"
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "ttm" ] || [${BENCHMARK} == "llm-rag"]; then
@@ -377,7 +399,7 @@ function benchmarks_uninstall() {
 			echo "Uninstalling ${BENCHMARK} benchmark in cluster"
 			pushd AI-MLbenchmarks/ttm >/dev/null
 				./cleanup.sh ${NAMESPACE}
-				check_err "ERROR: ${BENCHMARK} benchmark failed to delete, exiting"
+				#check_err "ERROR: ${BENCHMARK} benchmark failed to delete, exiting"
 			popd >/dev/null
                 fi
 
@@ -683,7 +705,8 @@ function get_urls() {
 #  Show URLs
 ###########################################
 function show_urls() {
-	if [ ${demo} == "local" ]; then
+	bench=$1
+	if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 		{
 		echo
 		echo "#######################################"
@@ -694,13 +717,17 @@ function show_urls() {
 		} >> "${LOG_FILE}" 2>&1
 	fi
 
-	echo
-	echo "#######################################"
-	echo "#              Kruize               #"
-	echo "#######################################"
+	echo | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo "#              Kruize                 #" | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo "Info: Access kruize UI at http://${KRUIZE_UI_URL}"
-	echo "Info: List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments"
+	if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+		echo "Info: List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments" | tee -a "${LOG_FILE}"
+	fi
 	echo
+	echo "Note: To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
+	echo | tee -a "${LOG_FILE}"
 }
 
 function setup_workload() {
@@ -726,144 +753,6 @@ function setup_workload() {
 	do
 		apply_benchmark_load ${ns_name}-${loop}
 	done
-}
-
-#
-#
-#
-function kruize_local_demo_setup() {
-	bench=$1
-	# Start all the installs
-	start_time=$(get_date)
-	echo
-	echo "#######################################"
-	echo "#       Kruize Local Demo Setup       #"
-	echo "#######################################"
-	echo
-        echo "Setting up the kruize... "
-
-	{
-
-	if [ ${kruize_restart} -eq 0 ]; then
-		clone_repos autotune
-		clone_repos benchmarks
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			sys_cpu_mem_check
-			check_minikube
-			minikube >/dev/null
-			check_err "ERROR: minikube not installed"
-			minikube_start
-			prometheus_install autotune
-		elif [ ${CLUSTER_TYPE} == "kind" ]; then
-			check_kind
-			kind >/dev/null
-			check_err "ERROR: kind not installed"
-			kind_start
-			prometheus_install
-		fi
-		if [ ${demo} == "local" ]; then
-			create_namespace ${APP_NAMESPACE}
-			if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-				benchmarks_install ${APP_NAMESPACE} ${bench}
-			fi
-			echo ""
-		fi
-	fi
-	kruize_local_patch
-	kruize_install
-	echo
-	# port forward the urls in case of kind
-	if [ ${CLUSTER_TYPE} == "kind" ]; then
-		port_forward
-	fi
-
-	get_urls
-
-	} >> "${LOG_FILE}" 2>&1
-
-	if [ ${demo} == "local" ]; then
-		kruize_local
-		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-			kruize_local_experiments
-		fi
-		show_urls
-	elif [ ${demo} == "bulk" ]; then
-		kruize_bulk
-	fi
-
-	end_time=$(get_date)
-	elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "Success! Kruize demo setup took ${elapsed_time} seconds"
-	echo
-	if [ ${prometheus} -eq 1 ]; then
-		expose_prometheus
-	fi
-}
-
-function kruize_local_demo_update() {
-        # Start all the installs
-        start_time=$(get_date)
-	bench=$1
-	if [ ${demo} == "local" ]; then
-		if [ ${benchmark} -eq 1 ]; then
-	                echo
-			create_namespace ${APP_NAMESPACE}
-			benchmarks_install ${APP_NAMESPACE} ${bench} "resource_provisioning_manifests"
-	                echo "Success! Running the benchmark in ${APP_NAMESPACE}"
-        	        echo
-		fi
-		if [ ${benchmark_load} -eq 1 ]; then
-			echo
-			apply_benchmark_load ${APP_NAMESPACE} ${bench} ${LOAD_DURATION}
-			echo "Success! Running the benchmark load for ${LOAD_DURATION} seconds"
-			echo
-		fi
-	elif [ ${demo} == "bulk" ]; then
-		setup_workload
-	fi
-
-        end_time=$(get_date)
-        elapsed_time=$(time_diff "${start_time}" "${end_time}")
-        echo "Success! Benchmark updates took ${elapsed_time} seconds"
-        echo
-}
-
-
-function kruize_local_demo_terminate() {
-	start_time=$(get_date)
-	echo
-	echo "#######################################"
-	echo "#       Kruize Demo Terminate       #"
-	echo "#######################################"
-	echo
-	{
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		minikube_delete
-	elif [ ${CLUSTER_TYPE} == "kind" ]; then
-		kind_delete
-	else
-		kruize_uninstall
-	fi
-	if [ ${demo} == "local" ]; then
-		delete_namespace ${APP_NAMESPACE}
-	elif [ ${demo} == "bulk" ]; then
-		ns_name="tfb"
-		count=3
-		for ((loop=1; loop<=count; loop++));
-		do         
-			echo "Uninstalling benchmarks..."             
-			benchmarks_uninstall ${ns_name}-${loop}
-			echo "Deleting namespaces..."
-			delete_namespace ${ns_name}-${loop}
-		done
-	fi
-	delete_repos autotune
-	delete_repos "benchmarks"
-	} >> "${LOG_FILE}" 2>&1
-	end_time=$(get_date)
-	elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
-	echo
 }
 
 function kruize_local_disable() {

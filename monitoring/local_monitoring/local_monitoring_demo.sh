@@ -136,18 +136,24 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	    	echo "No GPU resources found in the cluster. Exiting!"
 	    	exit 0
 	fi
-else
+elif [ "${EXPERIMENT_TYPE}" == "none" ]; then
 	export EXPERIMENTS=()
+else
+	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp" "create_namespace_exp")
+	BENCHMARK="tfb"
 fi
 
-echo | tee "${LOG_FILE}"
+#echo | tee "${LOG_FILE}"
 if [ ${start_demo} -eq 1 ]; then
+	echo > "${LOG_FILE}"
 	kruize_local_demo_setup ${BENCHMARK}
-	echo "For installation logs, look in kruize-demo.log" | tee -a "${LOG_FILE}"
+	echo "For detailed logs, look in kruize-demo.log"
+	echo
 elif [ ${start_demo} -eq 2 ]; then
-	echo "Updating the kruize local demo..." | tee -a "${LOG_FILE}"
-	kruize_local_demo_update ${BENCHMARK} >> "${LOG_FILE}" 2>&1
+	kruize_local_demo_update ${BENCHMARK}
 else
+	echo | tee -a "${LOG_FILE}"
 	kruize_local_demo_terminate
-g = number of unpartitioned gpu resources available
+	echo "For detailed logs, look in kruize-demo.log"
+        echo
 fi
