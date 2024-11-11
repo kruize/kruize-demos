@@ -897,10 +897,10 @@ function kruize_local_thanos_patch() {
                 elif [ ${CLUSTER_TYPE} == "minikube" ]; then
                         sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
                 elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-                        sed -i 's/"name": "prometheus-1"/"name": "thanos"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+			# Specifying serviceName & namespace resolves the url to https and this doesn't seem to be working
                         #sed -i 's/"serviceName": "prometheus-k8s"/"serviceName": "thanos-query-frontend"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
                         #sed -i 's/"namespace": "openshift-monitoring"/"namespace": "thanos-bench"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-                        #sed -i 's/"url": "https:\/\/prometheus-k8s.openshift-monitoring.svc.cluster.local:9091"/"url": "https:\/\/thanos-query-frontend-thanos-bench.apps.kruize-scalelab.h0b5.p1.openshiftapps.com"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+
                         sed -i 's/"serviceName": "prometheus-k8s"/"serviceName": ""/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
                         sed -i 's/"namespace": "openshift-monitoring"/"namespace": ""/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
                         sed -i 's#"url": ""#"url": "http://thanos-query-frontend.thanos-bench.svc.cluster.local:9090/"#' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
