@@ -69,8 +69,10 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
+export THANOS=0
+
 # Iterate through the commandline options
-while getopts c:i:e:n:d:m:g:lbprstu: gopts
+while getopts c:i:e:n:d:m:g:lbprstzu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -95,6 +97,9 @@ do
 			;;
 		r)
 			kruize_restart=1
+			;;
+		z)
+			THANOS=1
 			;;
 		s)
 			start_demo=1
