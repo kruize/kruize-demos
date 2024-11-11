@@ -109,8 +109,10 @@ function kruize_local_experiments() {
         echo "######################################################"
         echo
 	for experiment in "${EXPERIMENTS[@]}"; do
-		sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
-		sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
+		if [[ $experiment != "container_experiment_local" ]]; then
+			sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
+			sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
+		fi
         done
 
 	echo
@@ -326,6 +328,13 @@ function kruize_local_demo_setup() {
 		kruize_local_metadata
 		echo "✅ Collection of metadata complete!"
                 #kruize_local
+
+		# Generate experiment for local with long running container
+		for experiment in "${EXPERIMENTS[@]}"; do
+			if [ $experiment == "container_experiment_local" ]; then
+				generate_experiment_from_prometheus
+			fi
+		done
                 if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
                         kruize_local_experiments
                 fi
@@ -342,3 +351,79 @@ function kruize_local_demo_setup() {
                 expose_prometheus
         fi
 }
+
+# Gnerate experiment with the container which is long running
+# Gathering top 10 container details by default. But using only one for now.
+generate_experiment_from_prometheus() {
+  if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
+	PROMETHEUS_URL="localhost:9090"
+	TOKEN="TOKEN"
+  else
+  	PROMETHEUS_URL=$(oc get route prometheus-k8s -n openshift-monitoring -o jsonpath='{.spec.host}')
+	TOKEN=$(oc whoami -t)
+  fi
+
+  if [[ -z "$PROMETHEUS_URL" ]]; then
+    echo "Error: Could not retrieve Prometheus URL. Ensure you are connected to the cluster and that Prometheus is available."
+    return 1
+  fi
+
+  if [[ -z "$TOKEN" ]]; then
+    echo "Error: Could not retrieve OpenShift authentication token. Please log in using 'oc login'."
+    return 1
+  fi
+
+
+  # Complete Prometheus API URL
+  PROMETHEUS_URL="https://$PROMETHEUS_URL/api/v1/query"
+
+  # Prometheus query
+  QUERY='
+  topk(10,
+    (time() - container_start_time_seconds{container!="POD", container!=""})
+    * on(pod, container, namespace)
+    group_left(workload, workload_type) (
+      max(kube_pod_container_info{container!="", container!="POD", pod!=""}) by (pod, container, namespace)
+    )
+    * on(pod, namespace) group_left(workload, workload_type) (
+      max(namespace_workload_pod:kube_pod_owner:relabel{pod!=""}) by (pod, namespace, workload, workload_type)
+    )
+  )
+  '
+
+  # Send the query to Prometheus with the token and capture the response
+  response=$(curl -s -k -G --header "Authorization: Bearer $TOKEN" --data-urlencode "query=${QUERY}" "${PROMETHEUS_URL}")
+
+  # Extract the first row from the result using jq
+  first_row=$(echo "$response" | jq -r '.data.result[0]')
+
+  # Check if the result is empty
+  if [[ -z "$first_row" || "$first_row" == "null" ]]; then
+    echo "Error: No data returned from Prometheus query."
+    return 1
+  fi
+
+  # Extract the required fields (workload, workload_type, container, namespace, pod)
+  workload=$(echo "$first_row" | jq -r '.metric.workload // "unknown"')
+  workload_type=$(echo "$first_row" | jq -r '.metric.workload_type // "unknown"')
+  container=$(echo "$first_row" | jq -r '.metric.container // "unknown"')
+  namespace=$(echo "$first_row" | jq -r '.metric.namespace // "unknown"')
+  pod=$(echo "$first_row" | jq -r '.metric.pod // "unknown"')
+
+  experiment_name="${container}_${namespace}_${workload}_${workload_type}"
+
+  template_json="experiments/experiment_template.json"
+  new_json="experiments/container_experiment_local.json"
+
+  cp "$template_json" "$new_json"
+
+  # Use sed to replace placeholders with actual values in the new JSON file
+sed -i \
+    -e "s/PLACEHOLDER_EXPERIMENT_NAME/$experiment_name/g" \
+    -e "s/PLACEHOLDER_WORKLOAD/$workload/g" \
+    -e "s/PLACEHOLDER_WORKLOAD_TYPE/$workload_type/g" \
+    -e "s/PLACEHOLDER_CONTAINER/$container/g" \
+    -e "s/NAMESPACE_NAME/$namespace/g" \
+    "$new_json"
+}
+

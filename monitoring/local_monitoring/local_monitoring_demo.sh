@@ -137,7 +137,8 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	    	exit 0
 	fi
 else 
-	export EXPERIMENTS=()
+	export EXPERIMENTS=(container_experiment_local)
+	BENCHMARK="self"
 fi
 
 #echo | tee "${LOG_FILE}"
