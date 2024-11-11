@@ -272,6 +272,7 @@ function kruize_local_demo_setup() {
                         check_err "ERROR: minikube not installed"
                         minikube_start
                         prometheus_install autotune
+			expose_prometheus
                         echo "✅ Installation of minikube and prometheus complete!"
                 elif [ ${CLUSTER_TYPE} == "kind" ]; then
 			echo -n "🔄 Installing kind and prometheus! Please wait..."
@@ -280,6 +281,7 @@ function kruize_local_demo_setup() {
                         check_err "ERROR: kind not installed"
                         kind_start
                         prometheus_install
+			expose_prometheus
                         echo "✅ Installation of kind and prometheus complete!"
                 fi
                 if [ ${demo} == "local" ]; then
