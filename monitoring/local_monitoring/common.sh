@@ -272,7 +272,6 @@ function kruize_local_demo_setup() {
                         check_err "ERROR: minikube not installed"
                         minikube_start
                         prometheus_install autotune
-			expose_prometheus
                         echo "✅ Installation of minikube and prometheus complete!"
                 elif [ ${CLUSTER_TYPE} == "kind" ]; then
 			echo -n "🔄 Installing kind and prometheus! Please wait..."
@@ -281,7 +280,6 @@ function kruize_local_demo_setup() {
                         check_err "ERROR: kind not installed"
                         kind_start
                         prometheus_install
-			expose_prometheus
                         echo "✅ Installation of kind and prometheus complete!"
                 fi
                 if [ ${demo} == "local" ]; then
@@ -334,6 +332,7 @@ function kruize_local_demo_setup() {
 		# Generate experiment for local with long running container
 		for experiment in "${EXPERIMENTS[@]}"; do
 			if [ $experiment == "container_experiment_local" ]; then
+				expose_prometheus >> "${LOG_FILE}" 2>&1
 				generate_experiment_from_prometheus
 			fi
 		done
@@ -375,9 +374,12 @@ generate_experiment_from_prometheus() {
     return 1
   fi
 
+  if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
+	  PROMETHEUS_URL="http://$PROMETHEUS_URL/api/v1/query"
+  elif if [ ${CLUSTER_TYPE} == "openshift" ]; then
+	  PROMETHEUS_URL="https://$PROMETHEUS_URL/api/v1/query"
+  fi
 
-  # Complete Prometheus API URL
-  PROMETHEUS_URL="https://$PROMETHEUS_URL/api/v1/query"
 
   # Prometheus query
   QUERY='
@@ -401,8 +403,8 @@ generate_experiment_from_prometheus() {
 
   # Check if the result is empty
   if [[ -z "$first_row" || "$first_row" == "null" ]]; then
-    echo "Error: No data returned from Prometheus query."
-    return 1
+    echo "Error: No data returned from Prometheus query to create experiments. Exiting!"
+    exit 1
   fi
 
   # Extract the required fields (workload, workload_type, container, namespace, pod)
