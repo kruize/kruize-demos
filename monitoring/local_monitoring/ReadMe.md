@@ -40,7 +40,7 @@ By default, it runs on the `Kind` cluster.
 ```
 Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-n namespace]
 c = supports minikube, kind and openshift cluster-type
-e = supports container, namespace, gpu and none. Default - installs container and namespace experiments.
+e = supports container, namespace, gpu and none. Default - none
 s = start (default), t = terminate
 n = namespace where demo benchmark is deployed. Default - default
 ```

@@ -136,11 +136,8 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	    	echo "No GPU resources found in the cluster. Exiting!"
 	    	exit 0
 	fi
-elif [ "${EXPERIMENT_TYPE}" == "none" ]; then
+else 
 	export EXPERIMENTS=()
-else
-	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp" "create_namespace_exp")
-	BENCHMARK="tfb"
 fi
 
 #echo | tee "${LOG_FILE}"
