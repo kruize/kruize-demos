@@ -10,10 +10,10 @@
     {
       "type": "PLACEHOLDER_WORKLOAD_TYPE",
       "name": "PLACEHOLDER_WORKLOAD",
-      "namespace": "NAMESPACE_NAME",
+      "namespace": "PLACEHOLDER_NAMESPACE_NAME",
       "containers": [
         {
-          "container_image_name": "IMAGE_NAME",
+          "container_image_name": "PLACEHOLDER_IMAGE",
           "container_name": "PLACEHOLDER_CONTAINER"
         }
       ]

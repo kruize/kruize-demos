@@ -408,7 +408,7 @@ generate_experiment_from_prometheus() {
   workload_type=$(echo "$first_row" | jq -r '.metric.workload_type // "unknown"')
   container=$(echo "$first_row" | jq -r '.metric.container // "unknown"')
   namespace=$(echo "$first_row" | jq -r '.metric.namespace // "unknown"')
-  pod=$(echo "$first_row" | jq -r '.metric.pod // "unknown"')
+  image=$(echo "$first_row" | jq -r '.metric.image // "unknown"')
 
   experiment_name="${container}_${namespace}_${workload}_${workload_type}"
 
@@ -420,10 +420,11 @@ generate_experiment_from_prometheus() {
   # Use sed to replace placeholders with actual values in the new JSON file
 sed -i \
     -e "s/PLACEHOLDER_EXPERIMENT_NAME/$experiment_name/g" \
-    -e "s/PLACEHOLDER_WORKLOAD/$workload/g" \
     -e "s/PLACEHOLDER_WORKLOAD_TYPE/$workload_type/g" \
+    -e "s/PLACEHOLDER_WORKLOAD/$workload/g" \
     -e "s/PLACEHOLDER_CONTAINER/$container/g" \
-    -e "s/NAMESPACE_NAME/$namespace/g" \
+    -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
+    -e "s/PLACEHOLDER_IMAGE/$namespace/g" \
     "$new_json"
 }
 
