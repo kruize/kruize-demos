@@ -376,7 +376,7 @@ generate_experiment_from_prometheus() {
 
   if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
 	  PROMETHEUS_URL="http://$PROMETHEUS_URL/api/v1/query"
-  elif if [ ${CLUSTER_TYPE} == "openshift" ]; then
+  elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 	  PROMETHEUS_URL="https://$PROMETHEUS_URL/api/v1/query"
   fi
 
