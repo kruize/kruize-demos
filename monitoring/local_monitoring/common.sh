@@ -332,7 +332,7 @@ function kruize_local_demo_setup() {
 		# Generate experiment for local with long running container
 		for experiment in "${EXPERIMENTS[@]}"; do
 			if [ $experiment == "container_experiment_local" ]; then
-				expose_prometheus >> "${LOG_FILE}" 2>&1
+				expose_prometheus >> "${LOG_FILE}" 2>&1 &
 				generate_experiment_from_prometheus
 			fi
 		done
