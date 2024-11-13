@@ -110,7 +110,9 @@ function kruize_local_experiments() {
         echo
 	for experiment in "${EXPERIMENTS[@]}"; do
 		if [[ $experiment != "container_experiment_local" ]]; then
+			echo "App namesapce is ${APP_NAMESPACE}"
 			sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
+			sed -i "s/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/" ./experiments/${experiment}.json
 			sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
 		fi
         done
@@ -131,8 +133,6 @@ function kruize_local_experiments() {
 
         done
 	echo "✅ Creating kruize experiments complete!"
-
-	apply_benchmark_load ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 
 	for experiment in "${EXPERIMENTS[@]}"; do
 		echo | tee -a "${LOG_FILE}"
@@ -227,11 +227,11 @@ function kruize_local_demo_update() {
         bench=$1
         if [ ${demo} == "local" ]; then
                 if [ ${benchmark} -eq 1 ]; then
-                        echo
-                        create_namespace ${APP_NAMESPACE}
-                        benchmarks_install ${APP_NAMESPACE} ${bench} "resource_provisioning_manifests"
-                        echo "Success! Running the benchmark in ${APP_NAMESPACE}"
-                        echo
+			echo
+			create_namespace ${APP_NAMESPACE}
+			benchmarks_install ${APP_NAMESPACE} ${bench} "resource_provisioning_manifests"
+			echo "Success! Running the benchmark in ${APP_NAMESPACE}"
+			echo
                 fi
                 if [ ${benchmark_load} -eq 1 ]; then
                         echo
@@ -259,11 +259,12 @@ function kruize_local_demo_setup() {
         echo "#######################################" | tee -a "${LOG_FILE}"
         echo
 
-        if [ ${kruize_restart} -eq 0 ]; then
-                {
-                clone_repos autotune
-                clone_repos benchmarks
-                } >> "${LOG_FILE}" 2>&1
+	{
+	clone_repos autotune
+	clone_repos benchmarks
+	} >> "${LOG_FILE}" 2>&1
+
+        if [ ${env_setup} -eq 1 ]; then
                 if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
                         sys_cpu_mem_check
@@ -282,20 +283,35 @@ function kruize_local_demo_setup() {
                         prometheus_install
                         echo "✅ Installation of kind and prometheus complete!"
                 fi
-                if [ ${demo} == "local" ]; then
-                        {
-                        create_namespace ${APP_NAMESPACE}
-                        if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-                                benchmarks_install ${APP_NAMESPACE} ${bench}
-                        fi
-                        echo ""
-                        } >> "${LOG_FILE}" 2>&1
+        elif [ ${env_setup} -eq 0 ]; then
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+                        echo -n "🔄 Checking if minikube exists..."
+                        check_minikube
+                        minikube >/dev/null
+                        check_err "ERROR: minikube is not available. Please install and try again!"
+			echo "✅ minikube exists!"
+                elif [ ${CLUSTER_TYPE} == "kind" ]; then
+                        echo -n "🔄 Checking if kind exists..."
+                        check_kind
+                        kind >/dev/null
+                        check_err "ERROR: kind is not available. Please install and try again!"
+                        echo "✅ kind exists!"
                 fi
+	fi
+	if [ ${demo} == "local" ]; then
+		{
+		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+			create_namespace ${APP_NAMESPACE}
+			benchmarks_install ${APP_NAMESPACE} ${bench}
+			apply_benchmark_load ${APP_NAMESPACE} ${bench}
+		fi
+		echo ""
+		} >> "${LOG_FILE}" 2>&1
         fi
-        {
-        kruize_local_patch
-        } >> "${LOG_FILE}" 2>&1
+
+        kruize_local_patch >> "${LOG_FILE}" 2>&1
         echo -n "🔄 Installing kruize! Please wait..."
+	kruize_start_time=$(get_date)
         kruize_install &
         install_pid=$!
         while kill -0 $install_pid 2>/dev/null; do
@@ -305,9 +321,10 @@ function kruize_local_demo_setup() {
         wait $install_pid
         status=$?
         if [ ${status} -ne 0 ]; then
-		echo "For detailed logs, look in ${LOG_FILE}"
+		#echo "For detailed logs, look in ${LOG_FILE}"
                 exit 1
         fi
+	kruize_end_time=$(get_date)
 
         {
         echo
@@ -316,7 +333,7 @@ function kruize_local_demo_setup() {
                 port_forward
         fi
 
-        get_urls
+        get_urls $bench
         } >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
 
@@ -329,15 +346,20 @@ function kruize_local_demo_setup() {
 		echo "✅ Collection of metadata complete!"
                 #kruize_local
 
-		# Generate experiment for local with long running container
+		# Generate experiment json on local with long running container
 		for experiment in "${EXPERIMENTS[@]}"; do
 			if [ $experiment == "container_experiment_local" ]; then
-				expose_prometheus >> "${LOG_FILE}" 2>&1 &
+				if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+					expose_prometheus >> "${LOG_FILE}" 2>&1 &
+				fi
+				echo -n "🔄 Finding the long running container in the cluster to create experiment..."
 				generate_experiment_from_prometheus
 			fi
 		done
                 if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+			recomm_start_time=$(get_date)
                         kruize_local_experiments
+			recomm_end_time=$(get_date)
                 fi
                 show_urls $bench
         elif [ ${demo} == "bulk" ]; then
@@ -345,7 +367,11 @@ function kruize_local_demo_setup() {
         fi
 
         end_time=$(get_date)
+	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
+	recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
         elapsed_time=$(time_diff "${start_time}" "${end_time}")
+	echo "Kruize installation took ${kruize_elapsed_time} seconds"
+	echo "Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
         echo "Success! Kruize demo setup took ${elapsed_time} seconds"
         echo
         if [ ${prometheus} -eq 1 ]; then
@@ -365,13 +391,7 @@ generate_experiment_from_prometheus() {
   fi
 
   if [[ -z "$PROMETHEUS_URL" ]]; then
-    echo "Error: Could not retrieve Prometheus URL. Ensure you are connected to the cluster and that Prometheus is available."
-    return 1
-  fi
-
-  if [[ -z "$TOKEN" ]]; then
-    echo "Error: Could not retrieve OpenShift authentication token. Please log in using 'oc login'."
-    return 1
+    check_err "Error: Could not retrieve Prometheus URL to create the experiment. Ensure you are connected to the cluster and that Prometheus is available. Exiting!"
   fi
 
   if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
@@ -403,8 +423,7 @@ generate_experiment_from_prometheus() {
 
   # Check if the result is empty
   if [[ -z "$first_row" || "$first_row" == "null" ]]; then
-    echo "Error: No data returned from Prometheus query to create experiments. Exiting!"
-    exit 1
+    check_err "Error: No data returned from Prometheus query to create experiments. Exiting!"
   fi
 
   # Extract the required fields (workload, workload_type, container, namespace, pod)

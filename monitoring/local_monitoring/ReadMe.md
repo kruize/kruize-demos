@@ -9,8 +9,6 @@ Kruize Local provides services to generate recommendations for both single and b
 ## Prerequisites
 Ensure you have one of the clusters: kind, minikube, or openShift.
 
-**WARNING:** Running the demo script will delete any existing minikube or kind clusters and create a fresh instance.
-
 ## Getting Started with the Demo
 
 To begin exploring local monitoring capabilities, follow these steps:
@@ -38,42 +36,22 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-n namespace]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-r]
 c = supports minikube, kind and openshift cluster-type
 e = supports container, namespace, gpu and none. Default - none
 s = start (default), t = terminate
-n = namespace where demo benchmark is deployed. Default - default
+r = create environment setup if cluster-type is minikube or kind
 ```
 
 ## Understanding the Demo
 
-This demo focuses on installing kruize and also installs the demo benchmark
-- By default, it installs kruize and provides the URL to access the kruize UI service where the user can create experiments and generate recommendations.
-- To use demo benchmarks to create and generate recommendations through a script, pass -e for container, namespace and gpu benchmarks.
-    - For container and namespace type, benchmark 'TFB' is deployed in a namespace.
-    - For gpu type, benchmark 'human-eval' is deployed.
+This demo covers the steps to install Kruize, create an experiment, and generate recommendations.
+- By default, it creates an experiment for a container which is long running in a cluster and generates recommendations for the same.
+- If user creates an environment set-up for minikube/kind, benchmark 'sysbench' is installed and that container is used to create experiment and generate recommendations.
 
-Here’s a breakdown of what happens during the demo:
+## Using kruize UI
 
-- Deploys benchmarks in a namespace (if -e is passed)
-    - If -e is container/namespace
-        - The TFB benchmark is initially deployed in the namespace, comprising two key deployments
-          - tfb-qrh: Serving as the application server.
-          - tfb-database: Database to the server.
-        - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
-    - If -e is gpu
-        - The human-eval benchmark is deployed as job in the namespace.
-        - The job is set to run for atleast 20 mins to generate the recommendations.
-- Install Kruize
-  - Installs kruize under openshift-tuning name.
-- Metadata Collection and Experiment Creation
-  - Kruize gathers data sources and metadata from the cluster.
-  - Experiments Created:
-        - container: `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` for the server and database deployments.
-        - namespace: `monitor_app_namespace`
-        - gpu: `monitor_human_eval_benchmark`
-- Generate Recommendations
-  - Generates Recommendations for all the experiments created.
+Refer [this](https://www.loom.com/share/d7ace86fddad43918f777835f70b743f?sid=2470c59e-e160-4dff-b664-83a925d6958c) video on how to create experiments and generate recommendations!
 
 ## Recommendations for different load Simulations observed on Openshift
 

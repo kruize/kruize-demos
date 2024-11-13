@@ -313,7 +313,7 @@ function prometheus_install() {
 #   Benchmarks Install
 ###########################################
 function benchmarks_install() {
-  	NAMESPACE="${1:-default}"
+	NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
 
@@ -363,6 +363,14 @@ function benchmarks_install() {
 				check_err "ERROR: llm-rag benchmark failed to start, exiting"
 			popd >/dev/null
 		fi
+		if [ ${BENCHMARK} == "sysbench" ]; then
+                        echo "#######################################"
+                        echo "Installing sysbench into cluster"
+                        pushd sysbench >/dev/null
+                                kubectl apply -f manifests/sysbench.yaml -n ${NAMESPACE}
+                                check_err "ERROR: sysbench failed to start, exiting"
+                        popd >/dev/null
+                fi
 
 	popd >/dev/null
 	echo "#######################################"
@@ -373,7 +381,7 @@ function benchmarks_install() {
 #   Benchmarks Uninstall
 ###########################################
 function benchmarks_uninstall() {
-	NAMESPACE="${1:-default}"
+	NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
         echo
@@ -402,6 +410,12 @@ function benchmarks_uninstall() {
 				#check_err "ERROR: ${BENCHMARK} benchmark failed to delete, exiting"
 			popd >/dev/null
                 fi
+		if [ ${BENCHMARK} == "sysbench" ]; then
+                        echo "Uninstalling sysbench in cluster"
+                        pushd sysbench >/dev/null
+                                kubectl delete -f manifests/sysbench.yaml -n ${NAMESPACE}
+                        popd >/dev/null
+                fi
 
         popd >/dev/null
         echo "#######################################"
@@ -413,7 +427,7 @@ function benchmarks_uninstall() {
 #
 function apply_benchmark_load() {
 	TECHEMPOWER_LOAD_IMAGE="quay.io/kruizehub/tfb_hyperfoil_load:0.25.2"
-	APP_NAMESPACE="${1:-default}"
+	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	LOAD_DURATION="${3:-1200}"
 
@@ -522,7 +536,7 @@ function delete_namespace() {
 ###########################################
 function apply_namespace_resource_quota() {
 	# Define the namespace and resource quota file path
-	CAPP_NAMESPACE="${1:-default}"
+	CAPP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	RESOURCE_QUOTA_FILE="${2:-namespace_resource_quota.yaml}"
 
 	echo 
@@ -547,7 +561,7 @@ function apply_namespace_resource_quota() {
 ###########################################
 function delete_namespace_resource_quota() {
 	# Define the namespace and resource quota name
-	CAPP_NAMESPACE="${1:-default}"
+	CAPP_NAMESPACE="${1:${APP_NAMESPACE}}"
 	RESOURCE_QUOTA_NAME="${2:-default-ns-quota}"
 
 	echo
@@ -639,7 +653,7 @@ function kruize_local_patch() {
 #  Get URLs
 ###########################################
 function get_urls() {
-  	APP_NAMESPACE="${1:-default}"
+	bench=$1
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 		kubectl_app_cmd="kubectl -n ${APP_NAMESPACE}"
@@ -649,14 +663,14 @@ function get_urls() {
 		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 
-		if [ ${demo} == "local" ]; then
+		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
+                export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
+
+		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			TECHEMPOWER_PORT=$(${kubectl_app_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			TECHEMPOWER_IP=$(${kubectl_app_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+			export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
 		fi
-
-		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
-		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
-		export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
 
 	elif [ "${CLUSTER_TYPE}" == "aks" ]; then
 		kubectl_cmd="kubectl -n monitoring"
@@ -669,9 +683,9 @@ function get_urls() {
 		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
 
 		
-		if [ ${demo} == "local" ]; then
+		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			unset TECHEMPOWER_IP
-			export TECHEMPOWER_IP=$(kubectl -n default get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+			export TECHEMPOWER_IP=$(kubectl -n ${APP_NAMESPACE} get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
 			export TECHEMPOWER_URL="${TECHEMPOWER_IP}:8080"
 		fi
 	
@@ -679,7 +693,7 @@ function get_urls() {
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
 
-		if [ ${demo} == "local" ]; then
+		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 		fi
 
@@ -691,7 +705,7 @@ function get_urls() {
 		${kubectl_cmd} expose service kruize-ui-nginx-service
 		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
-		if [ ${demo} == "local" ]; then
+		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			${kubectl_app_cmd} expose service tfb-qrh-service
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi

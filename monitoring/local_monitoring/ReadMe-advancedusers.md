@@ -39,6 +39,30 @@ d = duration to run the benchmark load
 m = manifests of the benchmark
 ```
 
+Here’s a breakdown of what happens during the demo:
+
+- Deploys benchmarks in a namespace (if -e is passed)
+    - If -e is container/namespace
+        - The TFB benchmark is initially deployed in the namespace, comprising two key deployments
+          - tfb-qrh: Serving as the application server.
+          - tfb-database: Database to the server.
+        - Load is applied to the server for 20 mins within this namespace to simulate real-world usage scenarios
+    - If -e is gpu
+        - The human-eval benchmark is deployed as job in the namespace.
+        - The job is set to run for atleast 20 mins to generate the recommendations.
+- Install Kruize
+  - Installs kruize under openshift-tuning name.
+- Metadata Collection and Experiment Creation
+  - Kruize gathers data sources and metadata from the cluster.
+  - Experiments(-e) Created:
+        - none(default): dynamically created based on container and namespace (if no enviroment set-up) ; `monitor_sysbench` ( if environment set-up enabled)  
+        - container: `monitor_tfb_benchmark` and `monitor_tfb-db_benchmark` for the server and database deployments.
+        - namespace: `monitor_app_namespace`
+        - gpu: `monitor_human_eval_benchmark`
+- Generate Recommendations
+  - Generates Recommendations for all the experiments created.
+
+
 ## Misc
 
 ##### To apply the load to TFB benchmark: 

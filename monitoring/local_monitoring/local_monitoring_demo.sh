@@ -42,14 +42,13 @@ function usage() {
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
-	echo "r = restart kruize only"
+	echo "r = create environment setup if cluster-type is minikube,kind"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "b = deploy the benchmark."
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "m = manifests of the benchmark"
-	echo "g = number of unpartitioned gpus in cluster"
 
 	exit 1
 }
@@ -63,7 +62,7 @@ export KRUIZE_DOCKER_IMAGE=""
 export benchmark_load=0
 export benchmark=0
 export prometheus=0
-export kruize_restart=0
+export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
@@ -94,7 +93,7 @@ do
 			prometheus=1
 			;;
 		r)
-			kruize_restart=1
+			env_setup=1
 			;;
 		s)
 			start_demo=1
@@ -120,7 +119,6 @@ do
 done
 
 export demo="local"
-#EXPERIMENTS=("create_human_eval_exp" "create_llm_rag_exp" "create_namespace_exp" "create_tfb-db_exp" "create_tfb_exp" "create_ttm_exp")
 
 if [ "${EXPERIMENT_TYPE}" == "container" ]; then
 	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
@@ -136,12 +134,16 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	    	echo "No GPU resources found in the cluster. Exiting!"
 	    	exit 0
 	fi
-else 
-	export EXPERIMENTS=(container_experiment_local)
-	BENCHMARK="self"
+else
+	if [ ${env_setup} -ne 1 ]; then
+		export EXPERIMENTS=("container_experiment_local")
+                BENCHMARK="self"
+	else
+		export EXPERIMENTS=("container_experiment_sysbench")
+                BENCHMARK="sysbench"
+	fi
 fi
 
-#echo | tee "${LOG_FILE}"
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}"
 	kruize_local_demo_setup ${BENCHMARK}
