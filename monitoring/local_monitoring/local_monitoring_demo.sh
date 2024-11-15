@@ -36,13 +36,13 @@ KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
 	echo "c = supports minikube, kind, aks and openshift cluster-type"
 	echo "e = supports container, namespace and gpu"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
-	echo "r = create environment setup if cluster-type is minikube,kind"
+	echo "f = create environment setup if cluster-type is minikube,kind"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "b = deploy the benchmark."
@@ -92,7 +92,7 @@ do
 		p)
 			prometheus=1
 			;;
-		r)
+		f)
 			env_setup=1
 			;;
 		s)
