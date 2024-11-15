@@ -10,10 +10,10 @@
     {
       "type": "deployment",
       "name": "sysbench",
-      "namespace": "test",
+      "namespace": "default",
       "containers": [
         {
-          "container_image_name": "severalnines/sysbench",
+          "container_image_name": "quay.io/kruizehub/sysbench",
           "container_name": "sysbench"
         }
       ]
