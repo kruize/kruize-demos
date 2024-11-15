@@ -1,0 +1,29 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "monitor_sysbench",
+  "cluster_name": "default",
+  "performance_profile": "resource-optimization-local-monitoring",
+  "mode": "monitor",
+  "target_cluster": "local",
+  "datasource": "prometheus-1",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "sysbench",
+      "namespace": "test",
+      "containers": [
+        {
+          "container_image_name": "severalnines/sysbench",
+          "container_name": "sysbench"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "2min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
+

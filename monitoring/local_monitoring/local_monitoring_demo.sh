@@ -36,20 +36,19 @@ KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
 	echo "c = supports minikube, kind, aks and openshift cluster-type"
 	echo "e = supports container, namespace and gpu"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "l = Run a load against the benchmark"
 	echo "p = expose prometheus port"
-	echo "r = restart kruize only"
+	echo "f = create environment setup if cluster-type is minikube,kind"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "b = deploy the benchmark."
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "m = manifests of the benchmark"
-	echo "g = number of unpartitioned gpus in cluster"
 
 	exit 1
 }
@@ -63,14 +62,14 @@ export KRUIZE_DOCKER_IMAGE=""
 export benchmark_load=0
 export benchmark=0
 export prometheus=0
-export kruize_restart=0
+export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts c:i:e:n:d:m:g:lbprstu: gopts
+while getopts c:i:e:n:d:m:g:lbpfstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -93,8 +92,8 @@ do
 		p)
 			prometheus=1
 			;;
-		r)
-			kruize_restart=1
+		f)
+			env_setup=1
 			;;
 		s)
 			start_demo=1
@@ -120,7 +119,6 @@ do
 done
 
 export demo="local"
-#EXPERIMENTS=("create_human_eval_exp" "create_llm_rag_exp" "create_namespace_exp" "create_tfb-db_exp" "create_tfb_exp" "create_ttm_exp")
 
 if [ "${EXPERIMENT_TYPE}" == "container" ]; then
 	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
@@ -137,17 +135,25 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	    	exit 0
 	fi
 else
-	export EXPERIMENTS=()
+	if [ ${env_setup} -ne 1 ]; then
+		export EXPERIMENTS=("container_experiment_local")
+                BENCHMARK="self"
+	else
+		export EXPERIMENTS=("container_experiment_sysbench")
+                BENCHMARK="sysbench"
+	fi
 fi
 
-echo | tee "${LOG_FILE}"
 if [ ${start_demo} -eq 1 ]; then
+	echo > "${LOG_FILE}"
 	kruize_local_demo_setup ${BENCHMARK}
-	echo "For installation logs, look in kruize-demo.log" | tee -a "${LOG_FILE}"
+	echo "For detailed logs, look in kruize-demo.log"
+	echo
 elif [ ${start_demo} -eq 2 ]; then
-	echo "Updating the kruize local demo..." | tee -a "${LOG_FILE}"
-	kruize_local_demo_update ${BENCHMARK} >> "${LOG_FILE}" 2>&1
+	kruize_local_demo_update ${BENCHMARK}
 else
+	echo | tee -a "${LOG_FILE}"
 	kruize_local_demo_terminate
-g = number of unpartitioned gpu resources available
+	echo "For detailed logs, look in kruize-demo.log"
+        echo
 fi
