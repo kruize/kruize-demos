@@ -69,7 +69,7 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts c:i:e:n:d:m:g:lbprstu: gopts
+while getopts c:i:e:n:d:m:g:lbpfstu: gopts
 do
 	case "${gopts}" in
 		c)
