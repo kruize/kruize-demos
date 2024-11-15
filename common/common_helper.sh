@@ -596,6 +596,7 @@ function port_forward() {
 	kubectl_cmd="kubectl -n monitoring"
 	port_flag="false"
 
+	{
 	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
 	# Start port forwarding for kruize service in the background
 	if is_port_in_use ${KRUIZE_PORT}; then
@@ -618,10 +619,11 @@ function port_forward() {
 	else
 		kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
 	fi
+	} >> "${LOG_FILE}" 2>&1
 
 	if ${port_flag} = "true"; then
-		echo "Exiting..."
-		exit 1
+		false
+		check_err "Error. Issues with port-forwarding. Exiting!"
 	fi
 }
 

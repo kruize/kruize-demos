@@ -332,13 +332,11 @@ function kruize_local_demo_setup() {
         fi
 	kruize_end_time=$(get_date)
 
-        {
-        echo
         # port forward the urls in case of kind
         if [ ${CLUSTER_TYPE} == "kind" ]; then
                 port_forward
         fi
-
+	{
         get_urls $bench
         } >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
