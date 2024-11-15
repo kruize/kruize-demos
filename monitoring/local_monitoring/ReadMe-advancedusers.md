@@ -24,13 +24,13 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]
 c = supports minikube, kind and openshift cluster-type
 e = supports container, namespace and gpu. Default - none.
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 l = Run a load against the benchmark
 p = expose prometheus port
-r = restart kruize only
+f = create fresh environment setup if cluster-type is minikube or kind
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 b = deploy the benchmark.

@@ -36,11 +36,10 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-r]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f]
 c = supports minikube, kind and openshift cluster-type
-e = supports container, namespace, gpu and none. Default - none
 s = start (default), t = terminate
-r = create environment setup if cluster-type is minikube or kind
+f = create fresh environment setup if cluster-type is minikube or kind
 ```
 
 ## Understanding the Demo
