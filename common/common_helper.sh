@@ -735,12 +735,12 @@ function show_urls() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo "#              Kruize                 #" | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "Info: Access kruize UI at http://${KRUIZE_UI_URL}"
+	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}"
 	if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-		echo "Info: List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments" | tee -a "${LOG_FILE}"
+		echo "ℹ️  List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments" | tee -a "${LOG_FILE}"
 	fi
 	echo
-	echo "Note: To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
+	echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 }
 

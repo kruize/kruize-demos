@@ -126,28 +126,36 @@ function kruize_local_experiments() {
 	echo "######################################################" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 	for experiment in "${EXPERIMENTS[@]}"; do
+		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
+		echo -n "🔄 Creating experiment: ${experiment_name} ..."
 		{
 		echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json"
 		curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json
 		} >> "${LOG_FILE}" 2>&1
-
+		echo "✅ Created!"
+		grep -E '"experiment_name"|"container_name"|"type"|"namespace"' experiments/${experiment}.json | sed -E 's/.*"experiment_name": "([^"]*)".*/\tExperiment: \1/; s/.*"type": "([^"]*)".*/\tType: \1/; s/.*"container_name": "([^"]*)".*/\tContainer: \1/; s/.*"namespace": "([^"]*)".*/\tNamespace: \1/'
         done
-	echo "✅ Creating kruize experiments complete!"
+
 
 	for experiment in "${EXPERIMENTS[@]}"; do
 		echo | tee -a "${LOG_FILE}"
 		echo "######################################################" | tee -a "${LOG_FILE}"
-		echo "#     Generate recommendations for experiment: ${experiment}" | tee -a "${LOG_FILE}"
+		echo "#     Generate recommendations"
+		echo "#     Generate recommendations for experiment: ${experiment}" >> "${LOG_FILE}" 2>&1
 		echo "######################################################" | tee -a "${LOG_FILE}"
 		echo | tee -a "${LOG_FILE}"
 		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')	
+		echo -n "🔄 Generating recommendations for experiment: ${experiment_name} ..."
 		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" >> "${LOG_FILE}" 2>&1
 		output=$(curl -s -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}")
-		echo $output | jq | tee -a "${LOG_FILE}"
-		echo | tee -a "${LOG_FILE}"
+		echo $output | jq >> "${LOG_FILE}" 2>&1
+		echo $output | jq > "${experiment}_recommendation.json"
 
 		if echo "$output" | grep -q "Recommendations Are Available"; then
-			echo "Recommendations are generated for experiment: $experiment." >> "${LOG_FILE}" 2>&1
+			echo "✅ Generated! "
+			#echo ""
+			#echo "📄 Access ${experiment}_recommendation.json or kruize UI for recommendations." | tee -a "${LOG_FILE}"
+			echo "📌 Access ${experiment}_recommendation.json or kruize UI for recommendations." | tee -a "${LOG_FILE}"
 		else
 			echo "" | tee -a "${LOG_FILE}"
 			echo "######################################################" | tee -a "${LOG_FILE}"
@@ -155,34 +163,25 @@ function kruize_local_experiments() {
 			echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN IF NO RECOMMENDATIONS ARE AVAILABLE!" | tee -a "${LOG_FILE}"
 			echo "######################################################" | tee -a "${LOG_FILE}"
 			echo | tee -a "${LOG_FILE}"
+
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo "Generate fresh recommendations using" | tee -a "${LOG_FILE}"
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
+			echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
+			echo "" | tee -a "${LOG_FILE}"
+
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo "List Recommendations using " | tee -a "${LOG_FILE}"
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
+			echo "curl -X POST http://${KRUIZE_URL}/listRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
+			echo | tee -a "${LOG_FILE}"
+
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo | tee -a "${LOG_FILE}"
 		fi
         done
-	echo
-	if [[ ${#EXPERIMENTS[@]} -ne 0 ]]; then
-		echo "✅ Generating recommendations for all experiments complete!"
-	fi
-
-	echo | tee -a "${LOG_FILE}"
-	echo "######################################################" | tee -a "${LOG_FILE}"
-	echo "Generate fresh recommendations using" | tee -a "${LOG_FILE}"
-	echo "######################################################" | tee -a "${LOG_FILE}"
-	for experiment in "${EXPERIMENTS[@]}"; do
-                experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
-                echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
-        done
-	echo "" | tee -a "${LOG_FILE}"
-
-	echo "######################################################" | tee -a "${LOG_FILE}"
-  	echo "List Recommendations using " | tee -a "${LOG_FILE}"
-	echo "######################################################" | tee -a "${LOG_FILE}"
-	for experiment in "${EXPERIMENTS[@]}"; do
-                experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
-                echo "curl -X POST http://${KRUIZE_URL}/listRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
-        done
-	
-	echo | tee -a "${LOG_FILE}"
-  	echo "######################################################" | tee -a "${LOG_FILE}"
-  	echo | tee -a "${LOG_FILE}"
 }
 
 function kruize_local_demo_terminate() {
@@ -224,7 +223,7 @@ function kruize_local_demo_terminate() {
         } >> "${LOG_FILE}" 2>&1
         end_time=$(get_date)
         elapsed_time=$(time_diff "${start_time}" "${end_time}")
-        echo "Success! Kruize demo cleanup took ${elapsed_time} seconds"
+        echo "🕒 Success! Kruize demo cleanup took ${elapsed_time} seconds"
         echo
 }
 
@@ -252,7 +251,7 @@ function kruize_local_demo_update() {
 
         end_time=$(get_date)
         elapsed_time=$(time_diff "${start_time}" "${end_time}")
-        echo "Success! Benchmark updates took ${elapsed_time} seconds"
+        echo "🕒 Success! Benchmark updates took ${elapsed_time} seconds"
         echo
 }
 
@@ -378,9 +377,9 @@ function kruize_local_demo_setup() {
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
 	recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
         elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "Kruize installation took ${kruize_elapsed_time} seconds"
-	echo "Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
-        echo "Success! Kruize demo setup took ${elapsed_time} seconds"
+	echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
+	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
+	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
         echo
         if [ ${prometheus} -eq 1 ]; then
                 expose_prometheus
@@ -441,7 +440,10 @@ generate_experiment_from_prometheus() {
   namespace=$(echo "$first_row" | jq -r '.metric.namespace // "unknown"')
   image=$(echo "$first_row" | jq -r '.metric.image // "unknown"')
 
-  experiment_name="${container}_${namespace}_${workload}_${workload_type}"
+  #experiment_name="${container}_${namespace}_${workload}_${workload_type}"
+  # Keeping it simple for easy reference
+  experiment_name="monitor_${container}"
+
 
   template_json="experiments/experiment_template.json"
   new_json="experiments/container_experiment_local.json"
