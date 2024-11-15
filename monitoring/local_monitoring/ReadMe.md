@@ -4,7 +4,7 @@ Kruize Local provides services to generate recommendations for both single and b
 
 - **For Bulk Services**: For detailed instructions, refer [this guide](https://github.com/kruize/kruize-demos/tree/main/monitoring/local_monitoring/bulk_demo/README.md).
 - **For Demo of Individual Experiments**: Continue with the steps below.
-- **For Advanced Local Monitoring Options**: Explore advanced testing details [./ReadMe-advancedusers.md].
+- **For Advanced Local Monitoring Options**: Explore advanced testing details [here](./ReadMe-advancedusers.md)
 
 ## Prerequisites
 Ensure you have one of the clusters: kind, minikube, or openShift.
