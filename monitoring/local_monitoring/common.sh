@@ -142,20 +142,27 @@ function kruize_local_experiments() {
 		echo | tee -a "${LOG_FILE}"
 		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')	
 		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" >> "${LOG_FILE}" 2>&1
-		curl -s -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
+		output=$(curl -s -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}")
+		echo $output | jq | tee -a "${LOG_FILE}"
+		echo | tee -a "${LOG_FILE}"
+
+		if echo "$output" | grep -q "Recommendations Are Available"; then
+			echo "Recommendations are generated for experiment: $experiment." >> "${LOG_FILE}" 2>&1
+		else
+			echo "" | tee -a "${LOG_FILE}"
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!" | tee -a "${LOG_FILE}"
+			echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN IF NO RECOMMENDATIONS ARE AVAILABLE!" | tee -a "${LOG_FILE}"
+			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo | tee -a "${LOG_FILE}"
+		fi
         done
 	echo
 	if [[ ${#EXPERIMENTS[@]} -ne 0 ]]; then
 		echo "✅ Generating recommendations for all experiments complete!"
 	fi
 
-	echo "" | tee -a "${LOG_FILE}"
-	echo "######################################################" | tee -a "${LOG_FILE}"
-	echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!" | tee -a "${LOG_FILE}"
-	echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN IF NO RECOMMENDATIONS ARE AVAILABLE!" | tee -a "${LOG_FILE}"
-	echo "######################################################" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
-
 	echo "######################################################" | tee -a "${LOG_FILE}"
 	echo "Generate fresh recommendations using" | tee -a "${LOG_FILE}"
 	echo "######################################################" | tee -a "${LOG_FILE}"
@@ -354,6 +361,7 @@ function kruize_local_demo_setup() {
 				fi
 				echo -n "🔄 Finding the long running container in the cluster to create experiment..."
 				generate_experiment_from_prometheus
+				echo "✅ Complete!"
 			fi
 		done
                 if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
@@ -391,7 +399,7 @@ generate_experiment_from_prometheus() {
   fi
 
   if [[ -z "$PROMETHEUS_URL" ]]; then
-    check_err "Error: Could not retrieve Prometheus URL to create the experiment. Ensure you are connected to the cluster and that Prometheus is available. Exiting!"
+    check_err "Error: Could not retrieve Prometheus URL to generate the experiment json. Ensure you are connected to the cluster and that Prometheus is available. Exiting!"
   fi
 
   if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
