@@ -201,9 +201,14 @@ function kruize_local_demo_terminate() {
 	else
 		kruize_uninstall
 	fi
-	if [ ${demo} == "local" ]; then
-		benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
-		benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
+	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
+		if kubectl get pods -n "${APP_NAMESPACE}" | grep -q "tfb"; then
+			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "human-eval"; then
+			benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
+		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "sysbench"; then
+			benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+		fi
 		if [[ ${APP_NAMESPACE} != "default" ]]; then
 			delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 		fi

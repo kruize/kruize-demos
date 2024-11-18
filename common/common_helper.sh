@@ -402,7 +402,7 @@ function benchmarks_uninstall() {
 				#check_err "ERROR: human-eval benchmark failed to delete, exiting"
 			popd >/dev/null
 		fi
-		if [ ${BENCHMARK} == "ttm" ] || [${BENCHMARK} == "llm-rag"]; then
+		if [ ${BENCHMARK} == "ttm" ] || [ ${BENCHMARK} == "llm-rag" ]; then
 			echo "Uninstalling ${BENCHMARK} benchmark in cluster"
 			pushd AI-MLbenchmarks/ttm >/dev/null
 				./cleanup.sh ${NAMESPACE}
