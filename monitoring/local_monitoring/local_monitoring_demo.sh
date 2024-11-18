@@ -36,19 +36,19 @@ KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests]"
-	echo "c = supports minikube, kind, aks and openshift cluster-type"
-	echo "e = supports container, namespace and gpu"
-	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
-	echo "l = Run a load against the benchmark"
-	echo "p = expose prometheus port"
-	echo "f = create environment setup if cluster-type is minikube,kind"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
 	echo "s = start (default), t = terminate"
+	echo "c = supports minikube, kind, aks and openshift cluster-type"
+	echo "f = create environment setup if cluster-type is minikube, kind"
+	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "e = supports container, namespace and gpu"
 	echo "b = deploy the benchmark."
-	echo "n = namespace of benchmark. Default - default"
-	echo "d = duration to run the benchmark load"
 	echo "m = manifests of the benchmark"
+	echo "n = namespace of benchmark. Default - default"
+	echo "l = Run a load against the benchmark"
+	echo "d = duration to run the benchmark load"
+	echo "p = expose prometheus port"
 
 	exit 1
 }
@@ -69,31 +69,40 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts c:i:e:n:d:m:g:lbpfstu: gopts
+while getopts bc:d:e:fi:lm:n:pstu: gopts
 do
 	case "${gopts}" in
+		b)
+			start_demo=2
+			benchmark=1
+			;;
 		c)
 			CLUSTER_TYPE="${OPTARG}"
 			;;
-		i)
-			KRUIZE_DOCKER_IMAGE="${OPTARG}"
+		d)
+			LOAD_DURATION="${OPTARG}"
 			;;
 		e)
 			EXPERIMENT_TYPE="${OPTARG}"
+			;;
+		f)
+			env_setup=1
+			;;
+		i)
+			KRUIZE_DOCKER_IMAGE="${OPTARG}"
 			;;
 		l)
 			start_demo=2
 			benchmark_load=1
 			;;
-		b)
-			start_demo=2
-			benchmark=1
+		m)
+			BENCHMARK_MANIFESTS="${OPTARG}"
+			;;
+		n)
+			export APP_NAMESPACE="${OPTARG}"
 			;;
 		p)
 			prometheus=1
-			;;
-		f)
-			env_setup=1
 			;;
 		s)
 			start_demo=1
@@ -103,15 +112,6 @@ do
 			;;
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
-			;;
-		n)
-			export APP_NAMESPACE="${OPTARG}"
-			;;
-		d)
-			LOAD_DURATION="${OPTARG}"
-			;;
-		m)
-			BENCHMARK_MANIFESTS="${OPTARG}"
 			;;
 		*)
 			usage
@@ -124,23 +124,23 @@ if [ "${EXPERIMENT_TYPE}" == "container" ]; then
 	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
 	BENCHMARK="tfb"
 elif [ "${EXPERIMENT_TYPE}" == "namespace" ]; then
-        export EXPERIMENTS=("create_namespace_exp")
+	export EXPERIMENTS=("create_namespace_exp")
 	BENCHMARK="tfb"
 elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	export EXPERIMENTS=("create_human_eval_exp")
 	BENCHMARK="human-eval"
 	gpu_nodes=$(oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.allocatable.nvidia\.com/gpu}{"\n"}{end}' | grep -v '<none>' | awk '$2 > 0')
 	if [ -z "$gpu_nodes" ]; then
-	    	echo "No GPU resources found in the cluster. Exiting!"
-	    	exit 0
+		echo "No GPU resources found in the cluster. Exiting!"
+		exit 0
 	fi
 else
 	if [ ${env_setup} -ne 1 ]; then
 		export EXPERIMENTS=("container_experiment_local")
-                BENCHMARK="self"
+		BENCHMARK="self"
 	else
 		export EXPERIMENTS=("container_experiment_sysbench")
-                BENCHMARK="sysbench"
+		BENCHMARK="sysbench"
 	fi
 fi
 
@@ -155,5 +155,5 @@ else
 	echo | tee -a "${LOG_FILE}"
 	kruize_local_demo_terminate
 	echo "For detailed logs, look in kruize-demo.log"
-        echo
+	echo
 fi
