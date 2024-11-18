@@ -20,7 +20,6 @@
 ###########################################
 
 function kruize_local_metric_profile() {
-
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
 	# Metric Profile JSON
@@ -35,11 +34,17 @@ function kruize_local_metric_profile() {
 		echo "#     Install default metric profile"
 		echo "######################################################"
 		echo
-		curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring
+		output=$(curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring)
 		echo
 	} >> "${LOG_FILE}" 2>&1
 
+	if [[ "$output" != *"SUCCESS"* ]]; then
+		echo $output >> "${LOG_FILE}" 2>&1
+		false
+		check_err "Error. Unable to create metric profile. Exiting!"
+	fi
 }
+
 function kruize_local_metadata() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -66,10 +71,9 @@ function kruize_local_metadata() {
 
 	# Exit if unable to connect to datasource
 	if [[ "$output" == *"ERROR"* ]]; then
-		echo "Unable to connect to datasource. Exiting!"  | tee -a "${LOG_FILE}"
 		echo $output >> "${LOG_FILE}" 2>&1
-		echo "For detailed logs, look in ${LOG_FILE}"
-		exit 1
+		false
+		check_err "Error. Unable to connect to datasource. Exiting!"  | tee -a "${LOG_FILE}"
 	fi
 
 	{
@@ -120,11 +124,11 @@ function kruize_local_experiments() {
 	echo
 	} >> "${LOG_FILE}" 2>&1
 
-	echo | tee -a "${LOG_FILE}"
-	#echo "######################################################" | tee -a "${LOG_FILE}"
-	#echo "#     Create kruize experiment" | tee -a "${LOG_FILE}"
-	#echo "######################################################" | tee -a "${LOG_FILE}"
-	#echo | tee -a "${LOG_FILE}"
+	echo >> "${LOG_FILE}" 2>&1
+	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	echo "#     Create kruize experiment" >> "${LOG_FILE}" 2>&1
+	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
 	for experiment in "${EXPERIMENTS[@]}"; do
 		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
 		echo -n "🔄 Creating experiment: ${experiment_name} ..."
@@ -138,12 +142,11 @@ function kruize_local_experiments() {
 
 
 	for experiment in "${EXPERIMENTS[@]}"; do
-		echo | tee -a "${LOG_FILE}"
-		#echo "######################################################" | tee -a "${LOG_FILE}"
-		#echo "#     Generate recommendations"
+		echo >> "${LOG_FILE}" 2>&1
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
 		echo "#     Generate recommendations for experiment: ${experiment}" >> "${LOG_FILE}" 2>&1
-		#echo "######################################################" | tee -a "${LOG_FILE}"
-		#echo | tee -a "${LOG_FILE}"
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo >> "${LOG_FILE}" 2>&1
 		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')	
 		echo -n "🔄 Generating recommendations for experiment: ${experiment_name} ..."
 		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" >> "${LOG_FILE}" 2>&1
@@ -153,33 +156,31 @@ function kruize_local_experiments() {
 
 		if echo "$output" | grep -q "Recommendations Are Available"; then
 			echo "✅ Generated! "
-			#echo ""
-			#echo "📄 Access ${experiment}_recommendation.json or kruize UI for recommendations." | tee -a "${LOG_FILE}"
 			echo "📌 Access ${experiment}_recommendation.json or kruize UI for recommendations." | tee -a "${LOG_FILE}"
 		else
-			echo "" | tee -a "${LOG_FILE}"
-			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo  | tee -a "${LOG_FILE}"
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
 			echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!" | tee -a "${LOG_FILE}"
 			echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN IF NO RECOMMENDATIONS ARE AVAILABLE!" | tee -a "${LOG_FILE}"
-			echo "######################################################" | tee -a "${LOG_FILE}"
-			echo | tee -a "${LOG_FILE}"
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo >> "${LOG_FILE}" 2>&1
 
-			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
 			echo "Generate fresh recommendations using" | tee -a "${LOG_FILE}"
-			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
 			experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
 			echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
-			echo "" | tee -a "${LOG_FILE}"
+			echo "" >> "${LOG_FILE}" 2>&1
 
-			echo "######################################################" | tee -a "${LOG_FILE}"
-			echo "List Recommendations using " | tee -a "${LOG_FILE}"
-			echo "######################################################" | tee -a "${LOG_FILE}"
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo "List Recommendations using " >> "${LOG_FILE}" 2>&1
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
 			experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
-			echo "curl -X POST http://${KRUIZE_URL}/listRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
-			echo | tee -a "${LOG_FILE}"
+			echo "curl -X POST http://${KRUIZE_URL}/listRecommendations?experiment_name=${experiment_name}" >> "${LOG_FILE}" 2>&1
+			echo >> "${LOG_FILE}" 2>&1
 
-			echo "######################################################" | tee -a "${LOG_FILE}"
-			echo | tee -a "${LOG_FILE}"
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo >> "${LOG_FILE}" 2>&1
 		fi
 	done
 }
@@ -265,13 +266,14 @@ function kruize_local_demo_setup() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
-	echo -n "🔄 Cloning Repos..." | tee -a "${LOG_FILE}"
+	echo -n "🔄 Pulling required repositories... "
 	{
 		clone_repos autotune
-		clone_repos benchmarks
+		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+			clone_repos benchmarks
+		fi
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Done!"
-
 	if [ ${env_setup} -eq 1 ]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
@@ -307,17 +309,17 @@ function kruize_local_demo_setup() {
 		fi
 	fi
 	if [ ${demo} == "local" ]; then
-	{
-		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-			create_namespace ${APP_NAMESPACE}
-			benchmarks_install ${APP_NAMESPACE} ${bench}
-			apply_benchmark_load ${APP_NAMESPACE} ${bench}
+		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+			echo -n "🔄 Installing the required benchmarks..."
+			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
+			apply_benchmark_load ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
+			echo "✅ Completed!"
 		fi
-		echo ""
-	} >> "${LOG_FILE}" 2>&1
+		echo "" >> "${LOG_FILE}" 2>&1
 	fi
 
-	kruize_local_patch >> "${LOG_FILE}" 2>&1
+	#kruize_local_patch >> "${LOG_FILE}" 2>&1
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	kruize_install &
