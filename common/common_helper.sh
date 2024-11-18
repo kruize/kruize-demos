@@ -66,20 +66,20 @@ function print_min_resources() {
 function sys_cpu_mem_check() {
 	cluster_name=$1
 	if [[ "$OSTYPE" == "linux"* ]]; then
-    # Linux
-    SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
-    SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
+		# Linux
+		SYS_CPU=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
+		SYS_MEM=$(grep MemTotal /proc/meminfo | awk '{printf ("%.0f\n", $2/(1024))}')
 	elif [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    SYS_CPU=$(sysctl -n hw.ncpu)
-    SYS_MEM=$(sysctl -n hw.memsize | awk '{printf ("%.0f\n", $1/1024/1024)}')
+		# macOS
+		SYS_CPU=$(sysctl -n hw.ncpu)
+		SYS_MEM=$(sysctl -n hw.memsize | awk '{printf ("%.0f\n", $1/1024/1024)}')
 	elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-    # Windows
-    SYS_CPU=$(powershell -Command "Get-WmiObject -Class Win32_Processor | Measure-Object -Property NumberOfCores -Sum | Select-Object -ExpandProperty Sum")
-    SYS_MEM=$(powershell -Command "[math]::truncate((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1MB)")
+		# Windows
+		SYS_CPU=$(powershell -Command "Get-WmiObject -Class Win32_Processor | Measure-Object -Property NumberOfCores -Sum | Select-Object -ExpandProperty Sum")
+		SYS_MEM=$(powershell -Command "[math]::truncate((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1MB)")
 	else
-    echo "Unsupported OS: $OSTYPE"
-    exit 1
+		echo "Unsupported OS: $OSTYPE"
+		exit 1
 	fi
 
 	if [ "${SYS_CPU}" -lt "${MIN_CPU}" ]; then
@@ -351,8 +351,8 @@ function benchmarks_install() {
 			echo "Running Training TTM benchmark job in background"
 			pushd AI-MLbenchmarks/ttm >/dev/null
 				echo ""
-                                ./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
-                                check_err "ERROR: Training ttm jobs failed to start, exiting"
+				./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
+				check_err "ERROR: Training ttm jobs failed to start, exiting"
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "llm-rag" ]; then
@@ -364,13 +364,13 @@ function benchmarks_install() {
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "sysbench" ]; then
-                        echo "#######################################"
-                        echo "Installing sysbench into cluster"
-                        pushd sysbench >/dev/null
-                                kubectl apply -f manifests/sysbench.yaml -n ${NAMESPACE}
-                                check_err "ERROR: sysbench failed to start, exiting"
-                        popd >/dev/null
-                fi
+			echo "#######################################"
+			echo "Installing sysbench into cluster"
+			pushd sysbench >/dev/null
+				kubectl apply -f manifests/sysbench.yaml -n ${NAMESPACE}
+				check_err "ERROR: sysbench failed to start, exiting"
+			popd >/dev/null
+		fi
 
 	popd >/dev/null
 	echo "#######################################"
@@ -384,9 +384,9 @@ function benchmarks_uninstall() {
 	NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
-        echo
-        echo "#######################################"
-        pushd benchmarks >/dev/null
+	echo
+	echo "#######################################"
+	pushd benchmarks >/dev/null
 		if [ ${BENCHMARK} == "tfb" ]; then
 			echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
 			pushd techempower >/dev/null
@@ -403,23 +403,21 @@ function benchmarks_uninstall() {
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "ttm" ] || [${BENCHMARK} == "llm-rag"]; then
-
 			echo "Uninstalling ${BENCHMARK} benchmark in cluster"
 			pushd AI-MLbenchmarks/ttm >/dev/null
 				./cleanup.sh ${NAMESPACE}
 				#check_err "ERROR: ${BENCHMARK} benchmark failed to delete, exiting"
 			popd >/dev/null
-                fi
+		fi
 		if [ ${BENCHMARK} == "sysbench" ]; then
-                        echo "Uninstalling sysbench in cluster"
-                        pushd sysbench >/dev/null
-                                kubectl delete -f manifests/sysbench.yaml -n ${NAMESPACE}
-                        popd >/dev/null
-                fi
-
-        popd >/dev/null
-        echo "#######################################"
-        echo
+			echo "Uninstalling sysbench in cluster"
+			pushd sysbench >/dev/null
+				kubectl delete -f manifests/sysbench.yaml -n ${NAMESPACE}
+			popd >/dev/null
+		fi
+	popd >/dev/null
+	echo "#######################################"
+	echo
 }
 
 #
@@ -517,18 +515,18 @@ function check_kind() {
 #   Delete namespace
 ###########################################
 function delete_namespace() {
-  DAPP_NAMESPACE=$1
-  echo
-  echo "#########################################"
-  # Check if the namespace exists
-    if kubectl get namespace "${DAPP_NAMESPACE}" > /dev/null 2>&1; then
-      echo "Deleting namespace: ${DAPP_NAMESPACE}"
-      kubectl delete namespace "${DAPP_NAMESPACE}"
-    else
-      echo "Namespace '${DAPP_NAMESPACE}' does not exist."
-    fi
-  echo "#########################################"
-  echo
+	DAPP_NAMESPACE=$1
+	echo
+	echo "#########################################"
+	# Check if the namespace exists
+	if kubectl get namespace "${DAPP_NAMESPACE}" > /dev/null 2>&1; then
+		echo "Deleting namespace: ${DAPP_NAMESPACE}"
+		kubectl delete namespace "${DAPP_NAMESPACE}"
+	else
+		echo "Namespace '${DAPP_NAMESPACE}' does not exist."
+	fi
+	echo "#########################################"
+	echo
 }
 
 ###########################################
@@ -544,7 +542,7 @@ function apply_namespace_resource_quota() {
 	sed -i 's/namespace: default/namespace: "'"${CAPP_NAMESPACE}"'"/' "${RESOURCE_QUOTA_FILE}"
 	echo
 	echo "Applying namespace resource quota in namespace: ${CAPP_NAMESPACE}"
-	
+
 	# Apply the resource quota YAML to the namespace
 	if kubectl apply -f "${RESOURCE_QUOTA_FILE}" -n "${CAPP_NAMESPACE}" &> /dev/null; then
 		echo "Resource quota applied successfully."
@@ -566,7 +564,7 @@ function delete_namespace_resource_quota() {
 
 	echo
 	echo "Deleting namespace resource quota: ${RESOURCE_QUOTA_NAME} in namespace: ${CAPP_NAMESPACE}"
-	
+
 	# Delete the resource quota in the namespace
 	if kubectl delete resourcequota "${RESOURCE_QUOTA_NAME}" -n "${CAPP_NAMESPACE}" &> /dev/null; then
 		echo "Namespace resource quota ${RESOURCE_QUOTA_NAME} deleted successfully."
@@ -580,12 +578,12 @@ function delete_namespace_resource_quota() {
 
 # Function to check if a port is in use
 function is_port_in_use() {
-  local port=$1
-  if lsof -i :$port -t >/dev/null 2>&1; then
-    return 0 # Port is in use
-  else
-    return 1 # Port is not in use
-  fi
+	local port=$1
+	if lsof -i :$port -t >/dev/null 2>&1; then
+		return 0 # Port is in use
+	else
+		return 1 # Port is not in use
+	fi
 }
 
 
@@ -645,7 +643,7 @@ function kruize_local_patch() {
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 		elif [ ${CLUSTER_TYPE} == "aks" ]; then
-                        perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
+			perl -pi -e 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_AKS}
 		fi
 	popd >/dev/null
 }
@@ -666,7 +664,7 @@ function get_urls() {
 		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
-                export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
+		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			TECHEMPOWER_PORT=$(${kubectl_app_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
@@ -684,7 +682,7 @@ function get_urls() {
 		export KRUIZE_URL="${KRUIZE_SERVICE_URL}:8080"
 		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
 
-		
+
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			unset TECHEMPOWER_IP
 			export TECHEMPOWER_IP=$(kubectl -n ${APP_NAMESPACE} get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
@@ -726,7 +724,7 @@ function show_urls() {
 		{
 		echo
 		echo "#######################################"
-		echo "#             Quarkus App             #"
+		echo "#         Access Quarkus App          #"
 		echo "#######################################"
 		echo "Info: Access techempower app at http://${TECHEMPOWER_URL}/db"
 		echo "Info: Access techempower app metrics at http://${TECHEMPOWER_URL}/q/metrics"
@@ -735,7 +733,7 @@ function show_urls() {
 
 	echo | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "#              Kruize                 #" | tee -a "${LOG_FILE}"
+	echo "#             Access Kruize           #" | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}"
 	if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
@@ -772,10 +770,10 @@ function setup_workload() {
 }
 
 function kruize_local_disable() {
-        if [ ${CLUSTER_TYPE} == "minikube" ]; then
-                sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/minikube/kruize-crc-minikube.yaml
-        elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-                sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml
-        fi
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/minikube/kruize-crc-minikube.yaml
+	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+		sed -i 's/"local": "true"/"local": "false"/' manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml
+	fi
 }
 
