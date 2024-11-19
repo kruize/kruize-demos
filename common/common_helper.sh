@@ -402,7 +402,7 @@ function benchmarks_uninstall() {
 				#check_err "ERROR: human-eval benchmark failed to delete, exiting"
 			popd >/dev/null
 		fi
-		if [ ${BENCHMARK} == "ttm" ] || [${BENCHMARK} == "llm-rag"]; then
+		if [ ${BENCHMARK} == "ttm" ] || [ ${BENCHMARK} == "llm-rag" ]; then
 			echo "Uninstalling ${BENCHMARK} benchmark in cluster"
 			pushd AI-MLbenchmarks/ttm >/dev/null
 				./cleanup.sh ${NAMESPACE}
@@ -732,14 +732,14 @@ function show_urls() {
 	fi
 
 	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "#             Access Kruize           #" | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}"
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo "#             Access Kruize           #" >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
 	if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-		echo "ℹ️  List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments" | tee -a "${LOG_FILE}"
+		echo "ℹ️  List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments" >> "${LOG_FILE}" 2>&1
 	fi
-	echo
+	#echo
 	echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 }
