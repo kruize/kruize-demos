@@ -1,24 +1,19 @@
 [{
   "version": "v2.0",
-  "experiment_name": "monitor_container_PLACEHOLDER_CONTAINER",
+  "experiment_name": "monitor_namespace_PLACEHOLDER_NAMESPACE_NAME",
   "cluster_name": "default",
   "performance_profile": "resource-optimization-local-monitoring",
   "mode": "monitor",
   "target_cluster": "local",
   "datasource": "prometheus-1",
+  "experiment_type": "namespace",
   "kubernetes_objects": [
-    {
-      "type": "PLACEHOLDER_WORKLOAD_TYPE",
-      "name": "PLACEHOLDER_WORKLOAD",
-      "namespace": "PLACEHOLDER_NAMESPACE_NAME",
-      "containers": [
-        {
-          "container_image_name": "PLACEHOLDER_IMAGE",
-          "container_name": "PLACEHOLDER_CONTAINER"
+      {
+        "namespaces": {
+          "namespace_name": "PLACEHOLDER_NAMESPACE_NAME"
         }
-      ]
-    }
-  ],
+      }
+    ],
   "trial_settings": {
     "measurement_duration": "15min"
   },
@@ -26,3 +21,4 @@
     "threshold": "0.1"
   }
 }]
+

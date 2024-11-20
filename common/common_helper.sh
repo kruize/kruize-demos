@@ -42,7 +42,7 @@ function time_diff() {
 function check_err() {
 	err=$?
 	if [ ${err} -ne 0 ]; then
-		echo "$*"
+		echo "❌ $*"
 		if [[ -f "${LOG_FILE}" ]]; then
 			echo "For detailed logs, look in ${LOG_FILE}"
 		fi
