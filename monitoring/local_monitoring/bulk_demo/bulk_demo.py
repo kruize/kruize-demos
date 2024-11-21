@@ -110,7 +110,7 @@ def main(argv):
         print("\n#######################################")
         print("Bulk Job Completed! Fetching the processed experiments and listing recommendations")
         print("#######################################\n")
-        exp_list = job_status_json['data']['recommendations']['data']['processed']
+        exp_list = list(job_status_json["experiments"].keys())
 
         # List recommendations for the experiments for which recommendations are available
         recommendations_json_arr = []
