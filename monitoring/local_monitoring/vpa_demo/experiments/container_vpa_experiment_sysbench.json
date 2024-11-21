@@ -1,0 +1,29 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "optimize-sysbench",
+  "cluster_name": "default",
+  "performance_profile": "resource-optimization-local-monitoring",
+  "mode": "recreate",
+  "target_cluster": "local",
+  "datasource": "prometheus-1",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "sysbench",
+      "namespace": "default",
+      "containers": [
+        {
+          "container_image_name": "quay.io/kruizehub/sysbench",
+          "container_name": "sysbench"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "2min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
+
