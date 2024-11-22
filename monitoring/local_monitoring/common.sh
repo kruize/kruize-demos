@@ -368,7 +368,6 @@ function kruize_local_demo_setup() {
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Installing metric profile..."
-		sleep 40
 		kruize_local_metric_profile
 		echo "✅ Installation of metric profile complete!"
 		echo -n "🔄 Collecting metadata..."
