@@ -294,7 +294,7 @@ function kruize_local_demo_setup() {
 		fi
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Done!"
-	if [ ${env_setup} -eq 1 ]; then
+	if [[ ${env_setup} -eq 1 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
 			sys_cpu_mem_check
@@ -313,7 +313,7 @@ function kruize_local_demo_setup() {
 			prometheus_install
 			echo "✅ Installation of kind and prometheus complete!"
 		fi
-	elif [ ${env_setup} -eq 0 ]; then
+	elif [[ ${env_setup} -eq 0 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Checking if minikube exists..."
 			check_minikube

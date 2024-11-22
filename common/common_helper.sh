@@ -146,6 +146,8 @@ function kruize_install() {
 	fi
 	pushd autotune >/dev/null
 		{
+		# Chekout mvp_demo
+		git checkout mvp_demo >/dev/null 2>/dev/null
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
