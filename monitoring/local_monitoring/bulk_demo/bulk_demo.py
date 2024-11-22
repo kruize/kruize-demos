@@ -96,7 +96,7 @@ def main(argv):
 
         job_status = job_status_json['status']
         if job_status == "FAILED":
-            print("\nBulk Job FAILED due to this error: ", job_status_json['message'])
+            print("\nBulk Job FAILED due to this error: ", job_status_json['notifications'])
             print("Check job_status.json for the job status")
             break
         sleep(5)
