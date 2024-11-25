@@ -15,7 +15,7 @@
       }
     ],
   "trial_settings": {
-    "measurement_duration": "15min"
+    "measurement_duration": "2min"
   },
   "recommendation_settings": {
     "threshold": "0.1"
