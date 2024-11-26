@@ -1,6 +1,6 @@
 [{
   "version": "v2.0",
-  "experiment_name": "monitor_namespace_PLACEHOLDER_NAMESPACE_NAME",
+  "experiment_name": "monitor_namespace_default",
   "cluster_name": "default",
   "performance_profile": "resource-optimization-local-monitoring",
   "mode": "monitor",
