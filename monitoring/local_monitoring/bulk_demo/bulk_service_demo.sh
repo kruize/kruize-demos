@@ -54,12 +54,13 @@ function usage() {
 }
 
 function kruize_bulk() {
-  echo "Running bulk_demo.py..."
-  "${PYTHON_CMD}" bulk_demo.py -c "${CLUSTER_TYPE}"
-
+  echo "Running bulk_demo.py..." >> "${LOG_FILE}" 2>&1
+  "${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}"
+  {
   echo
   echo "######################################################"
   echo
+  } >> "${LOG_FILE}" 2>&1
 }
 
 # Check system configs
@@ -114,11 +115,16 @@ do
 done
 
 export demo="bulk"
-echo | tee "${LOG_FILE}"
 if [ ${start_demo} -eq 1 ]; then
+	echo > "${LOG_FILE}" 2>&1
 	kruize_local_demo_setup
+	echo "For detailed logs, look in kruize-bulk-demo.log"
+	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update
 else
+	echo >> "${LOG_FILE}" 2>&1
 	kruize_local_demo_terminate
+	echo "For detailed logs, look in kruize-bulk-demo.log"
+	echo
 fi
