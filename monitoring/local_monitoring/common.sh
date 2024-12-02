@@ -227,16 +227,16 @@ function kruize_local_demo_terminate() {
 		if [[ ${APP_NAMESPACE} != "default" ]]; then
 			delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 		fi
-	elif [ ${demo} == "bulk" ]; then
-		ns_name="tfb"
-		count=3
-		for ((loop=1; loop<=count; loop++));
-		do
-			echo "Uninstalling benchmarks..."
-			benchmarks_uninstall ${ns_name}-${loop}
-			echo "Deleting namespaces..."
-			delete_namespace ${ns_name}-${loop}
-		done
+	#elif [ ${demo} == "bulk" ]; then
+	#	ns_name="tfb"
+	#	count=3
+	#	for ((loop=1; loop<=count; loop++));
+	#	do
+	#		echo "Uninstalling benchmarks..."
+	#		benchmarks_uninstall ${ns_name}-${loop}
+	#		echo "Deleting namespaces..."
+	#		delete_namespace ${ns_name}-${loop}
+	#	done
 	fi
 	{
 		delete_repos autotune
@@ -366,10 +366,11 @@ function kruize_local_demo_setup() {
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
 
+	echo -n "🔄 Installing metric profile..."
+	kruize_local_metric_profile
+	echo "✅ Installation of metric profile complete!"
+
 	if [ ${demo} == "local" ]; then
-		echo -n "🔄 Installing metric profile..."
-		kruize_local_metric_profile
-		echo "✅ Installation of metric profile complete!"
 		echo -n "🔄 Collecting metadata..."
 		kruize_local_metadata
 		echo "✅ Collection of metadata complete!"
@@ -391,10 +392,12 @@ function kruize_local_demo_setup() {
 			kruize_local_experiments
 			recomm_end_time=$(get_date)
 		fi
-		show_urls $bench
 	elif [ ${demo} == "bulk" ]; then
+		recomm_start_time=$(get_date)
 		kruize_bulk
+		recomm_end_time=$(get_date)
 	fi
+	show_urls $bench
 
 	end_time=$(get_date)
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
@@ -404,6 +407,7 @@ function kruize_local_demo_setup() {
 	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
 	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
 	echo
+
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
