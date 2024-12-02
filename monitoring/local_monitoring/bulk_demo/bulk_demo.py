@@ -39,6 +39,8 @@ def generate_json(find_arr, json_file, filename, i):
         file.write(data)
 
 def bulk_status(job_id):
+    global status
+
     def thread_print(*args, **kwargs):
         with open(log_file, "a") as log:
             print(*args, **kwargs, file=log)
@@ -49,18 +51,25 @@ def bulk_status(job_id):
     thread_print("#######################################\n")
     verbose="true"
     response = get_bulk_job_status(job_id, verbose)
+    if not response.text.strip():
+            print(f"⚠️  Empty response from the server.")
+            status = False
+            return
     job_status_json = response.json()
-
-    # Loop until job status is COMPLETED
     job_status = job_status_json['status']
 
+    # Loop until job status is COMPLETED
     while job_status != "COMPLETED":
         response = get_bulk_job_status(job_id, verbose)
+        if not response.text.strip():
+            print("⚠️  Empty response from the server.")
+            status = False
+            return
         job_status_json = response.json()
         thread_print(f"Experiments: processed / Total -  {job_status_json['processed_experiments']} / {job_status_json['total_experiments']}")
         job_status = job_status_json['status']
         if job_status == "FAILED":
-            thread_print("\nBulk Job FAILED due to this error: ", job_status_json['notifications'])
+            thread_print("❌ Bulk Job FAILED due to this error: ", job_status_json['notifications'])
             thread_print("Check job_status.json for the job status")
             break
         sleep(10)
@@ -70,26 +79,51 @@ def bulk_status(job_id):
         json.dump(job_status_json, f, indent=4)
 
     if job_status == "COMPLETED":
+        print("✅ Complete!")
+        print("🔄 Fetching the experiments...", end="")
         thread_print("\n#######################################")
         thread_print("Bulk Job Completed! Fetching the processed experiments and listing recommendations")
         thread_print("#######################################\n")
 
         exp_list = list(job_status_json["experiments"].keys())
+        with open("experiment_list.txt", "w") as file:
+            for exp in exp_list:
+                file.write(exp + "\n")
+
+        thread_print(f"Experiment names written to experiment_list.txt")
         # List recommendations for the experiments for which recommendations are available
         recommendations_json_arr = []
+
+        # Hardcodig to reduce the time it takes to list all
+        exp_count=1
+        counter=0
         if exp_list != "":
+            print("✅ Complete!")
+            print(f"🔄 List the recommendations for {exp_count} experiments...", end="")
             for exp_name in exp_list:
                 response = list_recommendations(exp_name)
                 reco = response.json()
                 recommendations_json_arr.append(reco)
+                counter -= 1
 
                 # Dump the recommendations into a json file
                 with open('recommendations_data.json', 'w') as f:
                     json.dump(recommendations_json_arr, f, indent=4)
+                print(".",end="")
+                if counter <= 0:
+                    break
 
-            thread_print("Recommendations for all experiments are available in recommendations_data.json")
+            thread_print(f"Recommendations for {exp_count} container is available in recommendations_data.json")
+            thread_print("List of all experiments are available in experiment_list.txt")
+            print("✅ Complete!")
         else:
-            thread_print("Something went wrong! There are no experiments with recommendations!")
+            thread_print("⚠️  Something went wrong! There are no experiments with recommendations!")
+            print("⚠️  Something went wrong! There are no experiments with recommendations!")
+        status = True
+        return
+    else:
+        status = False
+        return
 
 def main(argv):
     cluster_type = "minikube"
@@ -136,7 +170,10 @@ def main(argv):
     total_experiments = job_status_json['total_experiments']
     job_status = job_status_json['status']
     if job_status == "FAILED":
-        print("❌ Bulk Job FAILED due to this error: ", job_status_json['notifications'])
+        print(f"❌ Bulk Job FAILED with {job_status_json['notifications']}")
+        print("📌 Job status is available in job_status.json\n")
+        print("For detailed logs, look in kruize-bulk-demo.log")
+        sys.exit(1)
     else:
         thread = threading.Thread(target=bulk_status, args=(job_id,)) #, daemon=False)
         thread.start()
@@ -148,12 +185,18 @@ def main(argv):
             print(".", end="")
             time.sleep(60)
 
-        #print("\nJob status is available in job_status.log.")
-        print("✅ Completed!")
-        print("📌 Recommendations for all experiments can be found in recommendations_data.json.\n")
-
+        if status:
+            #print("✅ Completed!")
+            print("📌 List of all experiments available in experiment_list.txt")
+            print("📌 Recommendations for a single container in cluster can be found in recommendations_data.json.")
+            print("📌 Job status is available in job_status.json\n")
+        else:
+            print("❌ Error while processing the job. Exiting!")
+            print("📌 Job status is available in job_status.json\n")
+            print("For detailed logs, look in kruize-bulk-demo.log")
+            sys.exit(1)
 
 log_file = os.getenv("LOG_FILE", "kruize-bulk-demo.log")
-
+status = False
 if __name__ == '__main__':
     main(sys.argv[1:])

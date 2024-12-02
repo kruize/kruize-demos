@@ -392,12 +392,12 @@ function kruize_local_demo_setup() {
 			kruize_local_experiments
 			recomm_end_time=$(get_date)
 		fi
-		show_urls $bench
 	elif [ ${demo} == "bulk" ]; then
 		recomm_start_time=$(get_date)
 		kruize_bulk
 		recomm_end_time=$(get_date)
 	fi
+	show_urls $bench
 
 	end_time=$(get_date)
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
@@ -407,6 +407,7 @@ function kruize_local_demo_setup() {
 	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
 	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
 	echo
+
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
