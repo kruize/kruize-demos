@@ -13,7 +13,7 @@
       "namespace": "default",
       "containers": [
         {
-          "container_image_name": "kruizehub/human-eval-deployment:latest",
+          "container_image_name": "kruizehub/human-eval-deployment:v1",
           "container_name": "human-eval-benchmark"
         }
       ]
