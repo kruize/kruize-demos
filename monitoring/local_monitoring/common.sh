@@ -276,6 +276,56 @@ function kruize_local_demo_update() {
 	echo
 }
 
+function vpa_install() {
+	repo_name="autoscaler"
+	vpa_dir="${current_dir}/${repo_name}/vertical-pod-autoscaler"
+	vpa_down_script="${vpa_dir}/hack/vpa-down.sh"
+	vpa_up_script="${vpa_dir}/hack/vpa-up.sh"
+	echo
+	echo "#######################################"
+	echo "Cloning ${repo_name} git repos"
+	if [ ! -d ${repo_name} ]; then
+		git clone git@github.com:kubernetes/${repo_name}.git >/dev/null 2>/dev/null
+		if [ $? -ne 0 ]; then
+			git clone https://github.com/kubernetes/${repo_name}.git 2>/dev/null
+		fi
+		check_err "ERROR: git clone of kubernetes/${repo_name} failed."
+	fi
+	echo "done"
+	echo "#######################################"
+	echo
+	echo "Installing VPA..."
+	if [ -d ${repo_name} ]; then
+        if [ -f ${vpa_down_script} ]; then
+            echo "Terminating any existing VPA installation..."
+            (cd ${vpa_dir} && ./hack/vpa-down.sh >/dev/null 2>/dev/null)
+		fi
+		if [ -f ${vpa_up_script} ]; then
+            echo "Installing VPA..."
+            (cd ${vpa_dir} && ./hack/vpa-up.sh >/dev/null 2>/dev/null)
+		fi
+		check_err "ERROR: installation of vpa failed."
+    fi
+}
+
+
+function update_vpa_roles() {
+	manifest_file=""
+	echo
+	echo "#######################################"
+	echo "Applying rolebindings for VPA..."
+    if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+        manifest_file="${current_dir}/manifests/vpa_rolebinding_openshift.yaml"
+    else
+        manifest_file="${current_dir}/manifests/vpa_rolebinding_minikube.yaml"
+    fi
+	echo $manifest_file
+	kubectl apply -f "${manifest_file}"
+    if [ $? -ne 0 ]; then
+        echo "Error applying manifest: ${manifest_file}."
+	fi
+}
+
 function kruize_local_demo_setup() {
 	bench=$1
 	# Start all the installs
@@ -339,7 +389,17 @@ function kruize_local_demo_setup() {
 		echo "" >> "${LOG_FILE}" 2>&1
 	fi
 
-	#kruize_local_patch >> "${LOG_FILE}" 2>&1
+
+	if [ "${vpa_install_required:-}" == "1" ]; then
+	{
+		echo -n "🔄 Installing VPA..."
+		vpa_install >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	}
+	fi
+
+	kruize_local_patch >> "${LOG_FILE}" 2>&1
+
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	kruize_install &
@@ -365,6 +425,14 @@ function kruize_local_demo_setup() {
 		get_urls $bench
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
+
+	if [ "${vpa_install_required:-}" == "1" ]; then
+	{
+		echo -n "🔄 Updating cluser-roles for VPA..."
+		update_vpa_roles >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	}
+	fi
 
 	echo -n "🔄 Installing metric profile..."
 	kruize_local_metric_profile
@@ -397,6 +465,16 @@ function kruize_local_demo_setup() {
 		kruize_bulk
 		recomm_end_time=$(get_date)
 	fi
+	
+	if [ "${vpa_install_required:-}" == "1" ]; then
+	{
+		echo "✅ Experiment has been successfully created in recreate or auto mode. No further action required."
+		echo "📌 Recommendations will be generated and applied to the workloads automatically."
+		echo "📌 To view the latest recommendations, run: kubectl describe vpa"
+		echo "📌 To check the workload current requests and limits, run: kubectl describe pods -l app=sysbench"
+	}
+	fi
+
 	show_urls $bench
 
 	end_time=$(get_date)
