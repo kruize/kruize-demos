@@ -44,10 +44,10 @@ def form_kruize_url(cluster_type, SERVER_IP=None):
         URL = "http://" + KIND_IP + ":" + str(KRUIZE_PORT)
     elif (cluster_type == "openshift"):
 
-        subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
+        subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ip = subprocess.run(
             ['oc status -n openshift-tuning | grep "kruize" | grep -v "kruize-ui" | grep -v "kruize-db" | grep port | cut -d " " -f1 | cut -d "/" -f3'], shell=True,
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
         print("IP = ", SERVER_IP)
         URL = "http://" + str(SERVER_IP)
@@ -100,9 +100,9 @@ def get_bulk_job_status(job_id, verbose = None):
 # Input Parameters: experiment name, flag indicating latest result and monitoring end time
 def list_recommendations(experiment_name=None, latest=None, monitoring_end_time=None):
     PARAMS = ""
-    print("\nListing the recommendations...")
+    #print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
-    print("URL = ", url)
+    #print("URL = ", url)
 
     if experiment_name == None:
         if latest == None and monitoring_end_time == None:
@@ -119,13 +119,13 @@ def list_recommendations(experiment_name=None, latest=None, monitoring_end_time=
         elif monitoring_end_time != None:
             PARAMS = {'experiment_name': experiment_name, 'monitoring_end_time': monitoring_end_time}
 
-    print("PARAMS = ", PARAMS)
+    #print("PARAMS = ", PARAMS)
     response = requests.get(url=url, params=PARAMS)
 
-    print("Response status code = ", response.status_code)
-    print("\n************************************************************")
-    print(response.text)
-    print("\n************************************************************")
+    #print("Response status code = ", response.status_code)
+    #print("\n************************************************************")
+    #print(response.text)
+    #print("\n************************************************************")
     return response
 
 # Description: This function validates the input json and posts the experiment using createExperiment API to Kruize Autotune

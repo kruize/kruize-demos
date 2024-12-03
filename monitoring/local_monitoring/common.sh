@@ -74,6 +74,7 @@ function kruize_local_metadata() {
 		echo $output >> "${LOG_FILE}" 2>&1
 		false
 		check_err "Error. Unable to connect to datasource. Exiting!"  | tee -a "${LOG_FILE}"
+		exit 1
 	fi
 
 	{
@@ -113,10 +114,9 @@ function kruize_local_experiments() {
 	echo "######################################################"
 	echo
 	for experiment in "${EXPERIMENTS[@]}"; do
-		if [[ $experiment != "container_experiment_local" ]]; then
-			echo "App namesapce is ${APP_NAMESPACE}"
+		if [[ $experiment != "container_experiment_local" ]] || [[ $experiment != "namespace_experiment_local" ]]; then
 			sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
-			sed -i "s/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/" ./experiments/${experiment}.json
+			#sed -i "s/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/" ./experiments/${experiment}.json
 			sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
 		fi
 	done
@@ -131,15 +131,15 @@ function kruize_local_experiments() {
 	echo >> "${LOG_FILE}" 2>&1
 	for experiment in "${EXPERIMENTS[@]}"; do
 		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
-		echo -n "🔄 Creating experiment: ${experiment_name} ..."
+		experiment_type=$(grep -o '"experiment_type": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
+		echo -n "🔄 Creating ${experiment_type:-container} experiment: ${experiment_name} ..."
 		{
 			echo "curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json"
 			curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Created!"
-		grep -E '"experiment_name"|"container_name"|"type"|"namespace"' experiments/${experiment}.json | sed -E 's/.*"experiment_name": "([^"]*)".*/\tExperiment: \1/; s/.*"type": "([^"]*)".*/\tType: \1/; s/.*"container_name": "([^"]*)".*/\tContainer: \1/; s/.*"namespace": "([^"]*)".*/\tNamespace: \1/'
+		grep -E '"experiment_name"|"container_name"|"type"|"namespace"|"namespace_name"' experiments/${experiment}.json | grep -v '"experiment_type"' | sed -E 's/.*"experiment_name": "([^"]*)".*/\tExperiment: \1/; s/.*"type": "([^"]*)".*/\tType: \1/; s/.*"container_name": "([^"]*)".*/\tContainer: \1/; s/.*"namespace": "([^"]*)".*/\tNamespace: \1/; s/.*"namespace_name": "([^"]*)".*/\tNamespace: \1/'
 	done
-
 
 	for experiment in "${EXPERIMENTS[@]}"; do
 		echo >> "${LOG_FILE}" 2>&1
@@ -147,8 +147,9 @@ function kruize_local_experiments() {
 		echo "#     Generate recommendations for experiment: ${experiment}" >> "${LOG_FILE}" 2>&1
 		echo "######################################################" >> "${LOG_FILE}" 2>&1
 		echo >> "${LOG_FILE}" 2>&1
-		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')	
-		echo -n "🔄 Generating recommendations for experiment: ${experiment_name} ..."
+		experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
+		experiment_type=$(grep -o '"experiment_type": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
+		echo -n "🔄 Generating ${experiment_type:-container} recommendations for experiment: ${experiment_name} ..."
 		echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" >> "${LOG_FILE}" 2>&1
 		output=$(curl -s -X POST "http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}")
 		echo $output | jq >> "${LOG_FILE}" 2>&1
@@ -156,33 +157,47 @@ function kruize_local_experiments() {
 
 		if echo "$output" | grep -q "Recommendations Are Available"; then
 			echo "✅ Generated! "
-			echo "📌 Access ${experiment}_recommendation.json or kruize UI for recommendations." | tee -a "${LOG_FILE}"
 		else
-			echo  | tee -a "${LOG_FILE}"
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
-			echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!" | tee -a "${LOG_FILE}"
-			echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN IF NO RECOMMENDATIONS ARE AVAILABLE!" | tee -a "${LOG_FILE}"
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
-			echo >> "${LOG_FILE}" 2>&1
-
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
-			echo "Generate fresh recommendations using" | tee -a "${LOG_FILE}"
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo "⚠️  No recommendations generated! "
+			norecommendations=1
+		fi
+	done
+	if [[ ${norecommendations} == 1 ]]; then
+		echo  | tee -a "${LOG_FILE}"
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!" | tee -a "${LOG_FILE}"
+		echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN." | tee -a "${LOG_FILE}"
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo >> "${LOG_FILE}" 2>&1
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo "🔗 Generate fresh recommendations using" | tee -a "${LOG_FILE}"
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		for experiment in "${EXPERIMENTS[@]}"; do
 			experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
 			echo "curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name=${experiment_name}" | tee -a "${LOG_FILE}"
 			echo "" >> "${LOG_FILE}" 2>&1
+		done
 
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
-			echo "List Recommendations using " >> "${LOG_FILE}" 2>&1
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo "List Recommendations using " >> "${LOG_FILE}" 2>&1
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		for experiment in "${EXPERIMENTS[@]}"; do
 			experiment_name=$(grep -o '"experiment_name": *"[^"]*"' ./experiments/${experiment}.json | sed 's/.*: *"\([^"]*\)"/\1/')
 			echo "curl -X POST http://${KRUIZE_URL}/listRecommendations?experiment_name=${experiment_name}" >> "${LOG_FILE}" 2>&1
 			echo >> "${LOG_FILE}" 2>&1
+		done
 
-			echo "######################################################" >> "${LOG_FILE}" 2>&1
-			echo >> "${LOG_FILE}" 2>&1
-		fi
-	done
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo >> "${LOG_FILE}" 2>&1
+	else
+		echo -n "📌 Access "| tee -a "${LOG_FILE}"
+		for experiment in "${EXPERIMENTS[@]}"; do
+			echo -n "${experiment}_recommendation.json " | tee -a "${LOG_FILE}"
+		done
+		echo -n "or kruize UI for recommendations." | tee -a "${LOG_FILE}"
+		echo ""
+	fi
+
 }
 
 function kruize_local_demo_terminate() {
@@ -212,16 +227,16 @@ function kruize_local_demo_terminate() {
 		if [[ ${APP_NAMESPACE} != "default" ]]; then
 			delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 		fi
-	elif [ ${demo} == "bulk" ]; then
-		ns_name="tfb"
-		count=3
-		for ((loop=1; loop<=count; loop++));
-		do
-			echo "Uninstalling benchmarks..."
-			benchmarks_uninstall ${ns_name}-${loop}
-			echo "Deleting namespaces..."
-			delete_namespace ${ns_name}-${loop}
-		done
+	#elif [ ${demo} == "bulk" ]; then
+	#	ns_name="tfb"
+	#	count=3
+	#	for ((loop=1; loop<=count; loop++));
+	#	do
+	#		echo "Uninstalling benchmarks..."
+	#		benchmarks_uninstall ${ns_name}-${loop}
+	#		echo "Deleting namespaces..."
+	#		delete_namespace ${ns_name}-${loop}
+	#	done
 	fi
 	{
 		delete_repos autotune
@@ -329,7 +344,7 @@ function kruize_local_demo_setup() {
 		fi
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Done!"
-	if [ ${env_setup} -eq 1 ]; then
+	if [[ ${env_setup} -eq 1 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
 			sys_cpu_mem_check
@@ -348,7 +363,7 @@ function kruize_local_demo_setup() {
 			prometheus_install
 			echo "✅ Installation of kind and prometheus complete!"
 		fi
-	elif [ ${env_setup} -eq 0 ]; then
+	elif [[ ${env_setup} -eq 0 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Checking if minikube exists..."
 			check_minikube
@@ -364,7 +379,7 @@ function kruize_local_demo_setup() {
 		fi
 	fi
 	if [ ${demo} == "local" ]; then
-		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 			benchmarks_install ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
@@ -419,10 +434,11 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
+	echo -n "🔄 Installing metric profile..."
+	kruize_local_metric_profile
+	echo "✅ Installation of metric profile complete!"
+
 	if [ ${demo} == "local" ]; then
-		echo -n "🔄 Installing metric profile..."
-		kruize_local_metric_profile
-		echo "✅ Installation of metric profile complete!"
 		echo -n "🔄 Collecting metadata..."
 		kruize_local_metadata
 		echo "✅ Collection of metadata complete!"
@@ -444,9 +460,10 @@ function kruize_local_demo_setup() {
 			kruize_local_experiments
 			recomm_end_time=$(get_date)
 		fi
-		show_urls $bench
 	elif [ ${demo} == "bulk" ]; then
+		recomm_start_time=$(get_date)
 		kruize_bulk
+		recomm_end_time=$(get_date)
 	fi
 	
 	if [ "${vpa_install_required:-}" == "1" ]; then
@@ -458,6 +475,8 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
+	show_urls $bench
+
 	end_time=$(get_date)
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
 	recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
@@ -466,6 +485,7 @@ function kruize_local_demo_setup() {
 	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
 	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
 	echo
+
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
@@ -514,6 +534,7 @@ generate_experiment_from_prometheus() {
 
 	# Check if the result is empty
 	if [[ -z "$first_row" || "$first_row" == "null" ]]; then
+		false
 		check_err "Error: No data returned from Prometheus query to create experiments. Exiting!"
 	fi
 
@@ -524,23 +545,37 @@ generate_experiment_from_prometheus() {
 	namespace=$(echo "$first_row" | jq -r '.metric.namespace // "unknown"')
 	image=$(echo "$first_row" | jq -r '.metric.image // "unknown"')
 
+	for field in workload workload_type container namespace; do
+		if [ "${!field}" == "unknown" ]; then
+			false
+			check_err "Error: Unable to get the details for the experiment. Exiting."
+		fi
+	done
+
 	#experiment_name="${container}_${namespace}_${workload}_${workload_type}"
 	# Keeping it simple for easy reference
-	experiment_name="monitor_${container}"
+	#experiment_name="monitor_${container}"
 
 	template_json="experiments/experiment_template.json"
-	new_json="experiments/container_experiment_local.json"
+	container_json="experiments/container_experiment_local.json"
+	nsp_template_json="experiments/namespace_experiment_template.json"
+	namespace_json="experiments/namespace_experiment_local.json"
 
-	cp "$template_json" "$new_json"
+	cp "$template_json" "$container_json"
+	cp "$nsp_template_json" "$namespace_json"
 
 	# Use sed to replace placeholders with actual values in the new JSON file
 sed -i \
-	-e "s/PLACEHOLDER_EXPERIMENT_NAME/$experiment_name/g" \
 	-e "s/PLACEHOLDER_WORKLOAD_TYPE/$workload_type/g" \
 	-e "s/PLACEHOLDER_WORKLOAD/$workload/g" \
 	-e "s/PLACEHOLDER_CONTAINER/$container/g" \
 	-e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
 	-e "s/PLACEHOLDER_IMAGE/$namespace/g" \
-	"$new_json"
+	"$container_json"
+
+sed -i \
+        -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
+        "$namespace_json"
+
 }
 

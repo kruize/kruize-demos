@@ -136,10 +136,10 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 	fi
 else
 	if [ ${env_setup} -ne 1 ]; then
-		export EXPERIMENTS=("container_experiment_local")
+		export EXPERIMENTS=("container_experiment_local" "namespace_experiment_local")
 		BENCHMARK="self"
 	else
-		export EXPERIMENTS=("container_experiment_sysbench")
+		export EXPERIMENTS=("container_experiment_sysbench" "namespace_experiment_sysbench")
 		BENCHMARK="sysbench"
 	fi
 fi

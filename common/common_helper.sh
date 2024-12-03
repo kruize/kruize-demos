@@ -42,7 +42,7 @@ function time_diff() {
 function check_err() {
 	err=$?
 	if [ ${err} -ne 0 ]; then
-		echo "$*"
+		echo "❌ $*"
 		if [[ -f "${LOG_FILE}" ]]; then
 			echo "For detailed logs, look in ${LOG_FILE}"
 		fi
@@ -146,6 +146,8 @@ function kruize_install() {
 	fi
 	pushd autotune >/dev/null
 		{
+		# Chekout mvp_demo
+		git checkout mvp_demo >/dev/null 2>/dev/null
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
@@ -721,14 +723,14 @@ function get_urls() {
 function show_urls() {
 	bench=$1
 	if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
-		{
+	{
 		echo
 		echo "#######################################"
 		echo "#         Access Quarkus App          #"
 		echo "#######################################"
 		echo "Info: Access techempower app at http://${TECHEMPOWER_URL}/db"
 		echo "Info: Access techempower app metrics at http://${TECHEMPOWER_URL}/q/metrics"
-		} >> "${LOG_FILE}" 2>&1
+	} >> "${LOG_FILE}" 2>&1
 	fi
 
 	echo | tee -a "${LOG_FILE}"
@@ -736,12 +738,33 @@ function show_urls() {
 	echo "#             Access Kruize           #" >> "${LOG_FILE}" 2>&1
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
 	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
-	if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
-		echo "ℹ️  List all Kruize Experiments at http://${KRUIZE_URL}/listExperiments" >> "${LOG_FILE}" 2>&1
-	fi
-	#echo
 	echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
+	echo "ℹ️  For kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo "          Access Kruize Interface          " >> "${LOG_FILE}" 2>&1
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo "Kruize UI:" >> "${LOG_FILE}" 2>&1
+	echo "   Open the URL in your browser: http://${KRUIZE_UI_URL}" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo "          CLI Commands for Kruize          " >> "${LOG_FILE}" 2>&1
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo "1. Create Experiment:" >> "${LOG_FILE}" 2>&1
+	echo "   curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/{experiment}.json" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "2. Generate Recommendations for an Experiment:" >> "${LOG_FILE}" 2>&1
+	echo "   curl -X POST http://${KRUIZE_URL}/generateRecommendations?experiment_name={experiment_name}" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "3. List Recommendations for an Experiment:" >> "${LOG_FILE}" 2>&1
+	echo "   curl -X POST http://${KRUIZE_URL}/listRecommendations?experiment_name={experiment_name}" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "4. List all Experiments:" >> "${LOG_FILE}" 2>&1
+	echo "   curl http://${KRUIZE_URL}/listExperiments" >> "${LOG_FILE}" 2>&1
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "For kruize local documentation, refer https://github.com/kruize/autotune/blob/master/design/KruizeLocalAPI.md"  >> "${LOG_FILE}" 2>&1
+	echo "For bulk documentation, refer https://github.com/kruize/autotune/blob/master/design/BulkAPI.md"  >> "${LOG_FILE}" 2>&1
 }
 
 function setup_workload() {
