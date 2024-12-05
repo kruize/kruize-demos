@@ -45,9 +45,32 @@ function kruize_local_metric_profile() {
 	fi
 }
 
+function kruize_local_metadata_profile() {
+
+	# Metadata Profile JSON
+	cluster_metadata_local_monitoring="${current_dir}/autotune/manifests/autotune/metadata-profiles/cluster-metadata-local-monitoring.json"
+
+	{
+		echo
+		echo "######################################################"
+		echo "#     Install default metadata profile"
+		echo "######################################################"
+		echo
+		output=$(curl -X POST http://${KRUIZE_URL}/createMetadataProfile -d @$cluster_metadata_local_monitoring)
+		echo
+	} >> "${LOG_FILE}" 2>&1
+
+	if [[ "$output" != *"SUCCESS"* ]]; then
+		echo $output >> "${LOG_FILE}" 2>&1
+		false
+		check_err "Error. Unable to create metadata profile. Exiting!"
+	fi
+}
+
 function kruize_local_metadata() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
+	export METADATA_PROFILE="cluster-metadata-local-monitoring"
 	{
 		echo
 		echo "######################################################"
@@ -66,7 +89,9 @@ function kruize_local_metadata() {
 				--header 'Content-Type: application/json' \
 				--data '{
            "version": "v1.0",
-           "datasource_name": "prometheus-1"
+           "datasource_name": "prometheus-1",
+           "metadata_profile": "cluster-metadata-local-monitoring",
+           "measurement_duration": "15"
         }')
 
 	# Exit if unable to connect to datasource
@@ -437,6 +462,10 @@ function kruize_local_demo_setup() {
 	echo -n "🔄 Installing metric profile..."
 	kruize_local_metric_profile
 	echo "✅ Installation of metric profile complete!"
+
+	echo -n "🔄 Installing metadata profile..."
+  kruize_local_metadata_profile
+  echo "✅ Installation of metadata profile complete!"
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
