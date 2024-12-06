@@ -339,8 +339,7 @@ function benchmarks_install() {
 			echo "Running HumanEval benchmark job in background"
 			echo
 			pushd human-eval-benchmark >/dev/null
-				sed -i 's/^NAMESPACE=default/NAMESPACE='"${NAMESPACE}"'/' run_humaneval.sh
-				./run_humaneval.sh -n 150
+				./run_humaneval.sh ${NAMESPACE} -n 150
 				check_err "ERROR: Human eval job failed to start, exiting"
 			popd >/dev/null
 		fi
