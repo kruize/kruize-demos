@@ -800,3 +800,23 @@ function kruize_local_disable() {
 	fi
 }
 
+function kruize_remote_patch() {
+	CRC_DIR="./manifests/crc/default-db-included-installation"
+	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
+
+
+  if [ ${CLUSTER_TYPE} == "minikube" ]; then
+    if grep -q '"isROSEnabled": "false"' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}; then
+      echo "match found"
+      sed -i 's/"isROSEnabled": "false"/"isROSEnabled": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+    else
+      echo "Error: Match not found" >&2
+      exit 1
+    fi
+  elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+    sed -i 's/"isROSEnabled": "false"/"isROSEnabled": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+    sed -i 's/\([[:space:]]*\)\(storage:\)[[:space:]]*[0-9]\+Mi/\1\2 1Gi/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+    sed -i 's/\([[:space:]]*\)\(memory:\)[[:space:]]*".*"/\1\2 "2Gi"/; s/\([[:space:]]*\)\(cpu:\)[[:space:]]*".*"/\1\2 "2"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+  fi
+}

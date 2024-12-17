@@ -133,9 +133,11 @@ def update_recommendations(name, edate):
 
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
-def list_recommendations(experiment_name):
+def list_recommendations(experiment_name, rm=False):
     print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
+    if rm:
+        url += "?rm=true"
     print("URL = ", url)
     print("KRUIZE UI URL = ", KRUIZE_UI_URL)
 
@@ -164,9 +166,11 @@ def create_performance_profile(perf_profile_json_file):
 
 
 # Description: This function obtains the experiments and result metrics from Kruize using listExperiments API
-def list_experiments():
+def list_experiments(rm=False):
     print("\nListing the experiments...")
     url = URL + "/listExperiments"
+    if rm:
+        url += "?rm=true"
     print("URL = ", url)
     print("KRUIZE UI URL = ", KRUIZE_UI_URL)
 
