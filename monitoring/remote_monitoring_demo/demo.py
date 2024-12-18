@@ -114,7 +114,7 @@ def main(argv):
                 max_time = max(resultsjson, key=lambda x: x['interval_end_time'])['interval_end_time']
                 update_recommendations(experiment_name, max_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
 
-                reco = list_recommendations(experiment_name)
+                reco = list_recommendations(experiment_name,rm=True)
                 recommendations_json_arr.append(reco)
 
     # Create experiments using the specified json
@@ -173,14 +173,14 @@ def main(argv):
         current_index += batch_size
     # Sleep
     time.sleep(1)
-    reco = list_recommendations(experiment_name)
+    reco = list_recommendations(experiment_name,rm=True)
     recommendations_json_arr.append(reco)
 
     # Dump the results & recommendations into json files
     with open('recommendations_data.json', 'w') as f:
         json.dump(recommendations_json_arr, f, indent=4)
 
-    list_exp_json = list_experiments()
+    list_exp_json = list_experiments(rm=True)
     with open('usage_data.json', 'w') as f:
         json.dump(list_exp_json, f, indent=4)
 

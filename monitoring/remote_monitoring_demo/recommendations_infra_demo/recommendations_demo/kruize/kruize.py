@@ -112,9 +112,11 @@ def update_recommendations(experiment_name, end_time=None):
 
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
-def list_recommendations(experiment_name):
+def list_recommendations(experiment_name,rm=False):
     print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
+    if rm:
+        url += "?rm=true"
     PARAMS = {'experiment_name': experiment_name}
     response = requests.get(url = url, params = PARAMS)
     print("URL = ", url, "  Response status code = ", response.status_code)
