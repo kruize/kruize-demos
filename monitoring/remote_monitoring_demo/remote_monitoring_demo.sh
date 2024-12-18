@@ -90,8 +90,6 @@ function kruize_install() {
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
 		# Checkout the tag related to the last published mvp_demo version
 		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null
-		echo "setting isROSEnabled=true"
-    kruize_remote_patch
 		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t"
 		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
 		sleep 5
