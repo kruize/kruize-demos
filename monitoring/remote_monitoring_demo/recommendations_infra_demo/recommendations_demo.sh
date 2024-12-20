@@ -174,6 +174,7 @@ function monitoring_demo_start() {
 
 	if [[ ${demo_monitoring_setup} -eq 1 ]]; then
 		clone_repos autotune
+		kruize_remote_demo_patch
 		monitoring_demo_setup
 	fi
 
