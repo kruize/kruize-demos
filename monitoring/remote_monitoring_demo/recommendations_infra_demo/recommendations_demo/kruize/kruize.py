@@ -150,7 +150,7 @@ def list_experiments(rm=False):
 def list_metrics_with_recommendations(experiment_name):
     print("\nListing the experiments with metrics and recommendations...")
     url = URL + "/listExperiments"
-    PARAMS = {'results':'true','recommendations':'true','latest':'false','experiment_name':experiment_name}
+    PARAMS = {'results':'true','recommendations':'true','latest':'false','experiment_name':experiment_name, 'rm':'true'}
     response = requests.get(url = url, params = PARAMS)
     print("URL = ", url, "   Response status code = ", response.status_code)
     return response.json()
