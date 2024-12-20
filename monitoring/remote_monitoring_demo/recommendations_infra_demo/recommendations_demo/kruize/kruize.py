@@ -135,10 +135,12 @@ def create_performance_profile(perf_profile_json_file):
     #print(response.text)
     return response
 
-# Description: This function obtains the experiments from Kruize using listExperiments API
-def list_experiments():
+def list_experiments(rm=False):
     print("\nListing the experiments...")
     url = URL + "/listExperiments"
+    if rm:
+        url += "?rm=true"
+
     response = requests.get(url = url)
     print("URL = ", url, "   Response status code = ", response.status_code)
 

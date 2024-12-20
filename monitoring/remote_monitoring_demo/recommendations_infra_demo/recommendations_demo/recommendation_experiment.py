@@ -270,7 +270,7 @@ def getMetricsWithRecommendations(cluster_type,experiment_name):
 def getExperimentNames(cluster_type):
     experiment_names = []
     form_kruize_url(cluster_type)
-    list_experiments_json = list_experiments()
+    list_experiments_json = list_experiments(rm=True)
     for obj in list_experiments_json:
         name = obj.get('experiment_name');
         if name:
@@ -280,7 +280,7 @@ def getExperimentNames(cluster_type):
 
 def getRecommendations(cluster_type,experiment_name):
     form_kruize_url(cluster_type)
-    recommendations_json = list_recommendations(experiment_name)
+    recommendations_json = list_recommendations(experiment_name, rm=True)
     with open('experiment_recommendations_data.json', 'w') as f:
             json.dump(recommendations_json, f, indent=4)
     return
@@ -332,7 +332,7 @@ def getAllExperimentsRecommendations(cluster_type):
     form_kruize_url(cluster_type)
     exp_names = getExperimentNames(cluster_type)
     for name in exp_names:
-        recommendation_json = list_recommendations(name)
+        recommendation_json = list_recommendations(name, rm=True)
         with open('exp_recommendation_data.json', 'w') as f:
             json.dump(recommendation_json, f, indent=4)
         recommendation_validation.get_recommondations('exp_recommendation_data.json')
