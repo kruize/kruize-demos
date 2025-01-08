@@ -175,7 +175,8 @@ def aggregateWorkloads(filename, outputResults):
                     df[column] = total
 
             df = df.drop_duplicates(subset=[col for col in df.columns if col not in columns_to_ignore])
-            agg_df = agg_df.append(df)
+            #agg_df = agg_df.append(df)
+            agg_df = pd.concat([agg_df, df], ignore_index=True)
 
     agg_df.to_csv('./final.csv', index=False)
     df1 = pd.read_csv('final.csv')
