@@ -328,7 +328,7 @@ function hpo_cleanup() {
 }
 
 # Default docker image repos
-HPO_DOCKER_REPO="docker.io/kruize/hpo"
+HPO_DOCKER_REPO="quay.io/kruize/hpo"
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
 export N_TRIALS=3
