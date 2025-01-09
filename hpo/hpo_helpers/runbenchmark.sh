@@ -59,7 +59,6 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${BENCHMARK_SERVER} -e ${RESULTS_DIR} -g ${TFB_IMAGE} --dbtype=${DB_TYPE} --dbhost=${DB_HOST} -r -d ${DURATION} -w ${WARMUPS} -m ${MEASURES} -i ${SERVER_INSTANCES} --iter=${ITERATIONS} -n ${NAMESPACE} -t ${THREADS} --connection=${CONNECTIONS} --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_request} --memlim=${memory_request}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}
 
 	RES_DIR=`ls -td -- ./benchmarks/techempower/results/*/ | head -n1 `
-	echo "${RES_DIR}/output.csv"
 	if [[ -f "${RES_DIR}/output.csv" ]]; then
 		## Copy the output.csv into current directory
 		cp -r ${RES_DIR}/output.csv .
