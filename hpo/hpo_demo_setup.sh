@@ -20,23 +20,13 @@ current_dir="$(dirname "$0")"
 common_dir="${current_dir}/../common/"
 source ${common_dir}/common_helper.sh
 
-# Default docker image repos
-HPO_DOCKER_REPO="docker.io/kruize/hpo"
-
-# Default cluster
-CLUSTER_TYPE="native"
-# Default duration of benchmark warmup/measurement cycles in seconds.
-DURATION=60
-PY_CMD="python3"
-LOGFILE="${PWD}/hpo.log"
-export N_TRIALS=3
-export N_JOBS=1
-
 function usage() {
 	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type] [-d]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "c = supports native, docker and Operate-first cluster-type to start HPO service"
+	echo "b = cluster on which benchmark runs"
+	echo "m = server name on which benchmark is run"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
 	exit 1
@@ -50,23 +40,24 @@ function prereq_check() {
 		python3 --version >/dev/null 2>/dev/null
 		check_err "ERROR: python3 not installed. Required to start HPO. Check if all dependencies (python3,minikube,php,java11,wget,curl,zip,bc,jq) are installed."
 	fi
-	## Requires minikube to run the demo benchmark for experiments
-	minikube >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
-	## Check version of minikube to be <= 1.26.1 for support of Prometheus version 0.8.0
-	minikube_ver=$(minikube version | grep "version" | sed 's/minikube version: v\([0-9]\+\).\([0-9]\+\).\([0-9]\+\).*/\1\2\3/')
-	if [ "$minikube_ver" -gt "1261" ]; then
-		echo "Current minikube version not supported: $(minikube version)"
-		echo "Supported Version 1.26.1 or less";
-    		exit 1;
-	fi
-	
-	kubectl get pods >/dev/null 2>/dev/null
-	check_err "ERROR: minikube not running. Required for running benchmark"
-	## Check if prometheus is running for valid benchmark results.
-	prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
-	if [ "${prometheus_pod_running}" == "" ]; then
-		err_exit "Install prometheus for valid results from benchmark."
+	if [[ "$1" == "minikube" ]]; then
+		## Requires minikube to run the demo benchmark for experiments
+		minikube >/dev/null 2>/dev/null
+		check_err "ERROR: minikube not installed. Required for running benchmark. Check if all other dependencies (php,java11,git,wget,curl,zip,bc,jq) are installed."
+		## Check version of minikube to be <= 1.26.1 for support of Prometheus version 0.8.0
+		minikube_ver=$(minikube version | grep "version" | sed 's/minikube version: v\([0-9]\+\).\([0-9]\+\).\([0-9]\+\).*/\1\2\3/')
+		if [ "$minikube_ver" -gt "1261" ]; then
+			echo "Current minikube version not supported: $(minikube version)"
+			echo "Supported Version 1.26.1 or less";
+			exit 1;
+		fi
+		kubectl get pods >/dev/null 2>/dev/null
+		check_err "ERROR: minikube not running. Required for running benchmark"
+		## Check if prometheus is running for valid benchmark results.
+		prometheus_pod_running=$(kubectl get pods --all-namespaces | grep "prometheus-k8s-0")
+		if [ "${prometheus_pod_running}" == "" ]; then
+			err_exit "Install prometheus for valid results from benchmark."
+		fi
 	fi
 	## Requires java 11
 	java -version >/dev/null 2>/dev/null
@@ -182,7 +173,7 @@ function hpo_experiments() {
 	echo "#######################################"
 	echo "Start a new experiment with search space json"
 	## Step 1 : Start a new experiment with provided search space.
-	http_response=$(curl -so response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}')
+	http_response=$(curl -o response.txt -w "%{http_code}" -H 'Content-Type: application/json' ${URL}/experiment_trials -d '{ "operation": "EXP_TRIAL_GENERATE_NEW",  "search_space": '"${exp_json}"'}')
 	if [ "$http_response" != "200" ]; then
 		err_exit "Error:" $(cat response.txt)
 	fi
@@ -213,7 +204,7 @@ function hpo_experiments() {
 		echo
 		echo "Run the benchmark for trial ${i}"
 		echo
-		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${DURATION}")
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${DURATION}" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}")
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -258,8 +249,10 @@ function hpo_experiments() {
 
 function hpo_start() {
 
-	minikube >/dev/null
-	check_err "ERROR: minikube not installed"
+	if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "native" ]]; then
+		minikube >/dev/null
+		check_err "ERROR: minikube not installed"
+	fi
 	# Start all the installs
 	start_time=$(get_date)
 	echo
@@ -274,12 +267,14 @@ function hpo_start() {
 	echo
 
 	if [ ${hpo_restart} -eq 0 ]; then
+		if [[ ${CLUSTER_TYPE} == "minikube" ]]; then # || [[ ${CLUSTER_TYPE} == "native" ]]; then
+			minikube_start
+			prometheus_install
+		fi
 		clone_repos hpo
 # clone autotune repo as well to install the prometheus
 		clone_repos autotune
 		clone_repos benchmarks
-		minikube_start
-		prometheus_install
 		benchmarks_install
 	fi
 #	Check for pre-requisites to run the demo benchmark with HPO.
@@ -290,7 +285,9 @@ function hpo_start() {
 		sleep 10
 	fi
 
-	hpo_experiments
+	if [ ${hpo_experiments} -eq 1 ]; then
+		hpo_experiments
+	fi
 
 	echo
 	end_time=$(get_date)
@@ -330,12 +327,31 @@ function hpo_cleanup() {
 	echo
 }
 
+# Default docker image repos
+HPO_DOCKER_REPO="docker.io/kruize/hpo"
+PY_CMD="python3"
+LOGFILE="${PWD}/hpo.log"
+export N_TRIALS=3
+export N_JOBS=1
+export APP_NAMESPACE="default"
+
+# Default cluster
+CLUSTER_TYPE="native"
+# Default duration of benchmark warmup/measurement cycles in seconds.
+DURATION=60
+BENCHMARK_CLUSTER="minikube"
+BENCHMARK_SERVER="localhost"
+
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
 hpo_restart=0
+hpo_experiments=1
 start_demo=1
+
+
+
 # Iterate through the commandline options
-while getopts o:c:d:prst gopts
+while getopts o:c:b:d:m:prst gopts
 do
 	case "${gopts}" in
 		o)
@@ -353,11 +369,20 @@ do
 		t)
 			start_demo=0
 			;;
+		e)
+			hpo_experiments=0
+			;;
 		c)
 			CLUSTER_TYPE="${OPTARG}"
 			;;
 		d)
 			DURATION="${OPTARG}"
+			;;
+		b)
+			BENCHMARK_CLUSTER="${OPTARG}"
+			;;
+		m)
+			BENCHMARK_SERVER="${OPTARG}"
 			;;
 		*)
 			usage
