@@ -27,6 +27,9 @@ HPO_CONFIG=$1
 SEARCHSPACE_JSON=$2
 TRIAL=$3
 DURATION=$4
+CLUSTER_TYPE=$5
+BENCHMARK_SERVER=$6
+
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
 BENCHMARK_NAME="techempower"
@@ -42,22 +45,21 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	# headerlist = {'INSTANCES','THROUGHPUT_RATE_3m','RESPONSE_TIME_RATE_3m','MAX_RESPONSE_TIME','RESPONSE_TIME_50p','RESPONSE_TIME_95p','RESPONSE_TIME_97p','RESPONSE_TIME_99p','RESPONSE_TIME_99.9p','RESPONSE_TIME_99.99p','RESPONSE_TIME_99.999p','RESPONSE_TIME_100p','CPU_USAGE','MEM_USAGE','CPU_MIN','CPU_MAX','MEM_MIN','MEM_MAX','THRPT_PROM_CI','RSPTIME_PROM_CI','THROUGHPUT_WRK','RESPONSETIME_WRK','RESPONSETIME_MAX_WRK','RESPONSETIME_STDEV_WRK','WEB_ERRORS','THRPT_WRK_CI','RSPTIME_WRK_CI','DEPLOYMENT_NAME','NAMESPACE','IMAGE_NAME','CONTAINER_NAME'}
 
 	OBJFUNC_VARIABLES="THROUGHPUT_RATE_3m,RESPONSE_TIME_RATE_3m,MAX_RESPONSE_TIME"
-	CLUSTER_TYPE="minikube"
-	BENCHMARK_SERVER="localhost"
 	RESULTS_DIR="results"
 	TFB_IMAGE="kruize/tfb-qrh:1.13.2.F_mm_p"
 	DB_TYPE="docker"
-	WARMUPS=1
-	MEASURES=3
+	WARMUPS=0
+	MEASURES=1
 	SERVER_INSTANCES=1
 	ITERATIONS=1
 	NAMESPACE="default"
-	THREADS="40"
-	CONNECTIONS="512"
+	THREADS="3"
+	CONNECTIONS="52"
 
 	./benchmarks/techempower/scripts/perf/tfb-run.sh --clustertype=${CLUSTER_TYPE} -s ${BENCHMARK_SERVER} -e ${RESULTS_DIR} -g ${TFB_IMAGE} --dbtype=${DB_TYPE} --dbhost=${DB_HOST} -r -d ${DURATION} -w ${WARMUPS} -m ${MEASURES} -i ${SERVER_INSTANCES} --iter=${ITERATIONS} -n ${NAMESPACE} -t ${THREADS} --connection=${CONNECTIONS} --cpureq=${cpu_request} --memreq=${memory_request}M --cpulim=${cpu_request} --memlim=${memory_request}M --envoptions="${envoptions}" >& ${BENCHMARK_LOGFILE}
 
 	RES_DIR=`ls -td -- ./benchmarks/techempower/results/*/ | head -n1 `
+	echo "${RES_DIR}/output.csv"
 	if [[ -f "${RES_DIR}/output.csv" ]]; then
 		## Copy the output.csv into current directory
 		cp -r ${RES_DIR}/output.csv .
@@ -66,6 +68,7 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 		sed -i 's/[[:blank:]]//g' output.csv
 		## Calculate objective function result value
 		objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.csv\", \"${OBJFUNC_VARIABLES}\")"`
+		echo "$objfunc_result"
 	
 		if [[ ${objfunc_result} != "-1" ]]; then
 			benchmark_status="success"
