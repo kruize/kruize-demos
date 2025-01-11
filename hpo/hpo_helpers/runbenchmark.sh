@@ -21,14 +21,23 @@
 #                                                                                       #
 #########################################################################################
 
-##TO DO: Check if minikube is running and has prometheus installed to capture the data
-
 HPO_CONFIG=$1
 SEARCHSPACE_JSON=$2
 TRIAL=$3
-DURATION=$4
-CLUSTER_TYPE=$5
-BENCHMARK_SERVER=$6
+CLUSTER_TYPE=$4
+BENCHMARK_SERVER=$5
+
+#JENKINS_MACHINE_NAME
+#JENKINS_EXPOSED_PORT
+#JENKINS_SETUP_JOB
+#JENKINS_SETUP_TOKEN
+#JENKINS_GIT_REPO_COMMIT
+#AUTOTUNE_BENCHMARKS_GIT_REPO_URL="https://github.com/benchmarks.git"
+#AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH="origin/tfb_p"
+#AUTOTUNE_BENCHMARKS_GIT_REPO_NAME="benchmarks"
+#PROV_HOST="root@perf-server"
+#DB_HOST=""
+
 
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
@@ -39,7 +48,83 @@ cpu_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tuna
 memory_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tunablevalue(\"hpo_config.json\", \"memoryRequest\")")
 envoptions=$(${PY_CMD} -c "import hpo_helpers.getenvoptions; hpo_helpers.getenvoptions.get_envoptions(\"hpo_config.json\")")
 
-if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
+if [[ ${BENCHMARK_NAME} == "techempower" ]] && [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
+	GIT_REPO_COMMIT="autotune-techempower"
+	RESULTS_DIR="results"
+	SERVER_INSTANCES="1"
+	NAMESPACE="autotune-tfb"
+	TFB_IMAGE="kh/tfb-qrh:1.13.2.F_mm_p"
+	RE_DEPLOY="true"
+	DB_TYPE="STANDALONE"
+	DB_HOSTIP="mwperf-server"
+	DURATION="60"
+	WARMUPS="1"
+	MEASURES="1"
+	ITERATIONS="1"
+	THREADS="56"
+	RATE="8000"
+	CONNECTION="256"
+	CLEANUP="true"
+
+	# Construct the job URL
+	jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters"
+	jobUrl="${jobUrl}?token=${JENKINS_SETUP_TOKEN}"
+	jobUrl="${jobUrl}&BRANCH=${GIT_REPO_COMMIT}"
+	jobUrl="${jobUrl}&CLUSTER_TYPE=openshift"
+	jobUrl="${jobUrl}&BENCHMARK_SERVER=${PROV_HOST}"
+	jobUrl="${jobUrl}&RESULTS_DIR=${RESULTS_DIR}"
+	jobUrl="${jobUrl}&SERVER_INSTANCES=${SERVER_INSTANCES}"
+	jobUrl="${jobUrl}&NAMESPACE=${NAMESPACE}"
+	jobUrl="${jobUrl}&TFB_IMAGE=${TFB_IMAGE}"
+	jobUrl="${jobUrl}&RE_DEPLOY=${RE_DEPLOY}"
+	jobUrl="${jobUrl}&DB_TYPE=${DB_TYPE}"
+	jobUrl="${jobUrl}&DB_HOSTIP=${DB_HOSTIP}"
+	jobUrl="${jobUrl}&DURATION=${DURATION}"
+	jobUrl="${jobUrl}&WARMUPS=${WARMUPS}"
+	jobUrl="${jobUrl}&MEASURES=${MEASURES}"
+	jobUrl="${jobUrl}&ITERATIONS=${ITERATIONS}"
+	jobUrl="${jobUrl}&THREADS=${THREADS}"
+	jobUrl="${jobUrl}&RATE=${RATE}"
+	jobUrl="${jobUrl}&CONNECTION=${CONNECTION}"
+	jobUrl="${jobUrl}&CPU_REQ=${cpu_request}"
+	jobUrl="${jobUrl}&MEM_REQ=${memory_request}"
+	jobUrl="${jobUrl}&CPU_LIM=${cpu_request}"
+	jobUrl="${jobUrl}&MEM_LIM=${memory_request}"
+	jobUrl="${jobUrl}&ENV_OPTIONS=${envoptions}"
+	jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_URL=${AUTOTUNE_BENCHMARKS_GIT_REPO_URL}"
+	jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH=${AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH}"
+	jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_NAME=${AUTOTUNE_BENCHMARKS_GIT_REPO_NAME}"
+	jobUrl="${jobUrl}&CLEANUP=${CLEANUP}"
+	jobUrl="${jobUrl}&PROV_HOST=${PROV_HOST}"
+	jobUrl="${jobUrl}&DB_HOST=${DB_HOST}"
+
+	# Print the constructed URL (for debugging)
+	echo "Constructed Job URL: $jobUrl"
+        result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
+	## TODO check if the job is successful or failed
+	curl -ks https://ci.app-svc-perf.corp.redhat.com/job/ExternalTeams/job/Autotune/job/Autotune-tfb-ocp/lastSuccessfulBuild/artifact/run/${PROV_HOST}/output.csv > output.csv
+
+	## Format csv file
+	sed -i 's/[[:blank:]]//g' output.csv
+	## Calculate objective function result value
+	objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.csv\", \"${OBJFUNC_VARIABLES}\")"`
+	echo "$objfunc_result"
+	if [[ ${objfunc_result} != "-1" ]]; then
+		benchmark_status="success"
+	else
+		benchmark_status="failure"
+		echo "Error calculating the objective function result value" >> ${LOGFILE}
+	fi
+
+        if [[ ${benchmark_status} == "failure" ]];then
+                objfunc_result=0
+        fi
+        ### Add the HPO config and output data from benchmark of all trials into single csv
+        ${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"experiment-output.csv\",\"${TRIAL}\")"
+        rm -rf output.csv
+fi
+
+if [[ ${BENCHMARK_NAME} == "techempower" ]] && [[ ${BENCHMARK_RUN_THRU} == "standalone" ]]; then
 
 	## HEADER of techempower benchmark output.
 	# headerlist = {'INSTANCES','THROUGHPUT_RATE_3m','RESPONSE_TIME_RATE_3m','MAX_RESPONSE_TIME','RESPONSE_TIME_50p','RESPONSE_TIME_95p','RESPONSE_TIME_97p','RESPONSE_TIME_99p','RESPONSE_TIME_99.9p','RESPONSE_TIME_99.99p','RESPONSE_TIME_99.999p','RESPONSE_TIME_100p','CPU_USAGE','MEM_USAGE','CPU_MIN','CPU_MAX','MEM_MIN','MEM_MAX','THRPT_PROM_CI','RSPTIME_PROM_CI','THROUGHPUT_WRK','RESPONSETIME_WRK','RESPONSETIME_MAX_WRK','RESPONSETIME_STDEV_WRK','WEB_ERRORS','THRPT_WRK_CI','RSPTIME_WRK_CI','DEPLOYMENT_NAME','NAMESPACE','IMAGE_NAME','CONTAINER_NAME'}
@@ -48,6 +133,7 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	RESULTS_DIR="results"
 	TFB_IMAGE="kruize/tfb-qrh:1.13.2.F_mm_p"
 	DB_TYPE="docker"
+	DURATION=60
 	WARMUPS=0
 	MEASURES=1
 	SERVER_INSTANCES=1
