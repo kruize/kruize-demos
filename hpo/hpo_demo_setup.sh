@@ -204,7 +204,7 @@ function hpo_experiments() {
 		echo
 		echo "Run the benchmark for trial ${i}"
 		echo
-		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}")
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}" "${BENCHMARK_RUN_THRU}")
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)

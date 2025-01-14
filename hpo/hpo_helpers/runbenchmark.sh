@@ -26,18 +26,7 @@ SEARCHSPACE_JSON=$2
 TRIAL=$3
 CLUSTER_TYPE=$4
 BENCHMARK_SERVER=$5
-
-#JENKINS_MACHINE_NAME
-#JENKINS_EXPOSED_PORT
-#JENKINS_SETUP_JOB
-#JENKINS_SETUP_TOKEN
-#JENKINS_GIT_REPO_COMMIT
-#AUTOTUNE_BENCHMARKS_GIT_REPO_URL="https://github.com/benchmarks.git"
-#AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH="origin/tfb_p"
-#AUTOTUNE_BENCHMARKS_GIT_REPO_NAME="benchmarks"
-#PROV_HOST="root@perf-server"
-#DB_HOST=""
-
+BENCHMARK_RUN_THRU=$6
 
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
@@ -100,28 +89,51 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]] && [[ ${BENCHMARK_RUN_THRU} == "jenk
 
 	# Print the constructed URL (for debugging)
 	echo "Constructed Job URL: $jobUrl"
+	JOB_START_TIME=$(date +%s%3N)
+	JOB_COMPLETE=false
+	COUNTER=0
+	STARTUP_TIMEOUT=60
         result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
-	## TODO check if the job is successful or failed
-	curl -ks https://ci.app-svc-perf.corp.redhat.com/job/ExternalTeams/job/Autotune/job/Autotune-tfb-ocp/lastSuccessfulBuild/artifact/run/${PROV_HOST}/output.csv > output.csv
+	while [[ "${JOB_DONE}" == false ]]; do
+		JOB_STATUS=$(curl -sk "https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastBuild/api/json" | jq -r '. | {timestamp, duration, result}')
+		JOB_TIMESTAMP=$(echo "$JOB_STATUS" | jq -r '.timestamp')
+		JOB_DURATION=$(echo "$JOB_STATUS" | jq -r '.duration')
+		JOB_RESULT=$(echo "$JOB_STATUS" | jq -r '.result')
+		if [ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ] && [ "$JOB_RESULT" = "SUCCESS" ]; then
+			JOB_COMPLETE=true
+			break
+		fi
+		if [ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "$START_TIME" ] && [ "$JOB_RESULT" = "FAILURE" ]; then
+			break
+		fi
+		COUNTER=$((COUNTER + 1))
+		if [ "$COUNTER" -ge "$STARTUP_TIMEOUT" ]; then
+			break
+		fi
+		sleep 5
+	done
 
-	## Format csv file
-	sed -i 's/[[:blank:]]//g' output.csv
-	## Calculate objective function result value
-	objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.csv\", \"${OBJFUNC_VARIABLES}\")"`
-	echo "$objfunc_result"
-	if [[ ${objfunc_result} != "-1" ]]; then
-		benchmark_status="success"
+	if [[ ${JOB_COMPLETE} == true ]]; then
+		curl -ks https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastSuccessfulBuild/artifact/run/${PROV_HOST}/output.csv > output.csv	
+		## Format csv file
+		sed -i 's/[[:blank:]]//g' output.csv
+		## Calculate objective function result value
+		objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.csv\", \"${OBJFUNC_VARIABLES}\")"`
+		echo "$objfunc_result"
+		if [[ ${objfunc_result} != "-1" ]]; then
+			benchmark_status="success"
+		else
+			benchmark_status="failure"
+			objfunc_result=0
+			echo "Error calculating the objective function result value" >> ${LOGFILE}
+		fi
 	else
 		benchmark_status="failure"
-		echo "Error calculating the objective function result value" >> ${LOGFILE}
+		objfunc_result=0
 	fi
-
-        if [[ ${benchmark_status} == "failure" ]];then
-                objfunc_result=0
-        fi
-        ### Add the HPO config and output data from benchmark of all trials into single csv
-        ${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"experiment-output.csv\",\"${TRIAL}\")"
-        rm -rf output.csv
+	### Add the HPO config and output data from benchmark of all trials into single csv
+	${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"experiment-output.csv\",\"${TRIAL}\")"
+	rm -rf output.csv
 fi
 
 if [[ ${BENCHMARK_NAME} == "techempower" ]] && [[ ${BENCHMARK_RUN_THRU} == "standalone" ]]; then
