@@ -204,7 +204,7 @@ function hpo_experiments() {
 		echo
 		echo "Run the benchmark for trial ${i}"
 		echo
-		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}" "${BENCHMARK_RUN_THRU}")
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}" "${BENCHMARK_NAME}" "${BENCHMARK_RUN_THRU}" "${JENKINS_MACHINE_NAME}" "${JENKINS_EXPOSED_PORT}" "${JENKINS_SETUP_JOB}" "${JENKINS_SETUP_TOKEN}" "${JENKINS_GIT_REPO_COMMIT}")
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -276,7 +276,7 @@ function hpo_start() {
 		if [ ${hpo_experiments} -eq 1 ]; then
 			clone_repos autotune
 			clone_repos benchmarks
-			benchmarks_install
+			#benchmarks_install
 		fi
 	fi
 #	Check for pre-requisites to run the demo benchmark with HPO.
@@ -344,7 +344,7 @@ DURATION=60
 BENCHMARK_CLUSTER="minikube"
 BENCHMARK_SERVER="localhost"
 BENCHMARK_RUN_THRU="standalone"
-
+BENCHMARK_NAME="techempower"
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
 hpo_restart=0
@@ -352,9 +352,33 @@ hpo_experiments=1
 start_demo=1
 
 # Iterate through the commandline options
-while getopts o:c:b:d:m:ejprst gopts
+while getopts b:c:d:m:o:ejprst:-: gopts
 do
-	case "${gopts}" in
+        case "${gopts}" in
+                 -)
+                case "${OPTARG}" in
+                        jenkinsmachine=*)
+                                JENKINS_MACHINE_NAME=${OPTARG#*=}
+                                ;;
+                        jenkinsport=*)
+                                JENKINS_EXPOSED_PORT=${OPTARG#*=}
+                                ;;
+                        jenkinsjob=*)
+                                JENKINS_SETUP_JOB=${OPTARG#*=}
+                                ;;
+                        jenkinstoken=*)
+                                JENKINS_SETUP_TOKEN=${OPTARG#*=}
+                                ;;
+                        jenkinsrepo=*)
+                                JENKINS_GIT_REPO_COMMIT=${OPTARG#*=}
+                                ;;
+                        benchmark=*)
+                                BENCHMARK_NAME=${OPTARG#*=}
+                                ;;
+                        *)
+                                ;;
+                esac
+                ;;
 		o)
 			HPO_DOCKER_IMAGE="${OPTARG}"
 			;;

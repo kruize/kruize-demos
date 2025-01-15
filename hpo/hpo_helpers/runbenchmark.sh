@@ -26,11 +26,16 @@ SEARCHSPACE_JSON=$2
 TRIAL=$3
 CLUSTER_TYPE=$4
 BENCHMARK_SERVER=$5
-BENCHMARK_RUN_THRU=$6
+BENCHMARK_NAME=$6
+BENCHMARK_RUN_THRU=$7
+JENKINS_MACHINE_NAME=$8
+JENKINS_EXPOSED_PORT=$9
+JENKINS_SETUP_JOB=${10}
+JENKINS_SETUP_TOKEN=${11}
+JENKINS_GIT_REPO_COMMIT=${12}
 
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
-BENCHMARK_NAME="techempower"
 BENCHMARK_LOGFILE="${PWD}/benchmark.log"
 
 cpu_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tunablevalue(\"hpo_config.json\", \"cpuRequest\")")
@@ -38,6 +43,11 @@ memory_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_t
 envoptions=$(${PY_CMD} -c "import hpo_helpers.getenvoptions; hpo_helpers.getenvoptions.get_envoptions(\"hpo_config.json\")")
 
 if [[ ${BENCHMARK_NAME} == "techempower" ]] && [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
+
+        AUTOTUNE_BENCHMARKS_GIT_REPO_URL="https://github.com/kruize/benchmarks.git"
+        AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH="origin/main"
+        AUTOTUNE_BENCHMARKS_GIT_REPO_NAME="benchmarks"
+
 	GIT_REPO_COMMIT="autotune-techempower"
 	RESULTS_DIR="results"
 	SERVER_INSTANCES="1"
