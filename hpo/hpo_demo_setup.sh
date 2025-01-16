@@ -21,13 +21,17 @@ common_dir="${current_dir}/../common/"
 source ${common_dir}/common_helper.sh
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type] [-d]"
+	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type] [-b benchmark-cluster-type] [-m benchmark-server] [--benchmark=benchmark-name] [-j] "
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "c = supports native, docker and Operate-first cluster-type to start HPO service"
+	echo "o = hpo image"
 	echo "b = cluster on which benchmark runs"
 	echo "m = server name on which benchmark is run"
-	echo "d = duration of benchmark warmup/measurement cycles"
+	echo "j = run benchmark on jenkins"
+	echo "e = disable hpo experiments"
+	echo "benchmark = benchmark to run. Default techempower"
+	echo "jenkinsmachine jenkinsport jenkinsjob jenkinstoken jenkinsrepo = jenkins configuration"
 	echo "p = expose prometheus port"
 	exit 1
 }
