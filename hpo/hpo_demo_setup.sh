@@ -21,7 +21,7 @@ common_dir="${current_dir}/../common/"
 source ${common_dir}/common_helper.sh
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type] [-b benchmark-cluster-type] [-m benchmark-server] [--benchmark=benchmark-name] [-j] "
+	echo "Usage: $0 [-s|-t] [-o hpo-image] [-r] [-c cluster-type] [-b benchmark-cluster-type] [-m benchmark-server] [--benchmark=benchmark-name] [--searchspace=searchspace.json] [-j] "
 	echo "s = start (default), t = terminate"
 	echo "r = restart hpo only"
 	echo "c = supports native, docker and Operate-first cluster-type to start HPO service"
@@ -31,6 +31,7 @@ function usage() {
 	echo "j = run benchmark on jenkins"
 	echo "e = disable hpo experiments"
 	echo "benchmark = benchmark to run. Default techempower"
+	echo "searchspace = searchspace json"
 	echo "jenkinsmachine jenkinsport jenkinsjob jenkinstoken jenkinsrepo = jenkins configuration"
 	echo "p = expose prometheus port"
 	exit 1
@@ -160,7 +161,7 @@ function getURL() {
 ## Currently, it uses TechEmpower benchmark running in minikube for the demo.
 function hpo_experiments() {
 
-	SEARCHSPACE_JSON="hpo_helpers/tfb_qrh_search_space.json"
+	#SEARCHSPACE_JSON="hpo_helpers/tfb_qrh_search_space.json"
 	URL=$(getURL)
 	exp_json=$(cat ${SEARCHSPACE_JSON})
 	if [[ ${exp_json} == "" ]]; then
@@ -349,6 +350,7 @@ BENCHMARK_CLUSTER="minikube"
 BENCHMARK_SERVER="localhost"
 BENCHMARK_RUN_THRU="standalone"
 BENCHMARK_NAME="techempower"
+SEARCHSPACE_JSON="hpo_helpers/tfb_qrh_search_space.json"
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
 hpo_restart=0
@@ -379,6 +381,9 @@ do
                         benchmark=*)
                                 BENCHMARK_NAME=${OPTARG#*=}
                                 ;;
+			searchspace=*)
+				SEARCHSPACE_JSON=${OPTARG#*=}
+				;;
                         *)
                                 ;;
                 esac
