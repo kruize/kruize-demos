@@ -1,0 +1,22 @@
+{
+  "filter": {
+    "exclude": {
+      "namespace": [],
+      "workload": [],
+      "containers": [],
+      "labels": {}
+    },
+    "include": {
+      "namespace": [],
+      "workload": [],
+      "containers": [],
+      "labels": {
+      }
+    }
+  },
+  "metadata_profile": "cluster-metadata-local-monitoring",
+  "measurement_duration": "15mins",
+
+  "datasource": "thanos"
+}
+
