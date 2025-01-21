@@ -294,7 +294,16 @@ function hpo_start() {
 #  HPO is already running on operate-first. So, no need to install again.
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		 # Installing jsonschema explicitly to debug errors
-		python3 -m pip install --user --no-cache-dir --force-reinstall -r ./hpo/rest_requirements.txt
+		#python3 -m pip install --user --no-cache-dir --force-reinstall -r ./hpo/rest_requirements.txt
+		python3 -m pip install --user --no-cache-dir --force-reinstall optuna
+		python3 -m pip install --user --no-cache-dir --force-reinstall requests
+		python3 -m pip install --user --no-cache-dir --force-reinstall scikit-optimize
+		python3 -m pip install --user --no-cache-dir --force-reinstall jsonschema
+		python3 -m pip install --user --no-cache-dir --force-reinstall grpcio
+		python3 -m pip install --user --no-cache-dir --force-reinstall click
+		python3 -m pip install --user --no-cache-dir --force-reinstall protobuf
+		python3 -m pip install --user --no-cache-dir --force-reinstall plotly
+
 		python3 -m pip show jsonschema
 		#python3 -m pip install --user -r ./hpo/requirements.txt
 		hpo_install
