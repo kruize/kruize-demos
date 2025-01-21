@@ -346,7 +346,7 @@ function hpo_cleanup() {
 
 	delete_repos hpo
 	delete_repos autotune
-	minikube_delete
+	#minikube_delete
 	## Delete the logs if any before starting the experiment
 	rm -rf experiment-output.csv hpo_config.json benchmark.log hpo.log response.txt
 	echo "Success! HPO demo cleanup completed."
@@ -451,5 +451,5 @@ else
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		hpo_terminate
 	fi
-	#hpo_cleanup
+	hpo_cleanup
 fi
