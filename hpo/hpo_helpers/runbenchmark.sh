@@ -113,8 +113,10 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 	JOB_COMPLETE=false
 	COUNTER=0
 	STARTUP_TIMEOUT=60
-        result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
-	while [[ "${JOB_DONE}" == false ]]; do
+        #result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
+	curl -k -w "%{http_code}\n" "${jobUrl}"
+
+	while [[ "${JOB_COMPLETE}" == false ]]; do
 		JOB_STATUS=$(curl -sk "https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastBuild/api/json" | jq -r '. | {timestamp, duration, result}')
 		JOB_TIMESTAMP=$(echo "$JOB_STATUS" | jq -r '.timestamp')
 		JOB_DURATION=$(echo "$JOB_STATUS" | jq -r '.duration')
