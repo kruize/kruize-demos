@@ -64,31 +64,35 @@ function prereq_check() {
 			err_exit "Install prometheus for valid results from benchmark."
 		fi
 	fi
-	## Requires java 11
-	java -version >/dev/null 2>/dev/null
-	check_err "Error: java is not found. Requires Java 11 for running benchmark."
-	JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-	if [[ ${JAVA_VERSION} < "11" ]]; then
-		err_exit "ERROR: Java 11 is required."
+
+	if [[ ${BENCHMARK_RUN_THRU} == "standalone" ]]; then
+		## Requires java 11
+		java -version >/dev/null 2>/dev/null
+		check_err "Error: java is not found. Requires Java 11 for running benchmark."
+		JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+		if [[ ${JAVA_VERSION} < "11" ]]; then
+			err_exit "ERROR: Java 11 is required."
+		fi
+		## Requires wget
+		wget --version >/dev/null 2>/dev/null
+		check_err "ERROR: wget not installed. Required for running benchmark. Check if all other dependencies (php,curl,zip,bc,jq) are installed."
+		## Requires curl
+		curl --version >/dev/null 2>/dev/null
+		check_err "ERROR: curl not installed. Required for running benchmark. Check if all other dependencies (php,zip,bc,jq) are installed."
+		## Requires bc
+		bc --version >/dev/null 2>/dev/null
+		check_err "ERROR: bc not installed. Required for running benchmark. Check if all other dependencies (php,zip,jq) are installed."
+		## Requires jq
+		jq --version >/dev/null 2>/dev/null
+		check_err "ERROR: jq not installed. Required for running benchmark. Check if all other dependencies (php,zip) are installed."
+		## Requires zip
+		zip --version >/dev/null 2>/dev/null
+		check_err "ERROR: zip not installed. Required for running benchmark. Check if other dependencies (php) are installed."
+		## Requires php
+		php --version >/dev/null 2>/dev/null
+		check_err "ERROR: php not installed. Required for running benchmark."
 	fi
-	## Requires wget
-	wget --version >/dev/null 2>/dev/null
-	check_err "ERROR: wget not installed. Required for running benchmark. Check if all other dependencies (php,curl,zip,bc,jq) are installed."
-	## Requires curl
-	curl --version >/dev/null 2>/dev/null
-	check_err "ERROR: curl not installed. Required for running benchmark. Check if all other dependencies (php,zip,bc,jq) are installed."
-	## Requires bc
-	bc --version >/dev/null 2>/dev/null
-	check_err "ERROR: bc not installed. Required for running benchmark. Check if all other dependencies (php,zip,jq) are installed."
-	## Requires jq
-	jq --version >/dev/null 2>/dev/null
-	check_err "ERROR: jq not installed. Required for running benchmark. Check if all other dependencies (php,zip) are installed."
-	## Requires zip
-	zip --version >/dev/null 2>/dev/null
-	check_err "ERROR: zip not installed. Required for running benchmark. Check if other dependencies (php) are installed."
-	## Requires php
-	php --version >/dev/null 2>/dev/null
-	check_err "ERROR: php not installed. Required for running benchmark."
+
 }
 
 ###########################################
