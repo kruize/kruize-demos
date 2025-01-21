@@ -295,6 +295,7 @@ function hpo_start() {
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		hpo_install
 		sleep 10
+		cat ${LOGFILE}
 	fi
 
 	if [ ${hpo_experiments} -eq 1 ]; then
