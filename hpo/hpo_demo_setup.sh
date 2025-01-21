@@ -254,7 +254,7 @@ function hpo_experiments() {
 
 function hpo_start() {
 
-	if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "native" ]]; then
+	if [[ ${CLUSTER_TYPE} == "minikube" ]]; then
 		minikube >/dev/null
 		check_err "ERROR: minikube not installed"
 	fi
