@@ -123,9 +123,9 @@ function hpo_install() {
 		fi
 		if [[ ${CLUSTER_TYPE} == "native" ]]; then
 			echo
-			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE}"
+			echo "Starting hpo with  ./deploy_hpo.sh -c ${CLUSTER_TYPE} --rest"
 			echo
-			./deploy_hpo.sh -c ${CLUSTER_TYPE} >> ${LOGFILE} 2>&1 &
+			./deploy_hpo.sh -c ${CLUSTER_TYPE} --rest >> ${LOGFILE} 2>&1 &
 			check_err "ERROR: HPO failed to start, exiting"
 		else
 			echo
