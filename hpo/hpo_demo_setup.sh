@@ -294,7 +294,7 @@ function hpo_start() {
 #  HPO is already running on operate-first. So, no need to install again.
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		## Installing jsonschema explicitly to debug errors
-		pip install jsonschema
+		python3 -m pip install --user -r ./hpo/requirements.txt
 		hpo_install
 		sleep 10
 		cat ${LOGFILE}
