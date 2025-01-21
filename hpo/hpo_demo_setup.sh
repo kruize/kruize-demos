@@ -377,7 +377,7 @@ hpo_experiments=1
 start_demo=1
 
 # Iterate through the commandline options
-while getopts b:c:d:m:o:ejprst:-: gopts
+while getopts b:c:d:m:o:ejprstk:-: gopts
 do
         case "${gopts}" in
                  -)
@@ -451,5 +451,5 @@ else
 	if [[ ${CLUSTER_TYPE} != "operate-first" ]]; then
 		hpo_terminate
 	fi
-	hpo_cleanup
+	#hpo_cleanup
 fi
