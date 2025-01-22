@@ -21,25 +21,169 @@
 #                                                                                       #
 #########################################################################################
 
-##TO DO: Check if minikube is running and has prometheus installed to capture the data
-
 HPO_CONFIG=$1
 SEARCHSPACE_JSON=$2
 TRIAL=$3
-DURATION=$4
-CLUSTER_TYPE=$5
-BENCHMARK_SERVER=$6
+CLUSTER_TYPE=$4
+BENCHMARK_SERVER=$5
+BENCHMARK_NAME=$6
+BENCHMARK_RUN_THRU=$7
+JENKINS_MACHINE_NAME=$8
+JENKINS_EXPOSED_PORT=$9
+JENKINS_SETUP_JOB=${10}
+JENKINS_SETUP_TOKEN=${11}
+JENKINS_GIT_REPO_COMMIT=${12}
 
 PY_CMD="python3"
 LOGFILE="${PWD}/hpo.log"
-BENCHMARK_NAME="techempower"
 BENCHMARK_LOGFILE="${PWD}/benchmark.log"
 
 cpu_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tunablevalue(\"hpo_config.json\", \"cpuRequest\")")
 memory_request=$(${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.get_tunablevalue(\"hpo_config.json\", \"memoryRequest\")")
 envoptions=$(${PY_CMD} -c "import hpo_helpers.getenvoptions; hpo_helpers.getenvoptions.get_envoptions(\"hpo_config.json\")")
 
-if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
+if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
+	if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
+		AUTOTUNE_BENCHMARKS_GIT_REPO_URL="https://github.com/kruize/benchmarks.git"
+		AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH="origin/main"
+		AUTOTUNE_BENCHMARKS_GIT_REPO_NAME="benchmarks"
+		GIT_REPO_COMMIT="autotune-techempower"
+		RESULTS_DIR="results"
+		SERVER_INSTANCES="1"
+		NAMESPACE="autotune-tfb"
+		TFB_IMAGE="quay.io/kruize/tfb-qrh:1.13.2.F_mm_p"
+		RE_DEPLOY="true"
+		DB_TYPE="docker"
+		DB_HOSTIP="mwperf-server"
+		DURATION="60"
+		WARMUPS="1"
+		MEASURES="1"
+		ITERATIONS="1"
+		THREADS="56"
+		RATE="8000"
+		CONNECTION="256"
+		CLEANUP="true"
+
+		# Create an associative array to store parameters
+		declare -A params
+		params=(
+		      ["token"]="${JENKINS_SETUP_TOKEN}"
+		      ["BRANCH"]="${GIT_REPO_COMMIT}"
+		      ["CLUSTER_TYPE"]="openshift"
+		      ["BENCHMARK_SERVER"]="${BENCHMARK_SERVER}"
+		      ["RESULTS_DIR"]="${RESULTS_DIR}"
+		      ["SERVER_INSTANCES"]="${SERVER_INSTANCES}"
+		      ["NAMESPACE"]="${NAMESPACE}"
+		      ["TFB_IMAGE"]="${TFB_IMAGE}"
+		      ["RE_DEPLOY"]="${RE_DEPLOY}"
+		      ["DB_TYPE"]="${DB_TYPE}"
+		      ["DB_HOSTIP"]="${DB_HOSTIP}"
+		      ["DURATION"]="${DURATION}"
+		      ["WARMUPS"]="${WARMUPS}"
+		      ["MEASURES"]="${MEASURES}"
+		      ["ITERATIONS"]="${ITERATIONS}"
+		      ["THREADS"]="${THREADS}"
+		      ["RATE"]="${RATE}"
+		      ["CONNECTION"]="${CONNECTION}"
+		      ["CPU_REQ"]="${cpu_request}"
+		      ["MEM_REQ"]="${memory_request}"
+		      ["CPU_LIM"]="${cpu_request}"
+		      ["MEM_LIM"]="${memory_request}"
+		      ["ENV_OPTIONS"]="${envoptions}"
+		      ["AUTOTUNE_BENCHMARKS_GIT_REPO_URL"]="${AUTOTUNE_BENCHMARKS_GIT_REPO_URL}"
+		      ["AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH"]="${AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH}"
+		      ["AUTOTUNE_BENCHMARKS_GIT_REPO_NAME"]="${AUTOTUNE_BENCHMARKS_GIT_REPO_NAME}"
+		      ["CLEANUP"]="${CLEANUP}"
+		      #["PROV_HOST"]="${PROV_HOST}"
+		      #["DB_HOST"]="${DB_HOST}"
+	      )
+	      # Initialize an empty string for the encoded query
+	      query=""
+	      # Loop through the parameters and encode each key and value
+	      for key in "${!params[@]}"; do
+		      encoded_key=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$key'''))")
+		      encoded_value=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''${params[$key]}'''))")
+		      query+="${encoded_key}=${encoded_value}&"
+	      done
+	      # Remove the trailing '&'
+	      query=${query%&}
+	      jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters?$query"
+        else
+	      # Construct the job URL
+	      jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters"
+	      jobUrl="${jobUrl}?token=${JENKINS_SETUP_TOKEN}"
+	      jobUrl="${jobUrl}&BRANCH=${GIT_REPO_COMMIT}"
+	      jobUrl="${jobUrl}&CPU_REQ=${cpu_request}"
+	      jobUrl="${jobUrl}&MEM_REQ=${memory_request}"
+	      jobUrl="${jobUrl}&CPU_LIM=${cpu_request}"
+	      jobUrl="${jobUrl}&MEM_LIM=${memory_request}"
+	      jobUrl="${jobUrl}&ENV_OPTIONS=${envoptions}"
+	fi
+
+	# Print the constructed URL (for debugging)
+	echo "Constructed Job URL: ${jobUrl}"
+	JOB_START_TIME=$(date +%s%3N)
+	JOB_COMPLETE=false
+	COUNTER=0
+	STARTUP_TIMEOUT=60
+        #result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
+	curl -k -w "%{http_code}\n" "${jobUrl}"
+
+	while [[ "${JOB_COMPLETE}" == false ]]; do
+		JOB_STATUS=$(curl -sk "https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastBuild/api/json")
+		# Validate JSON response
+		if ! echo "$JOB_STATUS" | jq empty; then
+		    echo "Error: Invalid JSON received"
+		    echo "Response: $JOB_STATUS"
+		fi
+		JOB_TIMESTAMP=$(echo "$JOB_STATUS" | jq -r '.timestamp // 0')
+		JOB_DURATION=$(echo "$JOB_STATUS" | jq -r '.duration // 0')
+		JOB_RESULT=$(echo "$JOB_STATUS" | jq -r '.result // "UNKNOWN"')
+		if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ]] && [[ "$JOB_RESULT" == "SUCCESS" ]]; then
+			JOB_COMPLETE=true
+			break
+		fi
+		if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "$START_TIME" ]] && [[ "$JOB_RESULT" == "FAILURE" ]]; then
+			break
+		fi
+		COUNTER=$((COUNTER + 1))
+		if [ "$COUNTER" -ge "$STARTUP_TIMEOUT" ]; then
+			break
+		fi
+		sleep 5
+	done
+
+	if [[ ${JOB_COMPLETE} == true ]]; then
+		if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
+			curl -ks https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastSuccessfulBuild/artifact/run/${PROV_HOST}/output.csv > output.csv	
+			## Format csv file
+			sed -i 's/[[:blank:]]//g' output.csv
+			## Calculate objective function result value
+			objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.csv\", \"${OBJFUNC_VARIABLES}\")"`
+		else
+			## TODO: Check on how to get horreum run id details
+			curl -s 'https://${HORREUM}/api/run/${HORREUM_RUNID}/labelValues' | jq -r . > output.json
+			## Calculate objective function result value
+			objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.json\", \"${OBJFUNC_VARIABLES}\")"`
+		fi
+		echo "$objfunc_result"
+		if [[ ${objfunc_result} != "-1" ]]; then
+			benchmark_status="success"
+		else
+			benchmark_status="failure"
+			objfunc_result=0
+			echo "Error calculating the objective function result value" >> ${LOGFILE}
+		fi
+	else
+		benchmark_status="failure"
+		objfunc_result=0
+	fi
+	### Add the HPO config and output data from benchmark of all trials into single csv
+	${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.hpoconfig2csv(\"hpo_config.json\",\"output.csv\",\"experiment-output.csv\",\"${TRIAL}\")"
+	rm -rf output.csv output.json
+fi
+
+if [[ ${BENCHMARK_NAME} == "techempower" ]] && [[ ${BENCHMARK_RUN_THRU} == "standalone" ]]; then
 
 	## HEADER of techempower benchmark output.
 	# headerlist = {'INSTANCES','THROUGHPUT_RATE_3m','RESPONSE_TIME_RATE_3m','MAX_RESPONSE_TIME','RESPONSE_TIME_50p','RESPONSE_TIME_95p','RESPONSE_TIME_97p','RESPONSE_TIME_99p','RESPONSE_TIME_99.9p','RESPONSE_TIME_99.99p','RESPONSE_TIME_99.999p','RESPONSE_TIME_100p','CPU_USAGE','MEM_USAGE','CPU_MIN','CPU_MAX','MEM_MIN','MEM_MAX','THRPT_PROM_CI','RSPTIME_PROM_CI','THROUGHPUT_WRK','RESPONSETIME_WRK','RESPONSETIME_MAX_WRK','RESPONSETIME_STDEV_WRK','WEB_ERRORS','THRPT_WRK_CI','RSPTIME_WRK_CI','DEPLOYMENT_NAME','NAMESPACE','IMAGE_NAME','CONTAINER_NAME'}
@@ -48,6 +192,7 @@ if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 	RESULTS_DIR="results"
 	TFB_IMAGE="kruize/tfb-qrh:1.13.2.F_mm_p"
 	DB_TYPE="docker"
+	DURATION=60
 	WARMUPS=0
 	MEASURES=1
 	SERVER_INSTANCES=1

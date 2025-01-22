@@ -1,4 +1,5 @@
 import json, csv
+import os
 
 ## Calculates objective function result value 
 ## Input: searchspacejson , outputcsvfile from benchmark , objective function variables as string.
@@ -7,7 +8,7 @@ import json, csv
 ## Gets the objective function from searchspace and replace it with the values
 ## from outputcsv file to evaluate objective function result.
 
-def calcobj(searchspacejson, outputcsvfile, objfuncvariables):
+def calcobj(searchspacejson, inputfile, objfuncvariables):
     ## Convert the string of objective function variables defined into list
     if objfuncvariables != "":
         objfunc_variables = list(objfuncvariables.split(","))
@@ -32,14 +33,26 @@ def calcobj(searchspacejson, outputcsvfile, objfuncvariables):
     if objfuncvariables == "":
         objfunc_variables = funcvariables
 
-    with open(outputcsvfile, 'r', newline='') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=',')
-        csvheader = reader.fieldnames
+    _, file_extension = os.path.splitext(inputfile)
+    if file_extension.lower() == ".csv":
+        with open(inputfile, 'r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=',')
+            csvheader = reader.fieldnames
         for row in reader:
             for x in objfunc_variables:
                 for k,v in row.items():
                     if (k == x):
                         objf = objf.replace(x , v)
+
+    if file_extension.lower() == ".json":
+        with open(inputfile) as jsonfile:
+            input_data = json.load(jsonfile)
+        for entry in input_data:
+            values = entry.get("values", {})
+            for x in objfunc_variables:
+                if x in values:
+                    objf = objf.replace(x, str(values[x]))
+
     try:
         print(eval(objf))
     except:
