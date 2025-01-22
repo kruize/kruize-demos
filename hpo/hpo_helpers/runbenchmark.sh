@@ -114,13 +114,18 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 	COUNTER=0
 	STARTUP_TIMEOUT=60
         #result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
-	#curl -k -w "%{http_code}\n" "${jobUrl}"
+	curl -k -w "%{http_code}\n" "${jobUrl}"
 
 	while [[ "${JOB_COMPLETE}" == false ]]; do
-		JOB_STATUS=$(curl -sk "https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastBuild/api/json" | jq -r '. | {timestamp, duration, result}')
-		JOB_TIMESTAMP=$(echo "$JOB_STATUS" | jq -r '.timestamp')
-		JOB_DURATION=$(echo "$JOB_STATUS" | jq -r '.duration')
-		JOB_RESULT=$(echo "$JOB_STATUS" | jq -r '.result')
+		JOB_STATUS=$(curl -sk "https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastBuild/api/json")
+		# Validate JSON response
+		if ! echo "$JOB_STATUS" | jq empty; then
+		    echo "Error: Invalid JSON received"
+		    echo "Response: $JOB_STATUS"
+		fi
+		JOB_TIMESTAMP=$(echo "$JOB_STATUS" | jq -r '.timestamp // 0')
+		JOB_DURATION=$(echo "$JOB_STATUS" | jq -r '.duration // 0')
+		JOB_RESULT=$(echo "$JOB_STATUS" | jq -r '.result // "UNKNOWN"')
 		if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ]] && [[ "$JOB_RESULT" == "SUCCESS" ]]; then
 			JOB_COMPLETE=true
 			break
