@@ -88,7 +88,7 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 		jobUrl="${jobUrl}&MEM_REQ=${memory_request}"
 		jobUrl="${jobUrl}&CPU_LIM=${cpu_request}"
 		jobUrl="${jobUrl}&MEM_LIM=${memory_request}"
-		jobUrl="${jobUrl}&ENV_OPTIONS=${envoptions}"
+		jobUrl="${jobUrl}&ENV_OPTIONS=\"${envoptions}\""
 		jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_URL=${AUTOTUNE_BENCHMARKS_GIT_REPO_URL}"
 		jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH=${AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH}"
 		jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_NAME=${AUTOTUNE_BENCHMARKS_GIT_REPO_NAME}"
@@ -108,24 +108,24 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 	fi
 
 	# Print the constructed URL (for debugging)
-	echo "Constructed Job URL: $jobUrl"
+	echo "Constructed Job URL: ${jobUrl}"
 	JOB_START_TIME=$(date +%s%3N)
 	JOB_COMPLETE=false
 	COUNTER=0
 	STARTUP_TIMEOUT=60
         #result=$(curl -o /dev/null -sk -w "%{http_code}\n" "${jobUrl}")
-	curl -k -w "%{http_code}\n" "${jobUrl}"
+	#curl -k -w "%{http_code}\n" "${jobUrl}"
 
 	while [[ "${JOB_COMPLETE}" == false ]]; do
 		JOB_STATUS=$(curl -sk "https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/lastBuild/api/json" | jq -r '. | {timestamp, duration, result}')
 		JOB_TIMESTAMP=$(echo "$JOB_STATUS" | jq -r '.timestamp')
 		JOB_DURATION=$(echo "$JOB_STATUS" | jq -r '.duration')
 		JOB_RESULT=$(echo "$JOB_STATUS" | jq -r '.result')
-		if [ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ] && [ "$JOB_RESULT" = "SUCCESS" ]; then
+		if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ]] && [[ "$JOB_RESULT" == "SUCCESS" ]]; then
 			JOB_COMPLETE=true
 			break
 		fi
-		if [ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "$START_TIME" ] && [ "$JOB_RESULT" = "FAILURE" ]; then
+		if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "$START_TIME" ]] && [[ "$JOB_RESULT" == "FAILURE" ]]; then
 			break
 		fi
 		COUNTER=$((COUNTER + 1))
