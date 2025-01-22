@@ -64,47 +64,60 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 		CONNECTION="256"
 		CLEANUP="true"
 
-		# Construct the job URL
-		jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters"
-		jobUrl="${jobUrl}?token=${JENKINS_SETUP_TOKEN}"
-		jobUrl="${jobUrl}&BRANCH=${GIT_REPO_COMMIT}"
-		jobUrl="${jobUrl}&CLUSTER_TYPE=openshift"
-		jobUrl="${jobUrl}&BENCHMARK_SERVER=${BENCHMARK_SERVER}"
-		jobUrl="${jobUrl}&RESULTS_DIR=${RESULTS_DIR}"
-		jobUrl="${jobUrl}&SERVER_INSTANCES=${SERVER_INSTANCES}"
-		jobUrl="${jobUrl}&NAMESPACE=${NAMESPACE}"
-		jobUrl="${jobUrl}&TFB_IMAGE=${TFB_IMAGE}"
-		jobUrl="${jobUrl}&RE_DEPLOY=${RE_DEPLOY}"
-		jobUrl="${jobUrl}&DB_TYPE=${DB_TYPE}"
-		jobUrl="${jobUrl}&DB_HOSTIP=${DB_HOSTIP}"
-		jobUrl="${jobUrl}&DURATION=${DURATION}"
-		jobUrl="${jobUrl}&WARMUPS=${WARMUPS}"
-		jobUrl="${jobUrl}&MEASURES=${MEASURES}"
-		jobUrl="${jobUrl}&ITERATIONS=${ITERATIONS}"
-		jobUrl="${jobUrl}&THREADS=${THREADS}"
-		jobUrl="${jobUrl}&RATE=${RATE}"
-		jobUrl="${jobUrl}&CONNECTION=${CONNECTION}"
-		jobUrl="${jobUrl}&CPU_REQ=${cpu_request}"
-		jobUrl="${jobUrl}&MEM_REQ=${memory_request}"
-		jobUrl="${jobUrl}&CPU_LIM=${cpu_request}"
-		jobUrl="${jobUrl}&MEM_LIM=${memory_request}"
-		jobUrl="${jobUrl}&ENV_OPTIONS=\"${envoptions}\""
-		jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_URL=${AUTOTUNE_BENCHMARKS_GIT_REPO_URL}"
-		jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH=${AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH}"
-		jobUrl="${jobUrl}&AUTOTUNE_BENCHMARKS_GIT_REPO_NAME=${AUTOTUNE_BENCHMARKS_GIT_REPO_NAME}"
-		jobUrl="${jobUrl}&CLEANUP=${CLEANUP}"
-		#jobUrl="${jobUrl}&PROV_HOST=${PROV_HOST}"
-		#jobUrl="${jobUrl}&DB_HOST=${DB_HOST}"
-	else
-		 # Construct the job URL
-		 jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters"
-		 jobUrl="${jobUrl}?token=${JENKINS_SETUP_TOKEN}"
-		 jobUrl="${jobUrl}&BRANCH=${GIT_REPO_COMMIT}"
-		 jobUrl="${jobUrl}&CPU_REQ=${cpu_request}"
-		 jobUrl="${jobUrl}&MEM_REQ=${memory_request}"
-		 jobUrl="${jobUrl}&CPU_LIM=${cpu_request}"
-		 jobUrl="${jobUrl}&MEM_LIM=${memory_request}"
-		 jobUrl="${jobUrl}&ENV_OPTIONS=${envoptions}"
+		# Create an associative array to store parameters
+		declare -A params
+		params=(
+		      ["token"]="${JENKINS_SETUP_TOKEN}"
+		      ["BRANCH"]="${GIT_REPO_COMMIT}"
+		      ["CLUSTER_TYPE"]="openshift"
+		      ["BENCHMARK_SERVER"]="${BENCHMARK_SERVER}"
+		      ["RESULTS_DIR"]="${RESULTS_DIR}"
+		      ["SERVER_INSTANCES"]="${SERVER_INSTANCES}"
+		      ["NAMESPACE"]="${NAMESPACE}"
+		      ["TFB_IMAGE"]="${TFB_IMAGE}"
+		      ["RE_DEPLOY"]="${RE_DEPLOY}"
+		      ["DB_TYPE"]="${DB_TYPE}"
+		      ["DB_HOSTIP"]="${DB_HOSTIP}"
+		      ["DURATION"]="${DURATION}"
+		      ["WARMUPS"]="${WARMUPS}"
+		      ["MEASURES"]="${MEASURES}"
+		      ["ITERATIONS"]="${ITERATIONS}"
+		      ["THREADS"]="${THREADS}"
+		      ["RATE"]="${RATE}"
+		      ["CONNECTION"]="${CONNECTION}"
+		      ["CPU_REQ"]="${cpu_request}"
+		      ["MEM_REQ"]="${memory_request}"
+		      ["CPU_LIM"]="${cpu_request}"
+		      ["MEM_LIM"]="${memory_request}"
+		      ["ENV_OPTIONS"]="${envoptions}"
+		      ["AUTOTUNE_BENCHMARKS_GIT_REPO_URL"]="${AUTOTUNE_BENCHMARKS_GIT_REPO_URL}"
+		      ["AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH"]="${AUTOTUNE_BENCHMARKS_GIT_REPO_BRANCH}"
+		      ["AUTOTUNE_BENCHMARKS_GIT_REPO_NAME"]="${AUTOTUNE_BENCHMARKS_GIT_REPO_NAME}"
+		      ["CLEANUP"]="${CLEANUP}"
+		      #["PROV_HOST"]="${PROV_HOST}"
+		      #["DB_HOST"]="${DB_HOST}"
+	      )
+	      # Initialize an empty string for the encoded query
+	      query=""
+	      # Loop through the parameters and encode each key and value
+	      for key in "${!params[@]}"; do
+		      encoded_key=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$key'''))")
+		      encoded_value=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''${params[$key]}'''))")
+		      query+="${encoded_key}=${encoded_value}&"
+	      done
+	      # Remove the trailing '&'
+	      query=${query%&}
+	      jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters?$query"
+        else
+	      # Construct the job URL
+	      jobUrl="https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/buildWithParameters"
+	      jobUrl="${jobUrl}?token=${JENKINS_SETUP_TOKEN}"
+	      jobUrl="${jobUrl}&BRANCH=${GIT_REPO_COMMIT}"
+	      jobUrl="${jobUrl}&CPU_REQ=${cpu_request}"
+	      jobUrl="${jobUrl}&MEM_REQ=${memory_request}"
+	      jobUrl="${jobUrl}&CPU_LIM=${cpu_request}"
+	      jobUrl="${jobUrl}&MEM_LIM=${memory_request}"
+	      jobUrl="${jobUrl}&ENV_OPTIONS=${envoptions}"
 	fi
 
 	# Print the constructed URL (for debugging)

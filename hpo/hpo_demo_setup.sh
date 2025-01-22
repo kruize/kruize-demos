@@ -214,7 +214,7 @@ function hpo_experiments() {
 		echo
 		echo "Run the benchmark for trial ${i}"
 		echo
-		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}" "${BENCHMARK_NAME}" "${BENCHMARK_RUN_THRU}" "${JENKINS_MACHINE_NAME}" "${JENKINS_EXPOSED_PORT}" "${JENKINS_SETUP_JOB}" "${JENKINS_SETUP_TOKEN}" "${JENKINS_GIT_REPO_COMMIT}")
+		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}" "${BENCHMARK_NAME}" "${BENCHMARK_RUN_THRU}" "${JENKINS_MACHINE_NAME}" "${JENKINS_EXPOSED_PORT}" "${JENKINS_SETUP_JOB}" "${JENKINS_SETUP_TOKEN}" "${JENKINS_GIT_REPO_COMMIT}" | tee /dev/tty)
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f2 | cut -d " " -f1)
 		trial_state=$(echo ${BENCHMARK_OUTPUT} | cut -d "=" -f3 | cut -d " " -f1)
@@ -303,9 +303,6 @@ function hpo_start() {
 		python3 -m pip install --user --no-cache-dir --force-reinstall click
 		python3 -m pip install --user --no-cache-dir --force-reinstall protobuf
 		python3 -m pip install --user --no-cache-dir --force-reinstall plotly
-
-		python3 -m pip show jsonschema
-		#python3 -m pip install --user -r ./hpo/requirements.txt
 		hpo_install
 		sleep 10
 		cat ${LOGFILE}
