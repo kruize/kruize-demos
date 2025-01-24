@@ -3,21 +3,17 @@
     "experiment_id": "fr_eap_jvm_1",
     "total_trials": 100,
     "parallel_trials":1,
-    "objective_function": "1000*(125*THROUGHPUT_RATE_3m)/(150*RESPONSE_TIME_RATE_3m)/(25*MAX_POWER_CONSUMPTION)",
+    "objective_function": "1000*(125*Throughput)/(25*Avg_Watts)",
     "value_type": "double",
     "hpo_algo_impl": "optuna_tpe",
     "direction": "maximize",
     "function_variables": [
         {
-            "name": "THROUGHPUT_RATE_3m",
+            "name": "Throughput",
             "value_type": "double"
         },
         {
-            "name": "RESPONSE_TIME_RATE_3m",
-            "value_type": "double"
-        },
-        {
-            "name": "MAX_POWER_CONSUMPTION",
+            "name": "Avg_Watts",
             "value_type": "double"
         }
     ],
@@ -31,7 +27,7 @@
         },
         {
             "name": "SUBSYSTEM_EJB3__DEFAULT_STATEFUL_BEAN_SESSION_TIMEOUT",
-            "value_type": "long",
+            "value_type": "integer",
             "upper_bound": 10000,
             "lower_bound": -1,
             "step": 100
