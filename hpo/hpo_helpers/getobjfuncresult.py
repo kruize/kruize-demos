@@ -9,6 +9,14 @@ import os
 ## from outputcsv file to evaluate objective function result.
 
 def calcobj(searchspacejson, inputfile, objfuncvariables):
+    if not os.path.exists(inputfile):
+        print("-1")
+        return
+
+    if os.path.getsize(inputfile) == 0:
+        print("-1")
+        return
+
     ## Convert the string of objective function variables defined into list
     if objfuncvariables != "":
         objfunc_variables = list(objfuncvariables.split(","))
@@ -55,7 +63,9 @@ def calcobj(searchspacejson, inputfile, objfuncvariables):
 
     try:
         print(eval(objf))
+        return
     except:
         print("-1")
+        return
 
 

@@ -106,17 +106,9 @@ function clone_repos() {
 	echo "#######################################"
 	echo "1. Cloning ${repo_name} git repos"
 	if [ ! -d ${repo_name} ]; then
-		if [[ ${repo_name} == "hpo" ]]; then
-			git clone git@github.com:kusumachalasani/${repo_name}.git -b port >/dev/null 2>/dev/null
-		else
-			git clone git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
-		fi
+		git clone git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
 		if [ $? -ne 0 ]; then
-			if [[ ${repo_name} == "hpo" ]]; then
-	                        git clone https://github.com/kusumachalasani/${repo_name}.git -b port >/dev/null 2>/dev/null
-			else
-				git clone https://github.com/kruize/${repo_name}.git 2>/dev/null
-			fi
+			git clone https://github.com/kruize/${repo_name}.git 2>/dev/null
 		fi
 		check_err "ERROR: git clone of kruize/${repo_name} failed."
 	fi
