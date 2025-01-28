@@ -30,9 +30,9 @@ function kruize_local_metric_profile() {
 	fi
 	{
 		echo
-		echo "######################################################"
+		echo "#####################################################"
 		echo "#     Install default metric profile"
-		echo "######################################################"
+		echo "#####################################################"
 		echo
 		output=$(curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring)
 		echo

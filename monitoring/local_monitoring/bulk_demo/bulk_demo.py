@@ -117,8 +117,8 @@ def bulk_status(job_id):
             thread_print("List of all experiments are available in experiment_list.txt")
             print("✅ Complete!")
         else:
-            thread_print("⚠️  Something went wrong! There are no experiments with recommendations!")
-            print("⚠️  Something went wrong! There are no experiments with recommendations!")
+            thread_print("⚠️ Something went wrong! There are no experiments with recommendations!")
+            print("⚠️ Something went wrong! There are no experiments with recommendations!")
         status = True
         return
     else:

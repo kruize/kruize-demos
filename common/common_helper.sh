@@ -586,7 +586,7 @@ function delete_namespace_resource_quota() {
 	echo
 }
 
-# Function to check if a port is in use
+#  Function to check if a port is in use
 function is_port_in_use() {
 	local port=$1
 	if lsof -i :$port -t >/dev/null 2>&1; then

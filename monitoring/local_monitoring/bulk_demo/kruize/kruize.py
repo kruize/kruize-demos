@@ -99,7 +99,6 @@ def get_bulk_job_status(job_id, include=None):
         queryString = queryString + "&include=%s" % (include)
 
     url = URL + "/bulk%s" % (queryString)
-    # print("URL = ", url)
     response = requests.get(url, )
     return response
 
