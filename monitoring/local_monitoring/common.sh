@@ -402,7 +402,9 @@ function kruize_local_demo_setup() {
 
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
-	kruize_install &
+	if [ ${CLUSTER_TYPE} != "local" ]; then
+	  kruize_install &
+	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
  	do

@@ -707,6 +707,10 @@ function get_urls() {
 			export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 		fi
 
+  elif [ ${CLUSTER_TYPE} == "local" ]; then
+    export KRUIZE_URL="127.0.0.1:8080"
+    export KRUIZE_UI_URL="127.0.0.1:8080"
+
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
