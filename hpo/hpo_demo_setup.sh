@@ -309,6 +309,7 @@ function hpo_start() {
 		python3 -m pip install --user --no-cache-dir --force-reinstall optuna
 		python3 -m pip install --user --no-cache-dir --force-reinstall requests
 		python3 -m pip install --user --no-cache-dir --force-reinstall scikit-optimize
+		python3 -m pip install --user --no-cache-dir --force-reinstall scikit-learn
 		python3 -m pip install --user --no-cache-dir --force-reinstall jsonschema
 		python3 -m pip install --user --no-cache-dir --force-reinstall grpcio
 		python3 -m pip install --user --no-cache-dir --force-reinstall click
