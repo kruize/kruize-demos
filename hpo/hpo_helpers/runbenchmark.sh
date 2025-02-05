@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2024, 2025 Red Hat, IBM Corporation and others.
+# Copyright (c) 2021, 2022 Red Hat, IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -247,7 +247,6 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 			python3 -c "import hpo_helpers.json2csv; hpo_helpers.json2csv.horreumjson2csv(\"output.json\", \"output.csv\",\"objfn_result\", \"${objfunc_result}\")"
 
 		fi
-		#echo "$objfunc_result"
 		if [[ ${objfunc_result} != "-1" ]]; then
 			benchmark_status="success"
 		else

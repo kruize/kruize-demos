@@ -221,7 +221,7 @@ function hpo_experiments() {
 		BENCHMARK_OUTPUT=$(./hpo_helpers/runbenchmark.sh "hpo_config.json" "${SEARCHSPACE_JSON}" "$i" "${BENCHMARK_CLUSTER}" "${BENCHMARK_SERVER}" "${BENCHMARK_NAME}" "${BENCHMARK_RUN_THRU}" "${JENKINS_MACHINE_NAME}" "${JENKINS_EXPOSED_PORT}" "${JENKINS_SETUP_JOB}" "${JENKINS_SETUP_TOKEN}" "${JENKINS_GIT_REPO_COMMIT}" "${HORREUM}" | tee /dev/tty)
 		echo ${BENCHMARK_OUTPUT}
 		obj_result=$(echo ${BENCHMARK_OUTPUT} | awk '{for(i=1;i<=NF;i++) if($i ~ /^Objfunc_result=/) {split($i,a,"="); print a[2]}}')
-                trial_state=$(echo ${BENCHMARK_OUTPUT} | awk '{for(i=1;i<=NF;i++) if($i ~ /^Benchmark_status=/) {split($i,a,"="); print a[2]}}')
+		trial_state=$(echo ${BENCHMARK_OUTPUT} | awk '{for(i=1;i<=NF;i++) if($i ~ /^Benchmark_status=/) {split($i,a,"="); print a[2]}}')
 		### Setting obj_result=0 and trial_state="failure" to contine the experiment if obj_result is nan or trial_state is empty because of any issue with benchmark output.
 		number_check='^[0-9,.]+$'
 		if ! [[ ${obj_result} =~  ${number_check} ]]; then
