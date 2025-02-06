@@ -56,17 +56,17 @@
         {
             "name": "SUBSYSTEM_UNDERTOW_BYTE_BUFFER_POOL_DEFAULT__BUFFER_SIZE",
             "value_type": "categorical",
-            "choices": ["true", "false"]
+            "choices": ["true","false"]
         },
         {
             "name": "SUBSYSTEM_UNDERTOW_BYTE_BUFFER_POOL_DEFAULT__DIRECT",
             "value_type": "categorical",
-            "choices": ["true", "false"]
+            "choices": ["true","false"]
         },
         {
             "name": "SUBSYSTEM_TRANSACTIONS__USE_JOURNAL_STORE",
             "value_type": "categorical",
-            "choices": ["true", "false"]
+            "choices": ["true","false"]
         }
     ]
 }
