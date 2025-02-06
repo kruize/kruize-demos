@@ -1,7 +1,7 @@
 {
-    "experiment_name": "first_responder_eap_jvm_1",
-    "experiment_id": "first_responder_eap_jvm_1",
-    "total_trials": 100,
+    "experiment_name": "first_responder_eap_jvm_test_1",
+    "experiment_id": "first_responder_eap_jvm_test_1",
+    "total_trials": 5,
     "parallel_trials": 1,
     "objective_function": "1000 * (Throughput **1) / (Avg_Watts **2)",
     "value_type": "float",
