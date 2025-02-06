@@ -11,7 +11,8 @@ def get_tunablevalue(hpoconfigjson, tunable_name):
         for st in sstunables:
             if st["tunable_name"] == tunable_name:
                 tunable_value = str(st["tunable_value"])
-    print(tunable_value)
+                return tunable_value
+    return None
 
 ## Get experiment_id from the searchspace
 ## Input: searchspacejson
@@ -53,7 +54,7 @@ def gettrials(searchspacejson):
 ## Input: hpo_config json , benchmark output csv , trial number
 ## Output: Output file with both hpo_config and benchmark output with trial number
 ## Deletes an intermediate file "intermediate.csv" used.
-def hpoconfig2csv(hpoconfigjson, benchmarkcsv, outputcsv, trial):
+def merge_hpoconfig_benchoutput(hpoconfigjson, benchmarkcsv, outputcsv, trial):
     list2 = []
     list1 = []
     with open(hpoconfigjson, "r") as f:
@@ -91,8 +92,71 @@ def hpoconfig2csv(hpoconfigjson, benchmarkcsv, outputcsv, trial):
             data_list = list(reader)[1]
             list2.extend(data_list)
     
-    with open(outputcsv, 'a', newline='') as f:
+    file_mode = 'a' if os.path.exists(outputcsv) and os.stat(outputcsv).st_size > 0 else 'w'
+    with open(outputcsv, file_mode, newline='') as f:
         output = csv.writer(f)
-        if trial == "0":
+        if file_mode == 'w':
+        #if trial == "0":
             output.writerow(list1)
         output.writerow(list2)
+
+def csv2json(csv_file, json_file):
+    data = []
+    with open(csv_file, 'r') as csv_f:
+        csv_reader = csv.DictReader(csv_f)
+        for row in csv_reader:
+            data.append(row)
+    with open(json_file, 'w') as json_f:
+        json.dump(data, json_f, ensure_ascii=False)
+
+def combine_csvs(csv_file1, csv_file2):
+    if not os.path.exists(csv_file1) and not os.path.exists(csv_file2):
+        return
+    if not os.path.exists(csv_file1):
+        return
+    json_file1 = "file1.json"
+    json_file2 = "file2.json"
+    csv2json(csv_file1, json_file1)
+    with open(json_file1, 'r') as f1:
+        data1 = json.load(f1)
+
+    if os.path.exists(csv_file2):
+        csv2json(csv_file2, json_file2)
+        with open(json_file2, 'r') as f2:
+            data2 = json.load(f2)
+    else:
+        data2 = []
+
+    if not data2:
+        with open(csv_file2, mode='w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=data1[0].keys())
+            writer.writeheader()
+            writer.writerows(data1)
+        os.remove(json_file1)
+        return
+
+    # TODO: Good to have some order.
+    headers1 = set(data1[0].keys()) if data1 else set()
+    headers2 = set(data2[0].keys()) if data2 else set()
+    combined_headers = list(headers1.union(headers2))
+
+    def align_data(data, headers):
+        return [
+            {header: row.get(header, "") for header in headers}
+            for row in data
+        ]
+
+    aligned_data1 = align_data(data1, combined_headers)
+    aligned_data2 = align_data(data2, combined_headers)
+
+    combined_data = []
+    combined_data = aligned_data1 + aligned_data2
+
+    if combined_data:
+        with open(csv_file2, mode='w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=combined_data[0].keys())
+            writer.writeheader()
+            writer.writerows(combined_data)
+
+    os.remove(json_file1)
+    os.remove(json_file2)
