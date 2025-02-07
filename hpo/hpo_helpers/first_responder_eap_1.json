@@ -4,7 +4,7 @@
     "total_trials": 100,
     "parallel_trials": 1,
     "objective_function": "1000 * (Throughput **1) / (Avg_Watts **2)",
-    "value_type": "float",
+    "value_type": "double",
     "hpo_algo_impl": "optuna_tpe",
     "direction": "maximize",
     "function_variables": [
