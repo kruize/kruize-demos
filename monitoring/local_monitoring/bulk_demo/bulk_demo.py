@@ -100,8 +100,9 @@ def bulk_status(job_id):
         if exp_list != "":
             print("✅ Complete!")
             print(f"🔄 List the recommendations for {exp_count} experiments...", end="")
+            list_include = "experiments"
             for exp_name in exp_list:
-                response = list_recommendations(exp_name)
+                response = get_bulk_job_status(job_id, list_include, exp_name)
                 reco = response.json()
                 recommendations_json_arr.append(reco)
                 counter -= 1

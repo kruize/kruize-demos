@@ -90,13 +90,15 @@ def bulk(bulk_json_file):
 
 # Description: This function invokes the Kruize bulk service API
 # Input Parameters: job id returned from bulk service
-def get_bulk_job_status(job_id, include=None):
+def get_bulk_job_status(job_id, include=None, experimentName=None):
     # print("\nGet the bulk job status for job id %s " % (job_id))
     queryString = "?"
     if job_id:
-        queryString = queryString + "job_id=%s" % (job_id)
+        queryString = queryString + "job_id=%s&" % (job_id)
+    if experimentName:
+        queryString = queryString + "experiment_name=%s&" % (experimentName)
     if include:
-        queryString = queryString + "&include=%s" % (include)
+        queryString = queryString + "include=%s" % (include)
 
     url = URL + "/bulk%s" % (queryString)
     response = requests.get(url, )
