@@ -40,6 +40,13 @@ The script checks for essential tools required for the workflow:
 
 If any of these are missing, the script logs an error and exits.
 
+To install `ginkgo` please check your golang version and find a `ginkgo` version which fits and run this command,
+Replace the appropriate version / link
+
+```shell
+go install github.com/onsi/ginkgo/v2/ginkgo@latest
+```
+
 ---
 
 ### **4. Cloning Repositories**
