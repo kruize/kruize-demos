@@ -19,10 +19,8 @@
 CLUSTER_TYPE="ephemeral"
 KRUIZE_IMAGE="quay.io/khansaad/autotune_operator"
 KRUIZE_IMAGE_TAG="kafka"
-DATASOURCE_URL="http://thanos-query-frontend-example-query-thanos-operator-system.apps.kruize-scalelab.h0b5.p1.openshiftapps.com/"
-DATASOURCE_NAME="thanos-ee-2"
 CLOWDAPP_FILE="./ros-ocp-backend/kruize-clowdapp.yaml"
-BONFIRE_CONFIG="$HOME/.config/bonfire/config.yaml"
+BONFIRE_CONFIG_FILE="$HOME/.config/bonfire/config.yaml"
 current_dir="$(dirname "$0")"
 LOG_FILE="${current_dir}/kafka-demo.log"
 
@@ -72,9 +70,9 @@ function check_cluster_type() {
 
 # replace the kruize-clowder file in the repo with the local one
 function clowder_file_replace() {
-	echo "🔄 Replacing 'kruize-clowdapp' in the cloned repo..."
+	echo -n "🔄 Replacing 'kruize-clowdapp' in the cloned repo..."
 	cp "./kruize-clowdapp.yaml" "$repo_name/kruize-clowdapp.yaml"  || { echo "❌ Failed to replace the file."; exit 1; }
-	echo "✅ File replaced successfully!"
+	echo "✅ Done!"
 }
 
 function kafka_demo_setup() {
@@ -91,22 +89,24 @@ function kafka_demo_setup() {
 		echo -n "🔄 Reserving a namespace... "
 		{
 			bonfire namespace reserve -d 24h
-			EPHEMERAL_NAMESPACE=$(bonfire namespace list --mine | awk 'NR==3 {print $1}')
 		} >>"${LOG_FILE}" 2>&1
 		echo "✅ Done!"
 		echo -n "🔄 Updating Bonfire config with the Kruize image..."
 		{
-			if [[ -f "$BONFIRE_CONFIG" ]]; then
-				echo "Updating Bonfire config file: $BONFIRE_CONFIG..."
+			if [[ -f "$BONFIRE_CONFIG_FILE" ]]; then
+				echo "Updating Bonfire config file: $BONFIRE_CONFIG_FILE..."
+
+				# Update ROS repo location
+				sed -i "s|repo: .*ros-ocp-backend|repo: $(pwd)/${repo_name}|g" "$BONFIRE_CONFIG_FILE"
 
 				# Update KRUIZE_IMAGE
-				if grep -q "KRUIZE_IMAGE:" "$BONFIRE_CONFIG"; then
-					sed -i "s|KRUIZE_IMAGE:.*|KRUIZE_IMAGE: $KRUIZE_IMAGE|" "$BONFIRE_CONFIG"
+				if grep -q "KRUIZE_IMAGE:" "$BONFIRE_CONFIG_FILE"; then
+					sed -i "s|KRUIZE_IMAGE:.*|KRUIZE_IMAGE: $KRUIZE_IMAGE|" "$BONFIRE_CONFIG_FILE"
 				fi
 
 				# Update KRUIZE_IMAGE_TAG
-				if grep -q "KRUIZE_IMAGE_TAG:" "$BONFIRE_CONFIG"; then
-					sed -i "s|KRUIZE_IMAGE_TAG:.*|KRUIZE_IMAGE_TAG: $KRUIZE_IMAGE_TAG|" "$BONFIRE_CONFIG"
+				if grep -q "KRUIZE_IMAGE_TAG:" "$BONFIRE_CONFIG_FILE"; then
+					sed -i "s|KRUIZE_IMAGE_TAG:.*|KRUIZE_IMAGE_TAG: $KRUIZE_IMAGE_TAG|" "$BONFIRE_CONFIG_FILE"
 				fi
 			else
 				echo "Error: Bonfire config.yaml file not found. Skipping update."
@@ -123,6 +123,7 @@ function kafka_demo_setup() {
 		# below step is temporarily added, will be removed once the kruize-clowdapp changes are merged
 		clowder_file_replace
 #	fi
+	EPHEMERAL_NAMESPACE=$(bonfire namespace list --mine | awk 'NR==3 {print $1}')
 	echo "EPHEMERAL_NAMESPACE = ${EPHEMERAL_NAMESPACE}"
 	########################
 	# Get Kafka svc
@@ -149,15 +150,16 @@ function kafka_demo_setup() {
 
 	echo -n "🔄 Deploying the application.Please wait..."
 	{
-		bonfire deploy ros-ocp-backend -C kruize-test
+		bonfire deploy ros-ocp-backend -C kruize-test || error_exit "Failed to deploy the application."
 	} >>"${LOG_FILE}" 2>&1
+	sleep 40
 	echo "✅ Installation complete!"
 
 	############################
 	# Expose Kruize svc
 	############################
 	echo "🔄 Exposing kruize-recommendations service..."
-	oc expose svc/kruize-recommendations || error_exit "Failed to expose kruize-recommendations service."
+	oc expose svc/kruize-recommendations
 	echo "✅ Done!"
 
 
@@ -188,11 +190,8 @@ function kafka_demo_setup() {
 	echo -n "🔄 Consuming recommendations from recommendations-topic..."
 	echo
 	KAFKA_POD_NAME=$(oc get pods | grep kafka | awk '{print $1}')
-	echo "KAFKA_POD_NAME = ${KAFKA_POD_NAME}"
-	echo "KAFKA_SVC_NAME = ${KAFKA_SVC_NAME}"
-	echo "EPHEMERAL_NAMESPACE = ${EPHEMERAL_NAMESPACE}"
-	echo "oc exec "$KAFKA_POD_NAME" -- bin/kafka-console-consumer.sh --topic recommendations-topic --bootstrap-server "${KAFKA_SVC_NAME}"."${EPHEMERAL_NAMESPACE}".svc.cluster.local:9092"
-	oc exec $KAFKA_POD_NAME -- bin/kafka-console-consumer.sh --topic recommendations-topic --bootstrap-server ${KAFKA_SVC_NAME}.${EPHEMERAL_NAMESPACE}.svc.cluster.local:9092
+	echo "oc exec "$KAFKA_POD_NAME" -- bin/kafka-console-consumer.sh --topic recommendations-topic --bootstrap-server "${KAFKA_SVC_NAME}"."${EPHEMERAL_NAMESPACE}".svc.cluster.local:9092 --from-beginning"
+	oc exec $KAFKA_POD_NAME -- bin/kafka-console-consumer.sh --topic recommendations-topic --bootstrap-server ${KAFKA_SVC_NAME}.${EPHEMERAL_NAMESPACE}.svc.cluster.local:9092 --from-beginning
 
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
@@ -260,15 +259,14 @@ while getopts "sti:u:d:r" opt; do
 	esac
 done
 
-echo "Kruize Image: $KRUIZE_IMAGE"
-echo "Kruize Image Tag: $KRUIZE_IMAGE_TAG"
-echo "DATASOURCE_URL: $DATASOURCE_URL"
-echo "DATASOURCE_NAME: $DATASOURCE_NAME"
-
 # Perform action based on selection
 if [ ${start_demo} -eq 1 ]; then
 	echo
-	echo "Starting deployment..."
+	echo "Starting deployment using..."
+	echo "Kruize Image: $KRUIZE_IMAGE"
+	echo "Kruize Image Tag: $KRUIZE_IMAGE_TAG"
+	echo "DATASOURCE_URL: $DATASOURCE_URL"
+	echo "DATASOURCE_NAME: $DATASOURCE_NAME"
 	kafka_demo_setup
 elif [ ${start_demo} -eq 0 ]; then
 	echo

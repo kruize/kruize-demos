@@ -20,13 +20,6 @@ objects:
         image: ${KRUIZE_IMAGE}:${KRUIZE_IMAGE_TAG}
         command: ["sh"]
         args: ["-c", "export DB_CONFIG_FILE=${ACG_CONFIG} && export KRUIZE_CONFIG_FILE=/etc/config/kruizeconfigjson && export datasource='[{ \"name\": \"thanos-ee-2\",\"provider\": \"prometheus\",\"serviceName\": \"\",\"namespace\": \"\",\"url\": \"http://thanos-query-frontend-example-query-thanos-operator-system.apps.kruize-scalelab.h0b5.p1.openshiftapps.com/\"}]' && bash target/bin/Autotune"]
-        resources:
-          requests:
-            cpu: ${CPU_REQUEST_KRUIZE}
-            memory: ${MEMORY_REQUEST_KRUIZE}
-          limits:
-            cpu: ${CPU_LIMIT_KRUIZE}
-            memory: ${MEMORY_LIMIT_KRUIZE}
         livenessProbe:
           httpGet:
             path: /health
@@ -73,7 +66,7 @@ objects:
           - name: savetodb
             value: "true"
           - name: local
-            value: "false"
+            value: "true"
           - name: LOG_ALL_HTTP_REQ_AND_RESPONSE
             value: "true"
           - name: hibernate_dialect
@@ -103,13 +96,13 @@ objects:
           - name: plots
             value: ${PLOTS_DATA}
           - name: experimentsURL
-            value: "http://kruize-recommendations..svc.cluster.local:10000/createExperiment"
+            value: "http://kruize-recommendations.ephemeral-2wiwwi.svc.cluster.local:10000/createExperiment"
           - name: recommendationsURL
-            value: "http://kruize-recommendations..svc.cluster.local:10000/generateRecommendations?experiment_name=%s"
+            value: "http://kruize-recommendations.ephemeral-2wiwwi.svc.cluster.local:10000/generateRecommendations?experiment_name=%s"
           - name: isKafkaEnabled
             value: "true"
           - name: KAFKA_BOOTSTRAP_SERVERS
-            value: "env--c951c9ed-kafka-bootstrap..svc.cluster.local:9092"
+            value: "env-ephemeral-2wiwwi-a5135414-kafka-bootstrap.ephemeral-2wiwwi.svc.cluster.local:9092"
     kafkaTopics:
       - topicName: recommendations-topic
         partitions: 1
