@@ -578,7 +578,7 @@ function delete_namespace_resource_quota() {
 	echo
 }
 
-# Function to check if a port is in use
+#  Function to check if a port is in use
 function is_port_in_use() {
 	local port=$1
 	if lsof -i :$port -t >/dev/null 2>&1; then
@@ -698,6 +698,10 @@ function get_urls() {
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 		fi
+
+  elif [ ${CLUSTER_TYPE} == "local" ]; then
+    export KRUIZE_URL="127.0.0.1:8080"
+    export KRUIZE_UI_URL="127.0.0.1:8080"
 
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"

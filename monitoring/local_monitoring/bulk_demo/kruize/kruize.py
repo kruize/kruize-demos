@@ -15,15 +15,14 @@ limitations under the License.
 """
 
 import json
-import subprocess
-
 import requests
+import subprocess
 
 
 def form_kruize_url(cluster_type, SERVER_IP=None):
     global URL
-    KIND_IP="127.0.0.1"
-    KRUIZE_PORT=8080
+    KIND_IP = "127.0.0.1"
+    KRUIZE_PORT = 8080
 
     if SERVER_IP != None:
         URL = "http://" + str(SERVER_IP)
@@ -42,16 +41,22 @@ def form_kruize_url(cluster_type, SERVER_IP=None):
         URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
     elif (cluster_type == "kind"):
         URL = "http://" + KIND_IP + ":" + str(KRUIZE_PORT)
+    elif (cluster_type == "local"):
+        URL = "http://" + '127.0.0.1' + ":" + '8080'
     elif (cluster_type == "openshift"):
 
-        subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
         ip = subprocess.run(
-            ['oc status -n openshift-tuning | grep "kruize" | grep -v "kruize-ui" | grep -v "kruize-db" | grep port | cut -d " " -f1 | cut -d "/" -f3'], shell=True,
+            [
+                'oc status -n openshift-tuning | grep "kruize" | grep -v "kruize-ui" | grep -v "kruize-db" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
+            shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
         print("IP = ", SERVER_IP)
         URL = "http://" + str(SERVER_IP)
     print("\nKRUIZE URL = ", URL)
+
 
 # Description: This function creates a metric profile using the Kruize createMetricProfile API
 # Input Parameters: metric profile json
@@ -59,7 +64,7 @@ def create_metric_profile(metric_profile_json_file):
     json_file = open(metric_profile_json_file, "r")
     metric_profile_json = json.loads(json_file.read())
 
-    #print("\nCreating metric profile...")
+    # print("\nCreating metric profile...")
     url = URL + "/createMetricProfile"
     print("URL = ", url)
 
@@ -68,41 +73,45 @@ def create_metric_profile(metric_profile_json_file):
     print(response.text)
     return response
 
+
 # Description: This function invokes the Kruize bulk service API
 # Input Parameters: bulk json
 def bulk(bulk_json_file):
     json_file = open(bulk_json_file, "r")
     bulk_json = json.loads(json_file.read())
 
-    #print("\nInvoking bulk service...")
+    # print("\nInvoking bulk service...")
     url = URL + "/bulk"
     print("URL = ", url)
 
     response = requests.post(url, json=bulk_json)
     return response
 
+
 # Description: This function invokes the Kruize bulk service API
 # Input Parameters: job id returned from bulk service
-def get_bulk_job_status(job_id, verbose = None):
-    #print("\nGet the bulk job status for job id %s " % (job_id))
+def get_bulk_job_status(job_id, include=None, experimentName=None):
+    # print("\nGet the bulk job status for job id %s " % (job_id))
     queryString = "?"
     if job_id:
-        queryString = queryString + "job_id=%s" % (job_id)
-    if verbose:
-        queryString = queryString + "&verbose=%s" % (verbose)
+        queryString = queryString + "job_id=%s&" % (job_id)
+    if experimentName:
+        queryString = queryString + "experiment_name=%s&" % (experimentName)
+    if include:
+        queryString = queryString + "include=%s" % (include)
 
     url = URL + "/bulk%s" % (queryString)
-    #print("URL = ", url)
     response = requests.get(url, )
     return response
+
 
 # Description: This function obtains the recommendations from Kruize Autotune using listRecommendations API
 # Input Parameters: experiment name, flag indicating latest result and monitoring end time
 def list_recommendations(experiment_name=None, latest=None, monitoring_end_time=None):
     PARAMS = ""
-    #print("\nListing the recommendations...")
+    # print("\nListing the recommendations...")
     url = URL + "/listRecommendations"
-    #print("URL = ", url)
+    # print("URL = ", url)
 
     if experiment_name == None:
         if latest == None and monitoring_end_time == None:
@@ -119,14 +128,15 @@ def list_recommendations(experiment_name=None, latest=None, monitoring_end_time=
         elif monitoring_end_time != None:
             PARAMS = {'experiment_name': experiment_name, 'monitoring_end_time': monitoring_end_time}
 
-    #print("PARAMS = ", PARAMS)
+    # print("PARAMS = ", PARAMS)
     response = requests.get(url=url, params=PARAMS)
 
-    #print("Response status code = ", response.status_code)
-    #print("\n************************************************************")
-    #print(response.text)
-    #print("\n************************************************************")
+    # print("Response status code = ", response.status_code)
+    # print("\n************************************************************")
+    # print(response.text)
+    # print("\n************************************************************")
     return response
+
 
 # Description: This function validates the input json and posts the experiment using createExperiment API to Kruize Autotune
 # Input Parameters: experiment input json
@@ -193,6 +203,7 @@ def update_recommendations(experiment_name, startTime, endTime):
     print("\n************************************************************")
     return response
 
+
 # Description: This function deletes the experiment and posts the experiment using createExperiment API to Kruize Autotune
 # Input Parameters: experiment input json
 def delete_experiment(input_json_file, invalid_header=False):
@@ -219,6 +230,7 @@ def delete_experiment(input_json_file, invalid_header=False):
     print(response)
     print("Response status code = ", response.status_code)
     return response
+
 
 # Description: This function obtains the experiments from Kruize Autotune using listExperiments API
 # Input Parameters: None
@@ -369,6 +381,7 @@ def list_metadata(datasource=None, cluster_name=None, namespace=None, verbose=No
         print(response.text)
         print("\n************************************************************")
     return response
+
 
 # Description: This function deletes the metric profile
 # Input Parameters: metric profile input json
