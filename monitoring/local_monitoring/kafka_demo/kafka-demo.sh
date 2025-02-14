@@ -25,7 +25,7 @@ current_dir="$(dirname "$0")"
 LOG_FILE="${current_dir}/kafka-demo.log"
 
 start_demo=1
-skip_setup=0
+skip_namespace_reservation=0
 repo_name=ros-ocp-backend
 common_dir="${current_dir}/../../../common/"
 
@@ -79,51 +79,58 @@ function kafka_demo_setup() {
 	# Start all the installs
 	start_time=$(get_date)
 	check_bonfire
-#	if [ ${skip_setup} -eq 0 ]; then
-		echo | tee -a "${LOG_FILE}"
-		echo "#######################################" | tee -a "${LOG_FILE}"
-		echo "# Kafka Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-		echo "#######################################" | tee -a "${LOG_FILE}"
-		echo
+	echo | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo "# Kafka Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo
 
+	if [ ${skip_namespace_reservation} -eq 0 ]; then
 		echo -n "🔄 Reserving a namespace... "
 		{
 			bonfire namespace reserve -d 24h
 		} >>"${LOG_FILE}" 2>&1
-		echo "✅ Done!"
-		echo -n "🔄 Updating Bonfire config with the Kruize image..."
-		{
-			if [[ -f "$BONFIRE_CONFIG_FILE" ]]; then
-				echo "Updating Bonfire config file: $BONFIRE_CONFIG_FILE..."
+	else
+		echo -n "🔄 Skipping namespace reservation... "
+	fi
+	echo "✅ Done!"
+	echo -n "🔄 Updating Bonfire config with the Kruize image..."
+	{
+		if [[ -f "$BONFIRE_CONFIG_FILE" ]]; then
+			echo "Updating Bonfire config file: $BONFIRE_CONFIG_FILE..."
 
-				# Update ROS repo location
-				sed -i "s|repo: .*ros-ocp-backend|repo: $(pwd)/${repo_name}|g" "$BONFIRE_CONFIG_FILE"
+			# Update ROS repo location
+			sed -i "s|repo: .*ros-ocp-backend|repo: $(pwd)/${repo_name}|g" "$BONFIRE_CONFIG_FILE"
 
-				# Update KRUIZE_IMAGE
-				if grep -q "KRUIZE_IMAGE:" "$BONFIRE_CONFIG_FILE"; then
-					sed -i "s|KRUIZE_IMAGE:.*|KRUIZE_IMAGE: $KRUIZE_IMAGE|" "$BONFIRE_CONFIG_FILE"
-				fi
-
-				# Update KRUIZE_IMAGE_TAG
-				if grep -q "KRUIZE_IMAGE_TAG:" "$BONFIRE_CONFIG_FILE"; then
-					sed -i "s|KRUIZE_IMAGE_TAG:.*|KRUIZE_IMAGE_TAG: $KRUIZE_IMAGE_TAG|" "$BONFIRE_CONFIG_FILE"
-				fi
-			else
-				echo "Error: Bonfire config.yaml file not found. Skipping update."
+			# Update KRUIZE_IMAGE
+			if grep -q "KRUIZE_IMAGE:" "$BONFIRE_CONFIG_FILE"; then
+				sed -i "s|KRUIZE_IMAGE:.*|KRUIZE_IMAGE: $KRUIZE_IMAGE|" "$BONFIRE_CONFIG_FILE"
 			fi
-		} >>"${LOG_FILE}" 2>&1
-		echo "✅ Done!"
-		echo -n "🔄 Pulling required repositories..."
-		if [ ! -d ${repo_name} ]; then
-			{
-				clone_repo
-			} >>"${LOG_FILE}" 2>&1
+
+			# Update KRUIZE_IMAGE_TAG
+			if grep -q "KRUIZE_IMAGE_TAG:" "$BONFIRE_CONFIG_FILE"; then
+				sed -i "s|KRUIZE_IMAGE_TAG:.*|KRUIZE_IMAGE_TAG: $KRUIZE_IMAGE_TAG|" "$BONFIRE_CONFIG_FILE"
+			fi
+		else
+			echo "Error: Bonfire config.yaml file not found. Skipping update."
 		fi
-		echo "✅ Done!"
-		# below step is temporarily added, will be removed once the kruize-clowdapp changes are merged
-		clowder_file_replace
-#	fi
+	} >>"${LOG_FILE}" 2>&1
+	echo "✅ Done!"
+	echo -n "🔄 Pulling required repositories..."
+	if [ ! -d ${repo_name} ]; then
+		{
+			clone_repo
+		} >>"${LOG_FILE}" 2>&1
+	fi
+	echo "✅ Done!"
+	# below step is temporarily added, will be removed once the kruize-clowdapp changes are merged
+	clowder_file_replace
 	EPHEMERAL_NAMESPACE=$(bonfire namespace list --mine | awk 'NR==3 {print $1}')
+	# Check if no namespace is found
+	if [[ -z "$EPHEMERAL_NAMESPACE" ]]; then
+			echo "❌ No namespace is reserved under your name. Kindly re-run the demo script without the '-r' flag."
+			exit 1
+	fi
 	echo "EPHEMERAL_NAMESPACE = ${EPHEMERAL_NAMESPACE}"
 	########################
 	# Get Kafka svc
@@ -152,14 +159,20 @@ function kafka_demo_setup() {
 	{
 		bonfire deploy ros-ocp-backend -C kruize-test || error_exit "Failed to deploy the application."
 	} >>"${LOG_FILE}" 2>&1
-	sleep 40
 	echo "✅ Installation complete!"
+
+	echo "🔄 Waiting for Kruize Pods to come up..."
+	wait_for_pod
 
 	############################
 	# Expose Kruize svc
 	############################
-	echo "🔄 Exposing kruize-recommendations service..."
-	oc expose svc/kruize-recommendations
+	echo -n "🔄 Exposing kruize-recommendations service..."
+	if ! oc expose svc/kruize-recommendations 2>&1 | grep -q "AlreadyExists"; then
+    echo "✅ Route created successfully!"
+	else
+			echo "⚠️ Route already exists, continuing..."
+	fi
 	echo "✅ Done!"
 
 
@@ -173,7 +186,7 @@ function kafka_demo_setup() {
 	# Create Metric Profile
 	################################
 	echo -n "🔄 Creating Metric Profile..."
-	curl -X POST "http://${KRUIZE_ROUTE}/createMetricProfile" -d @resource_optimization_local_monitoring.json || error_exit "Failed to send createMetricProfile request."
+	api_call "${KRUIZE_ROUTE}/createMetricProfile" "@resource_optimization_local_monitoring.json"
 	echo "✅ Created Successfully!"
 
 	####################################################
@@ -181,7 +194,7 @@ function kafka_demo_setup() {
 	####################################################
 	echo "🔄 Invoking Bulk Service..."
 	echo "curl -s -X POST "${KRUIZE_ROUTE}/bulk" -H Content-Type: application/json -d '{\"datasource\":\"${DATASOURCE_NAME}\"}'"
-	curl -s -X POST "http://${KRUIZE_ROUTE}/bulk" -H "Content-Type: application/json" -d "{\"datasource\":\"${DATASOURCE_NAME}\"}" || error_exit "Failed to send bulk request."
+	api_call "${KRUIZE_ROUTE}/bulk" "{\"datasource\":\"${DATASOURCE_NAME}\"}"
 	echo "✅ Job_id generated!"
 
 	##########################################################################
@@ -207,10 +220,15 @@ function kafka_demo_setup_terminate() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 	echo "Clean up in progress..."
+	echo
 
 	if [ "${CLUSTER_TYPE}" == "ephemeral" ]; then
-		bonfire namespace release -f
+		bonfire namespace release -f || echo "⚠️ Warning: Failed to release namespace, continuing..."
 	fi
+	echo
+	echo -n "🔄 Removing git repos..."
+	rm -rf ${repo_name}
+	echo "✅"
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo
@@ -226,6 +244,54 @@ function clone_repo() {
 	git clone git@github.com:RedHatInsights/"${repo_name}".git >/dev/null 2>/dev/null
 	check_err "ERROR: git clone of ros-ocp-backend failed."
 	echo "done"
+}
+
+# Function to make API call and check response status
+function api_call() {
+    local url="$1"
+    local data="$2"
+
+    # Make API call and capture the HTTP response code
+    response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$url" \
+        -H "Content-Type: application/json" \
+        -d "$data")
+
+    # Check if response code is 200 or 201
+    if [[ "$response_code" == "200" || "$response_code" == "201" ]]; then
+        echo "✅ API call succeeded with response code: $response_code"
+    elif [ "$response_code" == "409" ]; then
+        echo "❌ API call failed with response code: $response_code"
+        echo "Continuing to the next step..."
+    else
+        echo "❌ API call failed with response code: $response_code"
+        exit 1
+    fi
+}
+
+# Wait for any pod containing "kruize-recommendations" to be Running
+function wait_for_pod() {
+    local pod_prefix="kruize-recommendations"
+    local timeout=60
+    local elapsed=0
+
+    echo "⏳ Waiting for pod with prefix '$pod_prefix' to be in 'Running' state (Timeout: ${timeout}s)..."
+
+    while [[ $elapsed -lt $timeout ]]; do
+        pod_name=$(oc get pods --no-headers | grep "$pod_prefix" | awk '{print $1}')
+        pod_status=$(oc get pod "$pod_name" -o jsonpath='{.status.phase}' 2>/dev/null || echo "")
+
+        if [[ "$pod_status" == "Running" ]]; then
+            echo "✅ Pod '$pod_name' is Running!"
+            return 0
+        fi
+
+        echo "⏳ Kruize Pod is not ready yet... retrying in 5s"
+        sleep 5
+        ((elapsed+=5))
+    done
+
+    echo "❌ Timeout! No pod with prefix '$pod_prefix' reached 'Running' state within ${timeout}s."
+    exit 1
 }
 
 # Parse command-line options
@@ -251,7 +317,7 @@ while getopts "sti:u:d:r" opt; do
 		DATASOURCE_NAME="${OPTARG}"
 		;;
 	r)
-		skip_setup=1
+		skip_namespace_reservation=1
 		;;
 	*)
 		usage
@@ -262,19 +328,16 @@ done
 # Perform action based on selection
 if [ ${start_demo} -eq 1 ]; then
 	echo
-	echo "Starting deployment using..."
+	echo "Starting the demo using: "
 	echo "Kruize Image: $KRUIZE_IMAGE"
 	echo "Kruize Image Tag: $KRUIZE_IMAGE_TAG"
 	echo "DATASOURCE_URL: $DATASOURCE_URL"
 	echo "DATASOURCE_NAME: $DATASOURCE_NAME"
 	kafka_demo_setup
-elif [ ${start_demo} -eq 0 ]; then
-	echo
-	echo "Terminating deployment..."
-	kafka_demo_setup_terminate
 else
-	echo "Invalid action!"
-	usage
+	echo
+	echo "🔄 Terminating the demo setup..."
+	kafka_demo_setup_terminate
 fi
 
 # If the user passes '-h' or '--help', show usage and exit

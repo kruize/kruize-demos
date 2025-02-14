@@ -24,6 +24,10 @@ To begin exploring the Kafka flow, follow these steps:
 
 ### Run the Demo
 
+#### Pre-requisites
+
+Bonfire tool needs to be installed before running the demo. We can do that by following [this](https://github.com/RedHatInsights/bonfire/#installation) link.
+
 ##### Clone the demo repository:
 ```sh
 git clone git@github.com:kruize/kruize-demos.git
