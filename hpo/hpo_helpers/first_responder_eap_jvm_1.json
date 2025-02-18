@@ -168,7 +168,7 @@
             "name": "MaxHeapFreeRatio",
             "value_type": "integer",
             "upper_bound": 100,
-            "lower_bound": 20,
+            "lower_bound": 71,
             "step": 1
         },
         {
