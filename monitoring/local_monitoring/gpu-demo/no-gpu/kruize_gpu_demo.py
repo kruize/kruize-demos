@@ -67,13 +67,25 @@ def post_request(url, json_data, name):
 def check_tool(tool):
     logging.info(f"Checking for {tool}...")
     try:
-        if tool in ['kubectl', 'helm', 'go', 'ginkgo']:
-            if tool == 'ginkgo':
-                subprocess.run([f"{go_bin_path}/{tool}", 'help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-            else:
-                subprocess.run([f"/usr/bin/{tool}", 'help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        tool_path = None
+
+        if tool == 'ginkgo':
+            if os.path.exists(f"{go_bin_path}/{tool}"):
+                tool_path = f"{go_bin_path}/{tool}"
         else:
-            subprocess.run([f"/usr/bin/{tool}", '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            for path in ['/usr/bin', '/usr/local/bin']:
+                if os.path.exists(f"{path}/{tool}"):
+                    tool_path = f"{path}/{tool}"
+                    break
+
+        if tool_path is None:
+            logging.error(f"{tool} is not installed or doesn't exist in /usr/bin or /usr/local/bin")
+            return False
+
+        if tool in ['kubectl', 'helm', 'go', 'ginkgo']:
+            subprocess.run([f"{tool_path}", 'help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        else:
+            subprocess.run([f"{tool_path}", '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         print(f"    ✓ {tool} is available on system")
         return True
     except subprocess.CalledProcessError:
