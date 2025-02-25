@@ -387,6 +387,7 @@ def check_ral_pod(pod_identifier, namespace):
 
 
 def main():
+    start_time = time.time()
     print("Please check kruize_gpu_demo.log for complete log info")
     print("")
     print("")
@@ -500,6 +501,10 @@ def main():
     print(" ✅ Done.")
 
     check_ral_pod(pod_identifier="sleepy-job", namespace="default")
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"\n⏱️ Total execution time: {elapsed_time:.2f} seconds")
 
 if __name__ == "__main__":
     main()
