@@ -308,7 +308,7 @@ def port_forward_kruize():
     max_retries = 50
 
     for i in range(max_retries):
-        print(f"🛠️ Attempt {i + 1}/{max_retries} to port-forward...")
+        logging.info(f"🛠️ Attempt {i + 1}/{max_retries} to port-forward...")
 
         start_port_forward()
 
@@ -316,7 +316,7 @@ def port_forward_kruize():
             print("✅ Port-forwarding successful and running in the background!")
             return
 
-        print("❌ Port-forwarding failed, retrying in 5 seconds...")
+        logging.info("❌ Port-forwarding failed, retrying in 5 seconds...")
         time.sleep(5)
 
     print("🚨 Reached max retries. Exiting.")
