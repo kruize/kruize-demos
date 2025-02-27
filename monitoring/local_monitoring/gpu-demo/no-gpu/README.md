@@ -51,8 +51,8 @@ go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
 ### **4. Cloning Repositories**
 The script clones necessary repositories from GitHub:
-- **InstaSlice** → A tool for dynamic GPU partitioning.
-- **Fake GPU Operator** → A simulated GPU environment for Kubernetes.
+- **InstaSlice** → A tool for dynamic GPU partitioning. [Repo Link](https://github.com/openshift/instaslice-operator/)
+- **Fake GPU Operator** → A simulated GPU environment for Kubernetes. [Repo Link](https://github.com/run-ai/fake-gpu-operator)
 
 If a specific branch is required, the script clones that branch.
 
