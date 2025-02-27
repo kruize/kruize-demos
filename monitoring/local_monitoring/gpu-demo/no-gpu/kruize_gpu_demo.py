@@ -29,7 +29,6 @@ gopath = subprocess.check_output(['go', 'env', 'GOPATH'], text=True).strip()
 go_bin_path = os.path.join(gopath, 'bin')
 os.environ['PATH'] = os.environ['PATH'] + os.pathsep + go_bin_path
 
-
 log_file = 'kruize_gpu_demo.log'
 if os.path.exists(log_file):
     os.remove(log_file)
@@ -92,6 +91,7 @@ def check_tool(tool):
         logging.error(f"{tool} is not installed or not in PATH")
         return False
 
+
 def clone_repo(repo_url, repo_name):
     logging.info(f"Cloning {repo_url}...")
     try:
@@ -101,6 +101,7 @@ def clone_repo(repo_url, repo_name):
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to clone {repo_name}: {e}")
         sys.exit(1)
+
 
 def clone_repo_branch(repo_url, repo_name, branch_name):
     """
@@ -150,7 +151,6 @@ def update_manager_yml(instaslice_repo_path):
 
 
 def run_make_test(repo_path):
-
     os.chdir(repo_path)
 
     update_manager_yml(instaslice_repo_path=repo_path)
@@ -216,7 +216,8 @@ def install_autotune(autotune_repo_path):
     os.chdir(scripts_path)
 
     print("Running ./scripts/prometheus_on_kind.sh", end='')
-    prom_install_process = subprocess.Popen([f'{scripts_path}/prometheus_on_kind.sh', '-as'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    prom_install_process = subprocess.Popen([f'{scripts_path}/prometheus_on_kind.sh', '-as'], stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
 
     while prom_install_process.poll() is None:
         print('.', end='', flush=True)
@@ -236,8 +237,9 @@ def install_autotune(autotune_repo_path):
 
     os.chdir(autotune_repo_path)
     print("Running deploy.sh -c minikube -i quay.io/bharathappali/exman:gpu-demo-local", end='')
-    autotune_install_process = subprocess.Popen([f'{autotune_repo_path}/deploy.sh', '-c', 'minikube', '-m', 'crc', '-i', 'quay.io/bharathappali/exman:gpu-demo-local'],
-                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    autotune_install_process = subprocess.Popen([f'{autotune_repo_path}/deploy.sh', '-c', 'minikube', '-m', 'crc', '-i',
+                                                 'quay.io/bharathappali/exman:gpu-demo-local'],
+                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     while autotune_install_process.poll() is None:
         print('.', end='', flush=True)
@@ -278,11 +280,11 @@ def start_port_forward():
     global port_forward_process
 
     if port_forward_process:
-        print("🛑 Terminating previous port-forward process...")
+        logging.info("🛑 Terminating previous port-forward process...")
         os.killpg(os.getpgid(port_forward_process.pid), signal.SIGTERM)
         time.sleep(5)
 
-    print("🔄 Starting port-forwarding for kruize service ...")
+    logging.info("🔄 Starting port-forwarding for kruize service ...")
 
     port_forward_process = subprocess.Popen(
         ['kubectl', 'port-forward', '-n', 'monitoring', 'service/kruize', '8080:8080'],
@@ -505,6 +507,7 @@ def main():
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"\n⏱️ Total execution time: {elapsed_time:.2f} seconds")
+
 
 if __name__ == "__main__":
     main()
