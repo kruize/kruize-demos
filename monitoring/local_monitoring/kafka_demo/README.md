@@ -45,12 +45,10 @@ cd kruize-demos/monitoring/local_monitoring/kafka_demo
  "Usage: ./kafka_demo.sh [-s|-t] [-i kruize-image] [-u datasource-url] [-d datasource-name]"
 	 "s = start (default), t = terminate"
 	 "i = Kruize image (default: $KRUIZE_IMAGE)"
-	 "c = Cluster type (default: ephemeral)"
-	 "u = Prometheus/Thanos datasource URL (default: $DATASOURCE_URL)"
-	 "d = Name of the datasource (default: $DATASOURCE_NAME)"
+	 "c = Cluster type (default: openshift)"
 	exit 1
 Note: All the params are optional and defaults are set in the script
-Currently only ephemeral is supported!
+Currently only openshift cluster is supported!
 ```
 Example:
-`./kafka_demo.sh -i quay.io/khansaad/autotune_operator:kafka -u http://thanos-query-frontend-example-query-thanos-operator-system.apps.kruize-scalelab.h0b5.p1.openshiftapps.com -d thanos-ee-2 `
+`./kafka_demo.sh -i quay.io/khansaad/autotune_operator:kafka `
