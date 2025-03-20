@@ -13,7 +13,8 @@
       "labels": {}
     }
   },
-
+  "metadata_profile": "cluster-metadata-local-monitoring",
+  "measurement_duration": "15mins",
   "time_range": {
 	"start": null,
 	"end": null

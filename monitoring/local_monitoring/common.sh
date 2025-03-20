@@ -45,6 +45,28 @@ function kruize_local_metric_profile() {
 	fi
 }
 
+function kruize_local_metadata_profile() {
+
+	# Metadata Profile JSON
+	cluster_metadata_local_monitoring="${current_dir}/autotune/manifests/autotune/metadata-profiles/bulk_cluster_metadata_local_monitoring.json"
+
+	{
+		echo
+		echo "######################################################"
+		echo "#     Install metadata profile"
+		echo "######################################################"
+		echo
+		output=$(curl -X POST http://${KRUIZE_URL}/createMetadataProfile -d @$cluster_metadata_local_monitoring)
+		echo
+	} >> "${LOG_FILE}" 2>&1
+
+	if [[ "$output" != *"SUCCESS"* ]]; then
+		echo $output >> "${LOG_FILE}" 2>&1
+		false
+		check_err "Error. Unable to create metadata profile. Exiting!"
+	fi
+}
+
 function kruize_local_metadata() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -66,7 +88,9 @@ function kruize_local_metadata() {
 				--header 'Content-Type: application/json' \
 				--data '{
            "version": "v1.0",
-           "datasource_name": "prometheus-1"
+           "datasource_name": "prometheus-1",
+           "metadata_profile": "cluster-metadata-local-monitoring",
+           "measurement_duration": "15mins"
         }')
 
 	# Exit if unable to connect to datasource
@@ -400,6 +424,10 @@ function kruize_local_demo_setup() {
 
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
+	if [ ${demo} == "bulk" ]; then
+	  kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
+	fi
+
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [ ${CLUSTER_TYPE} != "local" ]; then
@@ -436,9 +464,15 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	echo -n "🔄 Installing metric profile..."
-	kruize_local_metric_profile
-	echo "✅ Installation of metric profile complete!"
+       if [ ${demo} != "bulk" ]; then
+         echo -n "🔄 Installing metric profile..."
+         kruize_local_metric_profile
+         echo "✅ Installation of metric profile complete!"
+
+         echo -n "🔄 Installing metadata profile..."
+         kruize_local_metadata_profile
+         echo "✅ Installation of metadata profile complete!"
+       fi
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
