@@ -11,14 +11,12 @@ Refer the documentation of the [Kafka Design](https://github.com/kruize/autotune
 
 ## Demo workflow
 
-- Reserve a namespace in ephemeral cluster
-- Update Bonfire config with the Kruize image
-- Pull the ros-ocp-backend repo
-- Update the kruize-clowdapp file with the current namespace details
-- Deploy the application
-- Create metric profile by API using the route
-- Invoke Bulk API request to initiate the bulk flow
-- Start Consuming the message from the recommendations-topic
+- Start the bulk service
+- Once completed, get the route of the kruize pod
+- Setup kafka consumer client locally
+- Get the TLS certificate from the server running the Kafka cluster
+- Get the Kafka endpoint from the cluster
+- Run the local kafka consumer using the certificate file generated to start Consuming the message from the recommendations-topic
 
 To begin exploring the Kafka flow, follow these steps:
 
@@ -26,7 +24,7 @@ To begin exploring the Kafka flow, follow these steps:
 
 #### Pre-requisites
 
-Bonfire tool needs to be installed before running the demo. We can do that by following [this](https://github.com/RedHatInsights/bonfire/#installation) link.
+Kafka cluster needs to be running in an openshift cluster with a `route` listener added in it
 
 ##### Clone the demo repository:
 ```sh
@@ -36,7 +34,7 @@ git clone git@github.com:kruize/kruize-demos.git
 ```sh
 cd kruize-demos/monitoring/local_monitoring/kafka_demo
 ```
-##### Execute the demo script in ephemeral as:
+##### Execute the demo script in openshift as:
 ```sh
 ./kafka_demo.sh
 ```

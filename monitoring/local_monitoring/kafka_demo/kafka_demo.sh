@@ -164,7 +164,7 @@ function kafka_demo_setup() {
   echo -n "🔄 Consuming recommendations from the recommendations-topic..."
   echo
   # get the certificate from the cluster
-  oc get secret -n ${KAFKA_NAMESPACE} kruize-kafka-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt >> "${LOG_FILE}" 2>&1
+  oc get secret -n ${KAFKA_NAMESPACE} kruize-kafka-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
   # save it as a java keystore file for the app to consume
   keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt >> "${LOG_FILE}" 2>&1
   # Grab Kafka Endpoint
@@ -199,9 +199,7 @@ function kafka_demo_setup_terminate() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 	echo "Clean up in progress..."
-	echo
 
-	echo "✅"
 	echo -n "🔄 Removing Kafka..."
 	rm -rf ${KAFKA_TGZ} ${KAFKA_DIR}
 	rm -rf ca.crt truststore.jks
@@ -215,8 +213,8 @@ function kafka_demo_setup_terminate() {
       echo
     popd >/dev/null
   fi
-  #	echo -n "🔄 Removing git repos..."
-  #	rm -rf ${repo_name}
+  echo -n "🔄 Removing git repos..."
+  rm -rf ${repo_name}
 
 	echo "For detailed logs, look in kafka-demo.log"
 	echo
