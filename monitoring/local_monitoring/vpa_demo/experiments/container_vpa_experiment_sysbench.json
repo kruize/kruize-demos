@@ -3,6 +3,7 @@
   "experiment_name": "optimize-sysbench",
   "cluster_name": "default",
   "performance_profile": "resource-optimization-local-monitoring",
+  "metadata_profile": "cluster-metadata-local-monitoring",
   "mode": "recreate",
   "target_cluster": "local",
   "datasource": "prometheus-1",
