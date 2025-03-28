@@ -409,15 +409,15 @@ def main():
     parser.add_argument(
         "--insta-cntrl",
         type=str,
-        default="quay.io/bharathappali/instaslice:test-e2e-cntrl",
-        help="Image for InstaSlice controller (default: quay.io/bharathappali/instaslice:test-e2e-cntrl)"
+        default="quay.io/instaslice/instaslice:test-e2e-cntrl",
+        help="Image for InstaSlice controller (default: quay.io/instaslice/instaslice:test-e2e-cntrl)"
     )
 
     parser.add_argument(
         "--insta-dmst",
         type=str,
-        default="quay.io/bharathappali/instaslice:test-e2e-dmnst",
-        help="Image for InstaSlice daemonset (default: quay.io/bharathappali/instaslice:test-e2e-dmnst)"
+        default="quay.io/instaslice/instaslice:test-e2e-dmnst",
+        help="Image for InstaSlice daemonset (default: quay.io/instaslice/instaslice:test-e2e-dmnst)"
     )
 
     args = parser.parse_args()
@@ -428,8 +428,8 @@ def main():
     }
 
     print("Using the following image configurations:")
-    print(f"Controller Image: {env_vars['IMG']}")
-    print(f"Daemonset Image: {env_vars['IMG_DMST']}")
+    print(f"Controller Image: {env_vars['CNTRL']}")
+    print(f"Daemonset Image: {env_vars['DMST']}")
 
     instaslice_repo_url = "https://github.com/openshift/instaslice-operator.git"
     instaslice_repo_name = "instaslice-operator"
