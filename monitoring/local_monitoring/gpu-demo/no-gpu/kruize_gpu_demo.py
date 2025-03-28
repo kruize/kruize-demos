@@ -1,3 +1,4 @@
+import argparse
 import json
 import re
 import signal
@@ -14,6 +15,7 @@ NODE_NAME = "kind-e2e-control-plane"
 SAMPLE_WORKLOAD = "sample_workload.yaml"
 
 CREATE_METRICS_PROFILE = f"http://127.0.0.1:8080/createMetricProfile"
+CREATE_METADATA_PROFILE = f"http://127.0.0.1:8080/createMetadataProfile"
 CREATE_EXPERIMENT = f"http://127.0.0.1:8080/createExperiment"
 
 # Input folder
@@ -21,6 +23,7 @@ INPUT_FOLDER = "inputs"
 
 # File paths
 metrics_profile_path = os.path.join(os.getcwd(), INPUT_FOLDER, "metrics_profile.json")
+metadata_profile_path = os.path.join(os.getcwd(), INPUT_FOLDER, "metadata_profile.json")
 experiment_path = os.path.join(os.getcwd(), INPUT_FOLDER, "create_exp.json")
 
 gopath = subprocess.check_output(['go', 'env', 'GOPATH'], text=True).strip()
@@ -150,7 +153,7 @@ def update_manager_yml(instaslice_repo_path):
         sys.exit(1)
 
 
-def run_make_test(repo_path):
+def run_make_test(repo_path, env_vars_passed):
     os.chdir(repo_path)
 
     update_manager_yml(instaslice_repo_path=repo_path)
@@ -159,8 +162,8 @@ def run_make_test(repo_path):
     logging.info("Running make test-e2e-kind-emulated...")
 
     env_vars = os.environ.copy()
-    env_vars['IMG'] = "quay.io/bharathappali/instaslice:test-e2e-cntrl"
-    env_vars['IMG_DMST'] = "quay.io/bharathappali/instaslice:test-e2e-dmnst"
+    env_vars['IMG'] = env_vars_passed['CNTRL']
+    env_vars['IMG_DMST'] = env_vars_passed['DMST']
     process = subprocess.Popen(['make', 'test-e2e-kind-emulated'],
                                env=env_vars,
                                stdout=subprocess.PIPE,
@@ -401,6 +404,33 @@ def main():
             print(f"    ✗ {tool} is not installed. Please try again after installing {tool}. Exiting!")
             sys.exit(1)
 
+    parser = argparse.ArgumentParser(description="Configure InstaSlice images dynamically.")
+
+    parser.add_argument(
+        "--insta-cntrl",
+        type=str,
+        default="quay.io/instaslice/instaslice:test-e2e-cntrl",
+        help="Image for InstaSlice controller (default: quay.io/instaslice/instaslice:test-e2e-cntrl)"
+    )
+
+    parser.add_argument(
+        "--insta-dmst",
+        type=str,
+        default="quay.io/instaslice/instaslice:test-e2e-dmnst",
+        help="Image for InstaSlice daemonset (default: quay.io/instaslice/instaslice:test-e2e-dmnst)"
+    )
+
+    args = parser.parse_args()
+
+    env_vars = {
+        'CNTRL': args.insta_cntrl,
+        'DMST': args.insta_dmst
+    }
+
+    print("Using the following image configurations:")
+    print(f"Controller Image: {env_vars['CNTRL']}")
+    print(f"Daemonset Image: {env_vars['DMST']}")
+
     instaslice_repo_url = "https://github.com/openshift/instaslice-operator.git"
     instaslice_repo_name = "instaslice-operator"
     if os.path.exists(instaslice_repo_name):
@@ -411,7 +441,7 @@ def main():
 
     org_path = os.getcwd()
     instaslice_repo_path = os.path.join(os.getcwd(), instaslice_repo_name)
-    run_make_test(instaslice_repo_path)
+    run_make_test(instaslice_repo_path, env_vars_passed=env_vars)
     os.chdir(org_path)
 
     fake_gpu_operator_repo_url = "https://github.com/run-ai/fake-gpu-operator.git"
@@ -483,6 +513,15 @@ def main():
 
     if not post_request(CREATE_METRICS_PROFILE, metrics_data, "Metric Profile"):
         print(f"✗ Error creating Metrics Profile")
+        return
+
+    metadata_profile_data = read_json(metadata_profile_path)
+    if metadata_profile_data is None:
+        print(f"✗ Error reading {metadata_profile_path}")
+        return
+
+    if not post_request(CREATE_METADATA_PROFILE, metadata_profile_data, "Metadata Profile"):
+        print(f"✗ Error creating Metadata Profile")
         return
 
     experiment_data = read_json(experiment_path)
