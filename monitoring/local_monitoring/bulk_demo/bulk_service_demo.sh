@@ -72,11 +72,12 @@ export KRUIZE_DOCKER_IMAGE=""
 export prometheus=0
 export env_setup=0
 export start_demo=1
+export kafka=0
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:lprstu: gopts
+while getopts c:i:n:d:klprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -108,6 +109,9 @@ do
 			;;
 		d)
 			LOAD_DURATION="${OPTARG}"
+			;;
+	  k)
+			kafka=1
 			;;
 		*)
 			usage

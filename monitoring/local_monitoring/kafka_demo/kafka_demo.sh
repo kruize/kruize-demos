@@ -26,14 +26,20 @@ SCALA_VERSION="2.13"
 KAFKA_TGZ="kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz"
 KAFKA_DIR="${current_dir}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}"
 KAFKA_URL="https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/${KAFKA_TGZ}"
-NAMESPACE="openshift-tuning"
-KAFKA_NAMESPACE="kafka"
-export target="crc"
+KAFKA_CLUSTER_NAME="kruize-kafka-cluster"
+export BOOTSTRAP_SERVER="$KAFKA_CLUSTER_NAME-kafka-bootstrap.$KAFKA_NAMESPACE.svc.cluster.local:9092"
 
+
+APP_NAMESPACE="openshift-tuning"
+KAFKA_NAMESPACE="kafka"
+CERT_FILE="./ca.crt"
+PASSWORD="password"
 
 start_demo=1
-skip_namespace_reservation=0
+bulk_demo=0
+kafka_server_setup=0
 repo_name=autotune
+
 source "${common_dir}"/common_helper.sh
 source "${current_dir}"/../common.sh
 
@@ -42,10 +48,13 @@ set -euo pipefail  # Enable strict error handling
 LOG_FILE="${current_dir}/kafka-demo.log"
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-i kruize-image] [-u datasource-url] [-d datasource-name] [-c cluster-name] [-n namespace]"
+	echo "Usage: $0 [-s|-t] [-b] [-k] [-i kruize-image] [-c cluster-name] [-n kafka-namespace] [-a kruize-namespace]"
 	echo "s = start (default), t = terminate"
-	echo "i = Kruize image (default: $KRUIZE_IMAGE)"
-	echo "n = Namespace  (default: openshift-tuning)"
+	echo "b = start bulk_demo"
+	echo "k = start kafka_server_setup"
+	echo "i = Kruize image (default: $KRUIZE_DOCKER_IMAGE)"
+	echo "a = Kruize Namespace  (default: openshift-tuning)"
+	echo "n = Kafka Namespace  (default: kafka)"
 	echo "c = Cluster type (default: openshift)"
 	exit 1
 }
@@ -88,6 +97,101 @@ function setup_kafka_local() {
   echo
 }
 
+function setup_kafka_server() {
+  # Create namespace for Kafka if it doesn't exist
+  echo "Creating namespace for Kafka..."
+  oc create namespace $KAFKA_NAMESPACE || echo "Namespace $KAFKA_NAMESPACE already exists."
+
+  # Install Kafka using Strimzi Operator (if not already installed)
+  echo "Installing Strimzi Operator..."
+  oc apply -f https://strimzi.io/install/latest?namespace=$KAFKA_NAMESPACE -n $KAFKA_NAMESPACE
+
+  # Wait for the Strimzi Operator to be ready
+  echo "Waiting for Strimzi Operator to be ready..."
+  oc rollout status deployment/strimzi-cluster-operator -n $KAFKA_NAMESPACE
+
+  # Create Kafka cluster YAML
+  cat <<EOF | oc apply -n $KAFKA_NAMESPACE -f -
+  apiVersion: kafka.strimzi.io/v1beta2
+  kind: Kafka
+  metadata:
+    name: $KAFKA_CLUSTER_NAME
+  spec:
+    kafka:
+      version: 3.8.0
+      replicas: 3
+      listeners:
+        - name: plain
+          port: 9092
+          type: internal
+          tls: false
+        - name: tls
+          port: 9093
+          type: internal
+          tls: true
+        - name: external
+          port: 9094
+          type: route
+          tls: true
+      config:
+        offsets.topic.replication.factor: 3
+        transaction.state.log.replication.factor: 3
+        log.message.format.version: "3.4"
+      storage:
+        type: ephemeral
+    zookeeper:
+      replicas: 3
+      storage:
+        type: ephemeral
+    entityOperator:
+      topicOperator: {}
+      userOperator: {}
+EOF
+
+  # Wait for Kafka to be ready
+  echo "Waiting for Kafka cluster to be ready..."
+  oc wait kafka/$KAFKA_CLUSTER_NAME --for=condition=Ready --timeout=300s -n $KAFKA_NAMESPACE
+
+# Create Kafka topics
+echo "Creating Kafka topics..."
+cat <<EOF | oc apply -n $KAFKA_NAMESPACE -f -
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: recommendations-topic
+  labels:
+    strimzi.io/cluster: $KAFKA_CLUSTER_NAME
+spec:
+  partitions: 3
+  replicas: 3
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: error-topic
+  labels:
+    strimzi.io/cluster: $KAFKA_CLUSTER_NAME
+spec:
+  partitions: 3
+  replicas: 3
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: summary-topic
+  labels:
+    strimzi.io/cluster: $KAFKA_CLUSTER_NAME
+spec:
+  partitions: 3
+  replicas: 3
+EOF
+
+  # Get Kafka bootstrap server URL
+  BOOTSTRAP_SERVER="$KAFKA_CLUSTER_NAME-kafka-bootstrap.$KAFKA_NAMESPACE.svc.cluster.local:9092"
+
+  echo "✅ Kafka Bootstrap Server: $BOOTSTRAP_SERVER"
+}
+
 # Check if the cluster_type is one of icp or openshift
 function check_cluster_type() {
 	case "${CLUSTER_TYPE}" in openshift) ;;
@@ -99,28 +203,6 @@ function check_cluster_type() {
 	esac
 }
 
-# Function to make API call and check response status
-function api_call() {
-    local url="$1"
-    local data="$2"
-
-    # Make API call and capture the HTTP response code
-    response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$url" \
-        -H "Content-Type: application/json" \
-        -d "$data")
-
-    # Check if response code is 200 or 201
-    if [[ "$response_code" == "200" || "$response_code" == "201" ]]; then
-        echo "✅ API call succeeded with response code: $response_code"
-    elif [ "$response_code" == "409" ]; then
-        echo "❌ API call failed with response code: $response_code"
-        echo "Continuing to the next step..."
-    else
-        echo "❌ API call failed with response code: $response_code"
-        exit 1
-    fi
-}
-
 function kafka_demo_setup() {
 	# Start all the installs
 	start_time=$(get_date)
@@ -130,30 +212,31 @@ function kafka_demo_setup() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
-	echo "Starting the bulk service..."
-
-  # Switch to bulk_demo directory
-  pushd ./../bulk_demo > /dev/null
-  # Run the bulk service
-  ./bulk_service_demo.sh -c "${CLUSTER_TYPE}" -i "${KRUIZE_DOCKER_IMAGE}"
-
-  # Return back to the Kafka_demo directory
-  popd > /dev/null
+  if [ ${kafka_server_setup} -eq 1 ]; then
+    echo -n "🔄 Setting up Kafka server on $CLUSTER_TYPE ..."
+    setup_kafka_server >> "${LOG_FILE}" 2>&1
+    echo "✅ Kafka server setup completed"
+  else
+    echo "Skipping Kafka Server installation..."
+  fi
   echo
-  echo "✅ Bulk Started Successfully!"
+  if [ ${bulk_demo} -eq 1 ]; then
+    echo "Starting the bulk service..."
 
-	echo -n "🔄 Exposing kruize service..."
-	if ! oc expose svc/kruize 2>&1 | grep -q "AlreadyExists"; then
-    echo "✅ Route created successfully!"
-	else
-			echo "⚠️ Route already exists, continuing..."
-	fi
-	########################
-	# Get the route
-	########################
-	KRUIZE_ROUTE=$(oc get route | awk '$1 == "kruize" {print $2}')
-	echo "KRUIZE_ROUTE = ${KRUIZE_ROUTE}" >> "${LOG_FILE}" 2>&1
-	echo
+    # Switch to bulk_demo directory
+    pushd ./../bulk_demo > /dev/null
+    # Run the bulk service
+    ./bulk_service_demo.sh -c "${CLUSTER_TYPE}" -i "${KRUIZE_DOCKER_IMAGE}" -k
+
+    # Return back to the Kafka_demo directory
+    popd > /dev/null
+    echo
+    echo "✅ Bulk Started Successfully!"
+  else
+    echo "Skipping bulk service initiation..."
+    echo
+  fi
+
 	##########################################################################
 	# Start consuming the recommendations using recommendations-topic
 	##########################################################################
@@ -168,7 +251,7 @@ function kafka_demo_setup() {
   # save it as a java keystore file for the app to consume
   keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt >> "${LOG_FILE}" 2>&1
   # Grab Kafka Endpoint
-  KAFKA_ENDPOINT=$(oc -n ${KAFKA_NAMESPACE} get kafka kruize-kafka-cluster -o=jsonpath='{.status.listeners[?(@.name=="route")].bootstrapServers}')
+  KAFKA_ENDPOINT=$(oc -n ${KAFKA_NAMESPACE} get kafka kruize-kafka-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}')
 
   # Consume messages from the recommendations-topic
   if command -v jq >/dev/null 2>&1; then
@@ -200,9 +283,16 @@ function kafka_demo_setup_terminate() {
 	echo | tee -a "${LOG_FILE}"
 	echo "Clean up in progress..."
 
+	echo -n "🔄 Removing Bulk Service..."
+	# Switch to bulk_demo directory
+  pushd ./../bulk_demo > /dev/null
+  # Run the bulk service
+  ./bulk_service_demo.sh -c "${CLUSTER_TYPE}" -t
+  popd > /dev/null
+	echo "✅ Done!"
 	echo -n "🔄 Removing Kafka..."
 	rm -rf ${KAFKA_TGZ} ${KAFKA_DIR}
-	rm -rf ca.crt truststore.jks
+	rm -rf $CERT_FILE truststore.jks
 	echo "✅ Done!"
 
 	if [ -d autotune ]; then
@@ -237,7 +327,7 @@ function clone_repo() {
 
 
 # Parse command-line options
-while getopts "stc:i:u:d:r:n" opt; do
+while getopts "stbkc:i:u:d:r:n:a" opt; do
 	case "${opt}" in
 	s)
 		start_demo=1
@@ -253,7 +343,16 @@ while getopts "stc:i:u:d:r:n" opt; do
 		KRUIZE_DOCKER_IMAGE="${OPTARG}"
 		;;
 	n)
-    NAMESPACE="${OPTARG}"
+    KAFKA_NAMESPACE="${OPTARG}"
+		;;
+  a)
+    APP_NAMESPACE="${OPTARG}"
+		;;
+  b)
+    bulk_demo=1
+		;;
+  k)
+    kafka_server_setup=1
 		;;
 	*)
 		usage
@@ -266,8 +365,11 @@ if [ ${start_demo} -eq 1 ]; then
 	echo
 	echo "Starting the demo using: "
 	echo "Kruize Image: $KRUIZE_DOCKER_IMAGE"
-	echo "Namespace: $NAMESPACE"
+	echo "Kruize Namespace: $APP_NAMESPACE"
+	echo "Kafka Namespace: $KAFKA_NAMESPACE"
 	echo "Cluster: $CLUSTER_TYPE"
+	echo "Bulk Demo: $bulk_demo"
+	echo "Kafka Server Setup: $kafka_server_setup"
 	kafka_demo_setup
 else
 	echo

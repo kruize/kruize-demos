@@ -11,20 +11,16 @@ Refer the documentation of the [Kafka Design](https://github.com/kruize/autotune
 
 ## Demo workflow
 
-- Start the bulk service
-- Once completed, get the route of the kruize pod
+- Install the Kafka server
+- Get the bootstrap server URL and the required certificate details
+- Update manifest files with the Kafka specific changes
+- Initiate the bulk service and wait for it to finish
 - Setup kafka consumer client locally
-- Get the TLS certificate from the server running the Kafka cluster
-- Get the Kafka endpoint from the cluster
-- Run the local kafka consumer using the certificate file generated to start Consuming the message from the recommendations-topic
+- Run the local kafka consumer using the bootstrap server and the certificate file generated to start Consuming the message from the recommendations-topic
 
 To begin exploring the Kafka flow, follow these steps:
 
 ### Run the Demo
-
-#### Pre-requisites
-
-Kafka cluster needs to be running in an openshift cluster with a `route` listener added in it
 
 ##### Clone the demo repository:
 ```sh
@@ -36,17 +32,24 @@ cd kruize-demos/monitoring/local_monitoring/kafka_demo
 ```
 ##### Execute the demo script in openshift as:
 ```sh
-./kafka_demo.sh
+./kafka_demo.sh -b -k
 ```
 
 ```
- "Usage: ./kafka_demo.sh [-s|-t] [-i kruize-image] [-u datasource-url] [-d datasource-name]"
-	 "s = start (default), t = terminate"
-	 "i = Kruize image (default: $KRUIZE_IMAGE)"
-	 "c = Cluster type (default: openshift)"
-	exit 1
-Note: All the params are optional and defaults are set in the script
+ "Usage: $0 [-s|-t] [-b] [-k] [-i kruize-image] [-c cluster-name] [-n kafka-namespace] [-a kruize-namespace]"
+	"s = start (default), t = terminate"
+	"b = start bulk_demo"
+	"k = start kafka_server_setup"
+	"i = Kruize image (default: $KRUIZE_DOCKER_IMAGE)"
+	"a = Kruize Namespace  (default: openshift-tuning)"
+	"n = Kafka Namespace  (default: kafka)"
+	"c = Cluster type (default: openshift)"
+
+Note: All the params are optional and defaults are set in the script.
+
+Note: When starting for the first time, pass the params `-b` and `k` to start the bulk service and the Kafka server setup respectively
+
 Currently only openshift cluster is supported!
 ```
 Example:
-`./kafka_demo.sh -i quay.io/khansaad/autotune_operator:kafka `
+`./kafka_demo.sh -b -k -i quay.io/kruize/autotune_operator:0.5 `

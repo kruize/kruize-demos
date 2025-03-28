@@ -424,6 +424,10 @@ function kruize_local_demo_setup() {
 
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
+	if [ "${kafka}" -eq 1 ]; then
+		kruize_kafka_patch >> "${LOG_FILE}" 2>&1
+	fi
+
 	if [ ${demo} == "bulk" ]; then
 	  kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
 	fi
