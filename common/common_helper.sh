@@ -710,10 +710,14 @@ function kruize_kafka_patch() {
 			sed -i 's/"isKafkaEnabled" : "false"/"isKafkaEnabled" : "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 			# Replace the existing KAFKA_BOOTSTRAP_SERVERS value
       sed -i "s|value: \"kruize-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092\"|value: \"$BOOTSTRAP_SERVER\"|g" ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+      # Replace the existing KAFKA_INCLUDE_FILTERS value
+      sed -i '/name: KAFKA_RESPONSE_FILTER_INCLUDE/{n;s#value: "summary"#value: "experiments|status|apis|recommendations|response|status_history"#}' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"isKafkaEnabled" : "false"/"isKafkaEnabled" : "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 			# Replace the existing KAFKA_BOOTSTRAP_SERVERS value
       sed -i "s|value: \"kruize-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092\"|value: \"$BOOTSTRAP_SERVER\"|g" ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+      # Replace the existing KAFKA_INCLUDE_FILTERS value
+      sed -i '/name: KAFKA_RESPONSE_FILTER_INCLUDE/{n;s#value: "summary"#value: "experiments|status|apis|recommendations|response|status_history"#}' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 		fi
 	popd >/dev/null
 	echo "Done"
@@ -809,9 +813,11 @@ function show_urls() {
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
 	echo "#             Access Kruize           #" >> "${LOG_FILE}" 2>&1
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
-	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
-	echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
-	echo "ℹ️  For kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
+	if [ "${kafka}" -eq 0 ]; then
+    echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
+    echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
+    echo "ℹ️  For kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
+	fi
 	echo | tee -a "${LOG_FILE}"
 	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
 	echo "          Access Kruize Interface          " >> "${LOG_FILE}" 2>&1

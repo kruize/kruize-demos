@@ -521,10 +521,12 @@ function kruize_local_demo_setup() {
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
 	recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
-	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
-	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
-	echo
+	if [ "${kafka}" -eq 0 ]; then
+    echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
+    echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
+    echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
+    echo
+	fi
 
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus

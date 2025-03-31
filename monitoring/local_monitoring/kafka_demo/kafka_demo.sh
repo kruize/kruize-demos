@@ -27,7 +27,6 @@ KAFKA_TGZ="kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz"
 KAFKA_DIR="${current_dir}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}"
 KAFKA_URL="https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/${KAFKA_TGZ}"
 KAFKA_CLUSTER_NAME="kruize-kafka-cluster"
-export BOOTSTRAP_SERVER="$KAFKA_CLUSTER_NAME-kafka-bootstrap.$KAFKA_NAMESPACE.svc.cluster.local:9092"
 
 
 APP_NAMESPACE="openshift-tuning"
@@ -98,6 +97,7 @@ function setup_kafka_local() {
 }
 
 function setup_kafka_server() {
+  {
   # Create namespace for Kafka if it doesn't exist
   echo "Creating namespace for Kafka..."
   oc create namespace $KAFKA_NAMESPACE || echo "Namespace $KAFKA_NAMESPACE already exists."
@@ -190,6 +190,8 @@ EOF
   BOOTSTRAP_SERVER="$KAFKA_CLUSTER_NAME-kafka-bootstrap.$KAFKA_NAMESPACE.svc.cluster.local:9092"
 
   echo "✅ Kafka Bootstrap Server: $BOOTSTRAP_SERVER"
+  export BOOTSTRAP_SERVER
+  } >> "${LOG_FILE}" 2>&1
 }
 
 # Check if the cluster_type is one of icp or openshift
@@ -203,47 +205,7 @@ function check_cluster_type() {
 	esac
 }
 
-function kafka_demo_setup() {
-	# Start all the installs
-	start_time=$(get_date)
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "# Kafka Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo
-
-  if [ ${kafka_server_setup} -eq 1 ]; then
-    echo -n "🔄 Setting up Kafka server on $CLUSTER_TYPE ..."
-    setup_kafka_server >> "${LOG_FILE}" 2>&1
-    echo "✅ Kafka server setup completed"
-  else
-    echo "Skipping Kafka Server installation..."
-  fi
-  echo
-  if [ ${bulk_demo} -eq 1 ]; then
-    echo "Starting the bulk service..."
-
-    # Switch to bulk_demo directory
-    pushd ./../bulk_demo > /dev/null
-    # Run the bulk service
-    ./bulk_service_demo.sh -c "${CLUSTER_TYPE}" -i "${KRUIZE_DOCKER_IMAGE}" -k
-
-    # Return back to the Kafka_demo directory
-    popd > /dev/null
-    echo
-    echo "✅ Bulk Started Successfully!"
-  else
-    echo "Skipping bulk service initiation..."
-    echo
-  fi
-
-	##########################################################################
-	# Start consuming the recommendations using recommendations-topic
-	##########################################################################
-	echo -n "🔄 Setting up Kafka client locally to consume recommendations..."
-  setup_kafka_local >> "${LOG_FILE}" 2>&1
-  echo "✅ Kafka client setup completed"
-
+function consume_messages() {
   echo -n "🔄 Consuming recommendations from the recommendations-topic..."
   echo
   # get the certificate from the cluster
@@ -252,6 +214,7 @@ function kafka_demo_setup() {
   keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt >> "${LOG_FILE}" 2>&1
   # Grab Kafka Endpoint
   KAFKA_ENDPOINT=$(oc -n ${KAFKA_NAMESPACE} get kafka kruize-kafka-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}')
+  echo "Kafka endpoint: $KAFKA_ENDPOINT"
 
   # Consume messages from the recommendations-topic
   if command -v jq >/dev/null 2>&1; then
@@ -267,9 +230,77 @@ function kafka_demo_setup() {
     --max-messages 1 || { echo "Error: Kafka consumer command failed!"; exit 1; }
   fi
   echo -n "✅ Successfully consumed one recommendation from the recommendations topic"
+}
+
+function kafka_demo_setup() {
+	# Start all the installs
+	start_time=$(get_date)
+	# Clear the log file at the start of the script
+  > "${LOG_FILE}"
+
+	echo | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo "# Kafka Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo
+
+  rm -rf ca.crt truststore.jks >> "${LOG_FILE}" 2>&1
+
+  if [ ${kafka_server_setup} -eq 1 ]; then
+    echo -n "🔄 Setting up Kafka server on $CLUSTER_TYPE ! Please wait..."
+    kafka_start_time=$(get_date)
+    setup_kafka_server &
+    install_pid=$!
+    while kill -0 $install_pid 2>/dev/null;
+    do
+      echo -n "."
+      sleep 5
+    done
+    wait $install_pid
+    status=$?
+    if [ ${status} -ne 0 ]; then
+      exit 1
+    fi
+    kafka_end_time=$(get_date)
+
+    echo "✅ Kafka server setup completed"
+  else
+    echo "Skipping Kafka Server installation..."
+  fi
+  echo
+  export  BOOTSTRAP_SERVER="$KAFKA_CLUSTER_NAME-kafka-bootstrap.$KAFKA_NAMESPACE.svc.cluster.local:9092"
+
+  if [ ${bulk_demo} -eq 1 ]; then
+    echo "Starting the bulk service..."
+
+    # Switch to bulk_demo directory
+    pushd ./../bulk_demo > /dev/null
+    # Run the bulk service
+    ./bulk_service_demo.sh -c "${CLUSTER_TYPE}" -i "${KRUIZE_DOCKER_IMAGE}" -k
+
+    # Return back to the Kafka_demo directory
+    popd > /dev/null
+    echo
+  else
+    echo "Skipping bulk service initiation..."
+    echo
+  fi
+
+	##########################################################################
+	# Start consuming the recommendations using recommendations-topic
+	##########################################################################
+	echo -n "🔄 Setting up Kafka client locally to consume recommendations..."
+  setup_kafka_local >> "${LOG_FILE}" 2>&1
+  echo "✅ Kafka client setup completed"
+  # consume kafka message
+  consume_messages
 	echo
 	end_time=$(get_date)
+	if [ ${kafka_server_setup} -eq 1 ]; then
+	  kafka_elapsed_time=$(time_diff "${kafka_start_time}" "${kafka_end_time}")
+	fi
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
+	echo "🕒 Success! Kafka Server setup took ${kafka_elapsed_time} seconds"
 	echo "🕒 Success! Kafka demo setup took ${elapsed_time} seconds"
 	echo
 }
@@ -371,10 +402,12 @@ if [ ${start_demo} -eq 1 ]; then
 	echo "Bulk Demo: $bulk_demo"
 	echo "Kafka Server Setup: $kafka_server_setup"
 	kafka_demo_setup
+	echo "For detailed logs, look in kafka-demo.log"
 else
 	echo
 	echo "🔄 Terminating the demo setup..."
 	kafka_demo_setup_terminate
+  echo "For detailed logs, look in kafka-demo.log"
 fi
 
 # If the user passes '-h' or '--help', show usage and exit

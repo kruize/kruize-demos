@@ -122,13 +122,17 @@ export demo="bulk"
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
 	kruize_local_demo_setup
-	echo "For detailed logs, look in kruize-bulk-demo.log"
+	if [ "${kafka}" -eq 0 ]; then
+	  echo "For detailed logs, look in kruize-bulk-demo.log"
+	fi
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update
 else
 	echo >> "${LOG_FILE}" 2>&1
 	kruize_local_demo_terminate
-	echo "For detailed logs, look in kruize-bulk-demo.log"
+  if [ "${kafka}" -eq 0 ]; then
+	  echo "For detailed logs, look in kruize-bulk-demo.log"
+	fi
 	echo
 fi
