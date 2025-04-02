@@ -7,7 +7,7 @@ Kafka replaces the existing API workflow by adding the consumer mechanism which 
 User will start with a Bulk API request which returns a `job_id` as a response to track the job status. After that, internally Bulk API produces recommendations, and the same is being then sent via a Kafka Producer.
 User can then consume it with the help of a consumer client as and when required. 
 
-Refer the documentation of the [Kafka Design](https://github.com/kruize/autotune/blob/87b544c7e07deb22f683d6c124a0188f7b06d836/design/KafkaDesign.md) for details.(To be updated once the PR is merged)
+Refer the documentation of the [Kafka Design](https://github.com/kruize/autotune/blob/master/design/KafkaDesign.md) for details.
 
 ## Demo workflow
 
@@ -53,3 +53,41 @@ Currently only openshift cluster is supported!
 ```
 Example:
 `./kafka_demo.sh -b -k -i quay.io/kruize/autotune_operator:0.5 `
+
+### Usage Commands
+
+#### 1. Consume a **single message** from `recommendations-topic`
+This command fetches only **one** message from the `recommendations-topic`.
+```bash
+./$KAFKA_DIR/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
+    --from-beginning --consumer-property security.protocol=SSL \
+    --consumer-property ssl.truststore.password=your-password \
+    --consumer-property ssl.truststore.location=truststore.jks \
+    --max-messages 1 
+```
+
+#### 2. Consume all the messages from recommendations-topic :
+Fetch all available messages from the `recommendations-topic`.
+```bash 
+./$KAFKA_DIR/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
+    --from-beginning --consumer-property security.protocol=SSL \
+    --consumer-property ssl.truststore.password=password \
+    --consumer-property ssl.truststore.location=truststore.jks
+```
+#### 3. Consume messages from error-topic :
+Fetch all available messages from the `error-topic`.
+```bash 
+./$KAFKA_DIR/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic error-topic \
+    --from-beginning --consumer-property security.protocol=SSL \
+    --consumer-property ssl.truststore.password=password \
+    --consumer-property ssl.truststore.location=truststore.jks
+```
+
+#### 4. Consume message from summary-topic :
+Fetch messages from the `summary-topic`.
+```bash
+./$KAFKA_DIR/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic summary-topic \
+    --from-beginning --consumer-property security.protocol=SSL \
+    --consumer-property ssl.truststore.password=password \
+    --consumer-property ssl.truststore.location=truststore.jks
+```

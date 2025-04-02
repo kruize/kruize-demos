@@ -709,13 +709,13 @@ function kruize_kafka_patch() {
 		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"isKafkaEnabled" : "false"/"isKafkaEnabled" : "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
 			# Replace the existing KAFKA_BOOTSTRAP_SERVERS value
-      sed -i "s|value: \"kruize-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092\"|value: \"$BOOTSTRAP_SERVER\"|g" ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+      sed -i "/name: KAFKA_BOOTSTRAP_SERVERS/{n;s|value: \".*\"|value: \"$BOOTSTRAP_SERVER\"|}" ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
       # Replace the existing KAFKA_INCLUDE_FILTERS value
       sed -i '/name: KAFKA_RESPONSE_FILTER_INCLUDE/{n;s#value: "summary"#value: "experiments|status|apis|recommendations|response|status_history"#}' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 			sed -i 's/"isKafkaEnabled" : "false"/"isKafkaEnabled" : "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 			# Replace the existing KAFKA_BOOTSTRAP_SERVERS value
-      sed -i "s|value: \"kruize-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092\"|value: \"$BOOTSTRAP_SERVER\"|g" ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+      sed -i "/name: KAFKA_BOOTSTRAP_SERVERS/{n;s|value: \".*\"|value: \"$BOOTSTRAP_SERVER\"|}" ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
       # Replace the existing KAFKA_INCLUDE_FILTERS value
       sed -i '/name: KAFKA_RESPONSE_FILTER_INCLUDE/{n;s#value: "summary"#value: "experiments|status|apis|recommendations|response|status_history"#}' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
 		fi

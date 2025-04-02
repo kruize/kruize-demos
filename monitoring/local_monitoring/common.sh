@@ -354,11 +354,13 @@ function kruize_local_demo_setup() {
 	bench=$1
 	# Start all the installs
 	start_time=$(get_date)
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "# Kruize Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
+	{
+	echo "#######################################"
+	echo "# Kruize Demo Setup on ${CLUSTER_TYPE} "
+	echo "#######################################"
+	echo
+	} >> "${LOG_FILE}"
 
 	echo -n "🔄 Pulling required repositories... "
 	{

@@ -205,31 +205,91 @@ function check_cluster_type() {
 	esac
 }
 
-function consume_messages() {
-  echo -n "🔄 Consuming recommendations from the recommendations-topic..."
-  echo
-  # get the certificate from the cluster
-  oc get secret -n ${KAFKA_NAMESPACE} kruize-kafka-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
-  # save it as a java keystore file for the app to consume
-  keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt >> "${LOG_FILE}" 2>&1
-  # Grab Kafka Endpoint
-  KAFKA_ENDPOINT=$(oc -n ${KAFKA_NAMESPACE} get kafka kruize-kafka-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}')
-  echo "Kafka endpoint: $KAFKA_ENDPOINT"
+function kafka_server_cleanup() {
+	{
+    echo "Starting Kafka server cleanup process..."
+    # Step 1: Delete Kafka topics
+    echo "Deleting Kafka topics..."
+    oc delete kafkatopic recommendations-topic -n $KAFKA_NAMESPACE --ignore-not-found=true
+    oc delete kafkatopic error-topic -n $KAFKA_NAMESPACE --ignore-not-found=true
+    oc delete kafkatopic summary-topic -n $KAFKA_NAMESPACE --ignore-not-found=true
 
-  # Consume messages from the recommendations-topic
-  if command -v jq >/dev/null 2>&1; then
-    ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
-    --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
-    --consumer-property ssl.truststore.location=truststore.jks \
-    --max-messages 1 | jq . || { echo "Error: Kafka consumer command failed!"; exit 1; }
-  else
-    echo "Warning: jq not found! Printing raw JSON."
-    ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
-    --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
-    --consumer-property ssl.truststore.location=truststore.jks \
-    --max-messages 1 || { echo "Error: Kafka consumer command failed!"; exit 1; }
-  fi
-  echo -n "✅ Successfully consumed one recommendation from the recommendations topic"
+    # Step 2: Delete Kafka cluster
+    echo "Deleting Kafka cluster..."
+    oc delete kafka $KAFKA_CLUSTER_NAME -n $KAFKA_NAMESPACE --ignore-not-found=true
+
+    # Step 3: Delete Strimzi Operator
+    echo "Deleting Strimzi Operator..."
+    oc delete -f https://strimzi.io/install/latest?namespace=$KAFKA_NAMESPACE -n $KAFKA_NAMESPACE --ignore-not-found=true
+
+    # Step 4: Wait for Kafka and Strimzi operator deletion
+    echo "Waiting for Kafka and Strimzi Operator to be fully deleted..."
+    sleep 30
+
+    # Step 5: Delete Namespace
+    echo "Deleting namespace $KAFKA_NAMESPACE..."
+    oc delete namespace $KAFKA_NAMESPACE --ignore-not-found=true
+
+    echo "Cleanup completed successfully!"
+  } >> "${LOG_FILE}" 2>&1
+}
+
+function consume_messages() {
+  {
+    # get the certificate from the cluster
+    oc get secret -n ${KAFKA_NAMESPACE} kruize-kafka-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
+    # save it as a java keystore file for the app to consume
+    keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt >> "${LOG_FILE}" 2>&1
+    # Grab Kafka Endpoint
+    KAFKA_ENDPOINT=$(oc -n ${KAFKA_NAMESPACE} get kafka kruize-kafka-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}')
+    echo "Kafka endpoint: $KAFKA_ENDPOINT"
+
+    # Consume messages from the recommendations-topic
+    if command -v jq >/dev/null 2>&1; then
+      ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
+      --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
+      --consumer-property ssl.truststore.location=truststore.jks \
+      --max-messages 1 | jq . || { echo "Error: Kafka consumer command failed!"; exit 1; }
+    else
+      echo "Warning: jq not found! Printing raw JSON."
+      ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
+      --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
+      --consumer-property ssl.truststore.location=truststore.jks \
+      --max-messages 1 || { echo "Error: Kafka consumer command failed!"; exit 1; }
+    fi
+    echo -n "✅ Successfully consumed one recommendation from the recommendations topic"
+  } >> "${LOG_FILE}" 2>&1
+}
+
+function show_urls() {
+
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo "          CLI Commands for Kafka          " >> "${LOG_FILE}" 2>&1
+	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
+	echo "1. Consume Single message from recommendations-topic :" >> "${LOG_FILE}" 2>&1
+	echo " ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
+      --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
+      --consumer-property ssl.truststore.location=truststore.jks \
+      --max-messages 1 | jq ." >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "2. Consume all the messages from recommendations-topic :" >> "${LOG_FILE}" 2>&1
+	echo " ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic recommendations-topic \
+      --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
+      --consumer-property ssl.truststore.location=truststore.jks | jq ." >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "3. Consume messages from error-topic :" >> "${LOG_FILE}" 2>&1
+	echo " ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic error-topic \
+      --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
+      --consumer-property ssl.truststore.location=truststore.jks | jq ." >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "4. Consume message from summary-topic :" >> "${LOG_FILE}" 2>&1
+	echo " ./${KAFKA_DIR}/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_ENDPOINT --topic summary-topic \
+      --from-beginning --consumer-property security.protocol=SSL --consumer-property ssl.truststore.password=password \
+      --consumer-property ssl.truststore.location=truststore.jks | jq ." >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
+	echo "For kruize local documentation, refer https://github.com/kruize/autotune/blob/master/design/KruizeLocalAPI.md"  >> "${LOG_FILE}" 2>&1
+	echo "For bulk documentation, refer https://github.com/kruize/autotune/blob/master/design/BulkAPI.md"  >> "${LOG_FILE}" 2>&1
+	echo "For Kafka documentation, refer https://github.com/kruize/autotune/blob/master/design/KafkaDesign.md"  >> "${LOG_FILE}" 2>&1
 }
 
 function kafka_demo_setup() {
@@ -238,16 +298,18 @@ function kafka_demo_setup() {
 	# Clear the log file at the start of the script
   > "${LOG_FILE}"
 
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "# Kafka Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo
+	{
+    echo
+    echo "#######################################"
+    echo "# Kafka Demo Setup on ${CLUSTER_TYPE} "
+    echo "#######################################"
+    echo
+  } >> "${LOG_FILE}"
 
   rm -rf ca.crt truststore.jks >> "${LOG_FILE}" 2>&1
 
   if [ ${kafka_server_setup} -eq 1 ]; then
-    echo -n "🔄 Setting up Kafka server on $CLUSTER_TYPE ! Please wait..."
+    echo -n "🔄 Setting up Kafka server on $CLUSTER_TYPE. Please wait..."
     kafka_start_time=$(get_date)
     setup_kafka_server &
     install_pid=$!
@@ -265,13 +327,13 @@ function kafka_demo_setup() {
 
     echo "✅ Kafka server setup completed"
   else
-    echo "Skipping Kafka Server installation..."
+    echo "⏭️ Skipping Kafka Server installation..."
   fi
   echo
   export  BOOTSTRAP_SERVER="$KAFKA_CLUSTER_NAME-kafka-bootstrap.$KAFKA_NAMESPACE.svc.cluster.local:9092"
 
   if [ ${bulk_demo} -eq 1 ]; then
-    echo "Starting the bulk service..."
+    echo "🔄 Starting the bulk service..."
 
     # Switch to bulk_demo directory
     pushd ./../bulk_demo > /dev/null
@@ -282,25 +344,45 @@ function kafka_demo_setup() {
     popd > /dev/null
     echo
   else
-    echo "Skipping bulk service initiation..."
+    echo "⏭️ Skipping bulk service initiation..."
     echo
   fi
 
 	##########################################################################
 	# Start consuming the recommendations using recommendations-topic
 	##########################################################################
-	echo -n "🔄 Setting up Kafka client locally to consume recommendations..."
+	echo -n "⏳ Setting up Kafka client locally to consume recommendations..."
   setup_kafka_local >> "${LOG_FILE}" 2>&1
   echo "✅ Kafka client setup completed"
+
   # consume kafka message
-  consume_messages
+  echo -n "👀 Consuming recommendations from the recommendations-topic..."
+  kafka_consumer_start_time=$(get_date)
+  consume_messages &
+  install_pid=$!
+  while kill -0 $install_pid 2>/dev/null;
+  do
+    echo -n "."
+    sleep 5
+  done
+  wait $install_pid
+  status=$?
+  if [ ${status} -ne 0 ]; then
+    exit 1
+  fi
+  kafka_consumer_end_time=$(get_date)
+
+  echo "✅ Done"
 	echo
+  kafka_consumer_elapsed_time=$(time_diff "${kafka_consumer_start_time}" "${kafka_consumer_end_time}")
+  echo "🕒 Success! Kafka Consumer took ${kafka_consumer_elapsed_time} seconds"
+
 	end_time=$(get_date)
 	if [ ${kafka_server_setup} -eq 1 ]; then
 	  kafka_elapsed_time=$(time_diff "${kafka_start_time}" "${kafka_end_time}")
+	  echo "🕒 Success! Kafka Server setup took ${kafka_elapsed_time} seconds"
 	fi
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "🕒 Success! Kafka Server setup took ${kafka_elapsed_time} seconds"
 	echo "🕒 Success! Kafka demo setup took ${elapsed_time} seconds"
 	echo
 }
@@ -324,6 +406,7 @@ function kafka_demo_setup_terminate() {
 	echo -n "🔄 Removing Kafka..."
 	rm -rf ${KAFKA_TGZ} ${KAFKA_DIR}
 	rm -rf $CERT_FILE truststore.jks
+	kafka_server_cleanup
 	echo "✅ Done!"
 
 	if [ -d autotune ]; then
@@ -393,16 +476,19 @@ done
 
 # Perform action based on selection
 if [ ${start_demo} -eq 1 ]; then
-	echo
-	echo "Starting the demo using: "
-	echo "Kruize Image: $KRUIZE_DOCKER_IMAGE"
-	echo "Kruize Namespace: $APP_NAMESPACE"
-	echo "Kafka Namespace: $KAFKA_NAMESPACE"
-	echo "Cluster: $CLUSTER_TYPE"
-	echo "Bulk Demo: $bulk_demo"
-	echo "Kafka Server Setup: $kafka_server_setup"
+	{
+    echo
+    echo "Starting the demo using: "
+    echo "Kruize Image: $KRUIZE_DOCKER_IMAGE"
+    echo "Kruize Namespace: $APP_NAMESPACE"
+    echo "Kafka Namespace: $KAFKA_NAMESPACE"
+    echo "Cluster: $CLUSTER_TYPE"
+    echo "Bulk Demo: $bulk_demo"
+    echo "Kafka Server Setup: $kafka_server_setup"
+	} >> "${LOG_FILE}"
 	kafka_demo_setup
 	echo "For detailed logs, look in kafka-demo.log"
+	show_urls
 else
 	echo
 	echo "🔄 Terminating the demo setup..."
