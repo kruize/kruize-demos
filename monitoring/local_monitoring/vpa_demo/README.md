@@ -32,7 +32,8 @@ cd kruize-demos/monitoring/local_monitoring/vpa_demo
 ```
 
 ```
-Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]
+Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-a create-all-experiments]
+a = create all experiments simulating error conditions demo
 c = supports minikube, kind and openshift cluster-type
 i = kruize image.
 p = expose prometheus port
