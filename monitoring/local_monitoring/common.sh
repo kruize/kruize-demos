@@ -350,6 +350,22 @@ function update_vpa_roles() {
 	fi
 }
 
+function apply_limitrange_and_namespace_quotas() {
+    echo "🔄 Applying LimitRange and Namespace Quotas..."
+    
+    kubectl apply -f "${current_dir}/manifests/minimal_limit_range.yaml" -n demo-limitrange-violation
+    if [ $? -ne 0 ]; then
+        echo "❌ Error applying LimitRange manifest."
+    fi
+    
+    kubectl apply -f "${current_dir}/manifests/minimal_ns_quota.yaml" -n demo-quota-violation
+    if [ $? -ne 0 ]; then
+        echo "❌ Error applying Namespace Quota manifest."
+    fi
+    
+    echo "✅ LimitRange and Namespace Quotas applied!"
+}
+
 function kruize_local_demo_setup() {
 	bench=$1
 	# Start all the installs
@@ -409,6 +425,17 @@ function kruize_local_demo_setup() {
 			benchmarks_install ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
 			apply_benchmark_load ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
+
+			if [[ -n "${vpa_install_required}" && "${vpa_install_required}" -eq 1 && -n "${CREATE_ALL_EXPERIMENTS}" && "${CREATE_ALL_EXPERIMENTS}" -eq 1 ]]; then
+            	echo -n "🔄 Creating additional namespaces and installing benchmarks..."
+            	create_namespace "demo-quota-violation" >> "${LOG_FILE}" 2>&1
+           		create_namespace "demo-limitrange-violation" >> "${LOG_FILE}" 2>&1
+            	benchmarks_install "demo-quota-violation" ${bench} >> "${LOG_FILE}" 2>&1
+				apply_benchmark_load "demo-quota-violation" ${bench} >> "${LOG_FILE}" 2>&1
+            	benchmarks_install "demo-limitrange-violation" ${bench} >> "${LOG_FILE}" 2>&1
+				apply_benchmark_load "demo-limitrange-violation" ${bench} >> "${LOG_FILE}" 2>&1
+            echo "✅ Completed!"
+        	fi
 		fi
 		echo "" >> "${LOG_FILE}" 2>&1
 	fi
@@ -461,6 +488,10 @@ function kruize_local_demo_setup() {
 		echo -n "🔄 Updating cluser-roles for VPA..."
 		update_vpa_roles >> "${LOG_FILE}" 2>&1
 		echo "✅ Done!"
+
+		if [ "${CREATE_ALL_EXPERIMENTS:-}" == "1" ]; then
+            apply_limitrange_and_namespace_quotas
+        fi
 	}
 	fi
 
