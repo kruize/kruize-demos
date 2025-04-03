@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: minimal-quota
+  namespace: "demo-quota-violation"
+spec:
+  hard:
+    pods: "20"
+    requests.cpu: "10m"
+    requests.memory: "0.2Mi"
+    limits.cpu: "10m"
+    limits.memory: "0.2Mi"
