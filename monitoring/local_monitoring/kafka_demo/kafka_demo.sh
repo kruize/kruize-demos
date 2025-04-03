@@ -226,10 +226,6 @@ function kafka_server_cleanup() {
     echo "Waiting for Kafka and Strimzi Operator to be fully deleted..."
     sleep 30
 
-    # Step 5: Delete Namespace
-    echo "Deleting namespace $KAFKA_NAMESPACE..."
-    oc delete namespace $KAFKA_NAMESPACE --ignore-not-found=true
-
     echo "Cleanup completed successfully!"
   } >> "${LOG_FILE}" 2>&1
 }
@@ -242,6 +238,7 @@ function consume_messages() {
     keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt >> "${LOG_FILE}" 2>&1
     # Grab Kafka Endpoint
     KAFKA_ENDPOINT=$(oc -n ${KAFKA_NAMESPACE} get kafka kruize-kafka-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}')
+    echo "$KAFKA_ENDPOINT" > /tmp/kafka_endpoint.txt
     echo "Kafka endpoint: $KAFKA_ENDPOINT"
 
     # Consume messages from the recommendations-topic
@@ -262,6 +259,9 @@ function consume_messages() {
 }
 
 function show_urls() {
+  LOG_FILE=${current_dir}/kafka-demo.log
+  # Read Kafka endpoint from a temporary file (set by consume_messages)
+  KAFKA_ENDPOINT=$(cat /tmp/kafka_endpoint.txt)
 
 	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
 	echo "          CLI Commands for Kafka          " >> "${LOG_FILE}" 2>&1
