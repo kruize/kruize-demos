@@ -68,8 +68,9 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
+export kafka=0
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:n:pstu: gopts
+while getopts bc:d:e:fi:lm:n:pstu:k gopts
 do
 	case "${gopts}" in
 		b)
@@ -112,6 +113,9 @@ do
 			;;
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
+			;;
+	  k)
+			kafka=1
 			;;
 		*)
 			usage
