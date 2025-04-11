@@ -3,7 +3,7 @@
     "experiment_id": "first_responder_eap_jvm_test_1",
     "total_trials": 5,
     "parallel_trials": 1,
-    "objective_function": "1000 * (Throughput **1) / (Avg_Watts **2)",
+    "objective_function": "1000 * (Throughput **1) / (Redfish_Avg_Watts **2)",
     "value_type": "float",
     "hpo_algo_impl": "optuna_tpe",
     "direction": "maximize",
@@ -13,7 +13,7 @@
             "value_type": "float"
         },
         {
-            "name": "Avg_Watts",
+            "name": "Redfish_Avg_Watts",
             "value_type": "float"
         }
     ],
