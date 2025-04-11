@@ -253,7 +253,7 @@
         {
             "name": "StackTraceInThrowable",
             "value_type": "categorical",
-            "choices": ["true", "false"]
+            "choices": ["true", "true"]
         },
         {
             "name": "nettyBufferCheck",
