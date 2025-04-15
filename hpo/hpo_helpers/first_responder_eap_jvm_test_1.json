@@ -111,8 +111,8 @@
         {
             "name": "ConcGCThreads",
             "value_type": "integer",
-            "upper_bound": 8,
-            "lower_bound": 0,
+            "upper_bound": 32,
+            "lower_bound": 1,
             "step": 1
         },
         {
