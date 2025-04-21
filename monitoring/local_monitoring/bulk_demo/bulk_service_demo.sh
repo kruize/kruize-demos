@@ -55,7 +55,11 @@ function usage() {
 
 function kruize_bulk() {
   echo "Running bulk_demo.py..." >> "${LOG_FILE}" 2>&1
-  "${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}"
+  if [ ${kafka} -eq 1 ]; then
+    "${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}" -k
+  else
+    "${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}"
+  fi
   {
   echo
   echo "######################################################"
@@ -72,11 +76,12 @@ export KRUIZE_DOCKER_IMAGE=""
 export prometheus=0
 export env_setup=0
 export start_demo=1
+export kafka=0
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:lprstu: gopts
+while getopts c:i:n:d:klprstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -109,6 +114,9 @@ do
 		d)
 			LOAD_DURATION="${OPTARG}"
 			;;
+	  k)
+			kafka=1
+			;;
 		*)
 			usage
 	esac
@@ -118,13 +126,17 @@ export demo="bulk"
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
 	kruize_local_demo_setup
-	echo "For detailed logs, look in kruize-bulk-demo.log"
-	echo
+	if [ "${kafka}" -eq 0 ]; then
+	  echo "For detailed logs, look in kruize-bulk-demo.log"
+	  echo
+	fi
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update
 else
 	echo >> "${LOG_FILE}" 2>&1
 	kruize_local_demo_terminate
-	echo "For detailed logs, look in kruize-bulk-demo.log"
-	echo
+  if [ "${kafka}" -eq 0 ]; then
+	  echo "For detailed logs, look in kruize-bulk-demo.log"
+	  echo
+	fi
 fi
