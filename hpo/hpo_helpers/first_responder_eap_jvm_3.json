@@ -1,6 +1,6 @@
 {
-    "experiment_name": "first_responder_eap_jvm_test_1",
-    "experiment_id": "first_responder_eap_jvm_test_1",
+    "experiment_name": "first_responder_eap_jvm_3",
+    "experiment_id": "first_responder_eap_jvm_3",
     "total_trials": 100,
     "parallel_trials": 1,
     "objective_function": "1000 * (Throughput **1) / (Rapl_Avg_Watts **2)",
@@ -13,7 +13,7 @@
             "value_type": "float"
         },
         {
-            "name": "Redfish_Avg_Watts",
+            "name": "Rapl_Avg_Watts",
             "value_type": "float"
         }
     ],
