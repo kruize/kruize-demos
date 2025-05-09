@@ -13,10 +13,12 @@ The script defines key environment variables needed for execution:
 - **`SAMPLE_WORKLOAD`** → The YAML file that defines the dummy GPU workload.
 - **API URLs**:
     - **`CREATE_METRICS_PROFILE`** → Endpoint to create a metrics profile in Kruize.
+    - **`CREATE_METADATA_PROFILE`** → Endpoint to create a metadata profile in Kruize.
     - **`CREATE_EXPERIMENT`** → Endpoint to create a tuning experiment in Kruize.
 - **File Paths**:
     - **`INPUT_FOLDER`** → The directory containing input JSON files.
     - **`metrics_profile_path`** → Path to the metrics profile JSON file.
+    - **`metadata_profile_path`** → Path to the metadata profile JSON file.
     - **`experiment_path`** → Path to the experiment JSON file.
 
 Additionally, the script sets up the **Go environment**:
@@ -95,9 +97,9 @@ This allows us to run GPU workloads in Kubernetes without physical GPUs.
 ---
 
 ### **9. Running Kruize for Resource Optimization**
-- The script reads **metrics profile JSON** and **experiment JSON** files.
+- The script reads **metrics and metadata profile JSON** and **experiment JSON** files.
 - It sends **POST requests** to Kruize's API:
-    - First, it **registers the metrics profile**.
+    - First, it **registers the metrics and metadata profiles**.
     - Then, it **creates an experiment** for resource tuning.
 
 ---
