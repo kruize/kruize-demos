@@ -20,8 +20,10 @@ current_dir="$(dirname "$0")"
 common_dir="${current_dir}/../../../common/"
 export CLUSTER_TYPE="openshift"
 export KRUIZE_DOCKER_IMAGE="quay.io/kruize/autotune_operator:0.5"
+STRIMZI_VERSION="0.46.0"
+STRIMZI_INSTALL_URL="https://github.com/strimzi/strimzi-kafka-operator/releases/download/${STRIMZI_VERSION}/strimzi-${STRIMZI_VERSION}.tar.gz"
 # Define Kafka version and file URL
-KAFKA_VERSION="3.9.0"
+KAFKA_VERSION="4.0.0"
 SCALA_VERSION="2.13"
 KAFKA_TGZ="kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz"
 KAFKA_DIR="${current_dir}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}"
@@ -103,49 +105,92 @@ function setup_kafka_server() {
   oc create namespace $KAFKA_NAMESPACE || echo "Namespace $KAFKA_NAMESPACE already exists."
 
   # Install Kafka using Strimzi Operator (if not already installed)
-  echo "Installing Strimzi Operator..."
-  oc apply -f https://strimzi.io/install/latest?namespace=$KAFKA_NAMESPACE -n $KAFKA_NAMESPACE
+  echo "Installing Strimzi $STRIMZI_VERSION"
+  curl -L "$STRIMZI_INSTALL_URL" -o strimzi.tar.gz
+  tar -xzf strimzi.tar.gz
+  cd "strimzi-$STRIMZI_VERSION"
+
+  # Replace the default namespace and Apply install files
+  find install/cluster-operator -type f -exec sed -i "s/namespace: myproject/namespace: ${KAFKA_NAMESPACE}/g" {} +
+  oc apply -f install/cluster-operator -n "$KAFKA_NAMESPACE"
 
   # Wait for the Strimzi Operator to be ready
   echo "Waiting for Strimzi Operator to be ready..."
   oc rollout status deployment/strimzi-cluster-operator -n $KAFKA_NAMESPACE
+  # Switch to base demo directory
+  cd ./../../
 
-  # Create Kafka cluster YAML
+  # Create and apply Kafka broker, controller and cluster YAML
   cat <<EOF | oc apply -n $KAFKA_NAMESPACE -f -
-  apiVersion: kafka.strimzi.io/v1beta2
-  kind: Kafka
-  metadata:
-    name: $KAFKA_CLUSTER_NAME
-  spec:
-    kafka:
-      version: 3.8.0
-      replicas: 3
-      listeners:
-        - name: plain
-          port: 9092
-          type: internal
-          tls: false
-        - name: tls
-          port: 9093
-          type: internal
-          tls: true
-        - name: external
-          port: 9094
-          type: route
-          tls: true
-      config:
-        offsets.topic.replication.factor: 3
-        transaction.state.log.replication.factor: 3
-        log.message.format.version: "3.4"
-      storage:
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: controller
+  labels:
+    strimzi.io/cluster: $KAFKA_CLUSTER_NAME
+spec:
+  replicas: 3
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
         type: ephemeral
-    zookeeper:
-      replicas: 3
-      storage:
+        kraftMetadata: shared
+---
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: broker
+  labels:
+    strimzi.io/cluster: $KAFKA_CLUSTER_NAME
+spec:
+  replicas: 3
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
         type: ephemeral
-    entityOperator:
-      topicOperator: {}
-      userOperator: {}
+        kraftMetadata: shared
+---
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: $KAFKA_CLUSTER_NAME
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: $KAFKA_VERSION
+    metadataVersion: 4.0-IV3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+      - name: external
+        port: 9094
+        type: route
+        tls: true
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
 EOF
 
   # Wait for Kafka to be ready
@@ -210,32 +255,8 @@ function kafka_server_cleanup() {
     echo "Starting Kafka server cleanup process..."
     # Delete Kafka components first
     echo "Deleting Kafka resources..."
-    oc delete kafka --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-    oc delete kafkatopic --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-    oc delete kafkauser --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-    oc delete kafkamirrormaker --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-    oc delete kafkamirrormaker2 --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-    oc delete kafkabridge --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-    oc delete kafkarebalance --all -n $KAFKA_NAMESPACE --ignore-not-found=true
-
-    # Delete Strimzi Operator
-    echo "Deleting Strimzi Operator..."
-    oc delete deployment strimzi-cluster-operator -n $KAFKA_NAMESPACE --ignore-not-found=true
-
-     # Remove stuck finalizers from Kafka CRDs
-    echo "Checking for stuck Kafka CRDs..."
-    for crd in kafkatopics kafkabridges kafkaconnectors kafkaconnects kafkamirrormaker2s kafkamirrormakers kafkanodepools kafkarebalances kafkas kafkausers; do
-        oc get crd $crd.kafka.strimzi.io --ignore-not-found=true -o json | jq -r '.metadata.name' | while read line; do
-            echo "Force deleting finalizer for: $line"
-            oc patch crd $line -p '{"metadata":{"finalizers":[]}}' --type=merge || echo "Failed to patch $line"
-        done
-    done
-
-    # Delete Kafka CRDs
-    for crd in $(oc get crds -o json | jq -r '.items[].metadata.name' | grep 'kafka\|strimzi'); do
-      echo "Deleting CRD: $crd"
-      oc delete crd "$crd" --ignore-not-found=true
-    done
+    oc delete all --all -n $KAFKA_NAMESPACE
+    oc delete kafkanodepool --all -n $KAFKA_NAMESPACE --ignore-not-found=true
 
     # Delete namespace
     echo "Deleting Kafka namespace..."
