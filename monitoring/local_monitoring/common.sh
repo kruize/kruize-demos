@@ -1159,8 +1159,6 @@ function thanos_setup() {
 	echo "Cloning thanos operator git repo..."
 	git clone https://github.com/thanos-community/thanos-operator.git
 	echo "Cloning thanos operator git repo...Done"
-	# Remove this when the thanos-operator repo is fixed
-	cp v1alpha1_thanosstore.yaml thanos-operator/config/samples
         pushd thanos-operator > /dev/null
 	        echo "***********************************"
         	echo "Install Thanos CRDS"
