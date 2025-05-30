@@ -14,6 +14,7 @@ NODE_NAME = "kind-e2e-control-plane"
 SAMPLE_WORKLOAD = "sample_workload.yaml"
 
 CREATE_METRICS_PROFILE = f"http://127.0.0.1:8080/createMetricProfile"
+CREATE_METADATA_PROFILE = f"http://127.0.0.1:8080/createMetadataProfile"
 CREATE_EXPERIMENT = f"http://127.0.0.1:8080/createExperiment"
 
 # Input folder
@@ -21,6 +22,7 @@ INPUT_FOLDER = "inputs"
 
 # File paths
 metrics_profile_path = os.path.join(os.getcwd(), INPUT_FOLDER, "metrics_profile.json")
+metadata_profile_path = os.path.join(os.getcwd(), INPUT_FOLDER, "metadata_profile.json")
 experiment_path = os.path.join(os.getcwd(), INPUT_FOLDER, "create_exp.json")
 
 gopath = subprocess.check_output(['go', 'env', 'GOPATH'], text=True).strip()
@@ -483,6 +485,15 @@ def main():
 
     if not post_request(CREATE_METRICS_PROFILE, metrics_data, "Metric Profile"):
         print(f"✗ Error creating Metrics Profile")
+        return
+
+    metadata_profile_data = read_json(metadata_profile_path)
+    if metadata_profile_data is None:
+        print(f"✗ Error reading {metadata_profile_path}")
+        return
+
+    if not post_request(CREATE_METADATA_PROFILE, metadata_profile_data, "Metadata Profile"):
+        print(f"✗ Error creating Metadata Profile")
         return
 
     experiment_data = read_json(experiment_path)
