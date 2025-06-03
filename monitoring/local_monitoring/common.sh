@@ -140,8 +140,6 @@ function kruize_local_experiments() {
 	for experiment in "${EXPERIMENTS[@]}"; do
 		if [[ $experiment != "container_experiment_local" ]] || [[ $experiment != "namespace_experiment_local" ]]; then
 			sed -i 's/"namespace": "default"/"namespace": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
-			#sed -i "s/"namespace": "default"/"namespace": "${APP_NAMESPACE}"/" ./experiments/${experiment}.json
-			sed -i 's/"namespace_name": "default"/"namespace_name": "'"${APP_NAMESPACE}"'"/' ./experiments/${experiment}.json
 		fi
 	done
 
@@ -162,7 +160,7 @@ function kruize_local_experiments() {
 			curl -X POST http://${KRUIZE_URL}/createExperiment -d @./experiments/${experiment}.json
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Created!"
-		grep -E '"experiment_name"|"container_name"|"type"|"namespace"|"namespace_name"' experiments/${experiment}.json | grep -v '"experiment_type"' | sed -E 's/.*"experiment_name": "([^"]*)".*/\tExperiment: \1/; s/.*"type": "([^"]*)".*/\tType: \1/; s/.*"container_name": "([^"]*)".*/\tContainer: \1/; s/.*"namespace": "([^"]*)".*/\tNamespace: \1/; s/.*"namespace_name": "([^"]*)".*/\tNamespace: \1/'
+		grep -E '"experiment_name"|"container_name"|"type"|"namespace"' experiments/${experiment}.json | grep -v '"experiment_type"' | sed -E 's/.*"experiment_name": "([^"]*)".*/\tExperiment: \1/; s/.*"type": "([^"]*)".*/\tType: \1/; s/.*"container_name": "([^"]*)".*/\tContainer: \1/; s/.*"namespace": "([^"]*)".*/\tNamespace: \1/;'
 	done
 
 	for experiment in "${EXPERIMENTS[@]}"; do
