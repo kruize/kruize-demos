@@ -315,11 +315,11 @@ function monitoring_recommendations_demo_with_data() {
                         IFS="|" read -ra parts <<< "${exp_name}"
                         recommendation_file="${parts[1]}.csv"
                         recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
-                        boxplot_file_path="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
+                        boxplot_filepath="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
 			if [[ -f ${recommendation_filepath} ]]; then
-				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}',\"RECOMMENDATIONS\")"
+				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
 				if [[ ${EXP_TYPE} != "namespace" ]]; then
-					python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentPlotData_sorted.csv\", '${boxplot_file_path}',\"BOX PLOTS\")"
+					python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
 				fi
 				exit_code=$?
 				validate_status=$((validate_status + exit_code))

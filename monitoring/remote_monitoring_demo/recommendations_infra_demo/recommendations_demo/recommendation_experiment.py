@@ -122,7 +122,7 @@ def create_expjson(filename, exp_type=None):
 
             if exp_type == "namespace":
                 replacements = {
-                    "EXP_NAME": row["namespace"] + '|' + row["cluster_name"],
+                    "EXP_NAME": row["cluster_name"] + '|' + row["namespace"],
                     "CLUSTER_NAME": row["cluster_name"],
                     "k8Object_NAMESPACE_NAME": row["namespace"],
                     }
