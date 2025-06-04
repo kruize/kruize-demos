@@ -282,27 +282,17 @@ function validate_experiment_recommendations() {
         cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
         # Convert the cleaned names into an array
         IFS=',' read -ra expnames_array <<< "$cleaned_names"
-        ## Temporary code to differentiate between namespace and container experiments
-        namespace_exps=()
-        container_exps=()
-        for str in "${expnames_array[@]}"; do
-              # Count the number of pipes in the string
-              pipe_count=$(echo "$str" | awk -F'|' '{print NF-1}')
-              if [ "$pipe_count" -eq 1 ]; then
-                      namespace_exps+=("$str")
-              elif [ "$pipe_count" -gt 1 ]; then
-                      container_exps+=("$str")
-              fi
-        done
-        expnames_array=()
-        if [[ ${EXP_TYPE} == "namespace" ]]; then
-                expnames_array=("${namespace_exps[@]}")
-        else
-                expnames_array=("${container_exps[@]}")
-        fi
-        # Iterate over the names
+	# Iterate over the names
         validate_status=0
         for exp_name in ${expnames_array[@]}; do
+		## Temporary code to differentiate between namespace and container experiments
+		pipe_count=$(echo "${exp_name}" | awk -F'|' '{print NF-1}')
+		if [ "$pipe_count" -eq 1 ]; then
+			EXP_TYPE="namespace"
+		elif [ "$pipe_count" -gt 1 ]; then
+			EXP_TYPE="container"
+		fi
+
                 python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
                 if [[ ${EXP_TYPE} == "namespace" ]]; then
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getNamespaceExperimentMetrics("metrics_recommendations_data.json")'
@@ -316,9 +306,9 @@ function validate_experiment_recommendations() {
                         recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
                         boxplot_filepath="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
                         if [[ -f ${recommendation_filepath} ]]; then
-                                python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
+                                python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
                                 if [[ ${EXP_TYPE} != "namespace" ]]; then
-                                        python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
+                                        python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
                                 fi
                                 exit_code=$?
                                 validate_status=$((validate_status + exit_code))
