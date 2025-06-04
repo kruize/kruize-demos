@@ -240,24 +240,22 @@ function monitoring_demo_start() {
 			echo "Validating the container Recommendations..."
 			resultsDir="./recommendations_demo/validateResults"
 			monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} "" "container"
-			container_exit_code=$?
 			echo "-----------------------------------------"
 			echo "Validating the namespace Recommendations..."
 			resultsDir="./recommendations_demo/validateNamespaceResults"
 			monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} "" "namespace"
-			namespace_exit_code=$?
 		else
 			echo "Validating the container Recommendations..."
 			resultsDir="./recommendations_demo/validateResults"
 			monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData} "container"
-			container_exit_code=$?
 			echo "-----------------------------------------"
 			echo "Validating the namespace Recommendations..."
 			resultsDir="./recommendations_demo/validateNamespaceResults"
 			monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} ${daysData} "namespace"
-			namespace_exit_code=$?
 		fi
-		if [[ ${container_exit_code} == 0 ]] || [[ ${namespace_exit_code} == 0 ]]; then
+		validate_experiment_recommendations ${resultsDir} true
+		exit_code=$?
+		if [[ ${exit_code} == 0 ]]; then
 			exit 0
 		else
 			exit 1
