@@ -253,7 +253,11 @@ function monitoring_demo_start() {
 			resultsDir="./recommendations_demo/validateNamespaceResults"
 			monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} ${daysData} "namespace"
 		fi
+		resultsDir="./recommendations_demo/validateResults"
 		validate_experiment_recommendations ${resultsDir} true
+		resultsDir="./recommendations_demo/validateNamespaceResults"
+		validate_experiment_recommendations ${resultsDir} true
+
 		exit_code=$?
 		if [[ ${exit_code} == 0 ]]; then
 			exit 0
