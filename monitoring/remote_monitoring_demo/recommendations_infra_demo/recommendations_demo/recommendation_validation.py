@@ -75,7 +75,7 @@ def round_values(value, precision=5):
         return round(value, precision)
     return value
 
-def validate_experiment_recommendations_boxplots(exp_name, inputfile, validatefile, match_type, precision=5):
+def validate_experiment_recommendations_boxplots(exp_name, exp_type, inputfile, validatefile, match_type, precision=5):
     validate_files = filecmp.cmp(inputfile, validatefile)
     if validate_files:
         print(match_type, " MATCH for ", exp_type , " experiment ", exp_name)

@@ -270,12 +270,38 @@ function monitoring_recommendations_demo_with_data() {
 			fi
 		fi
 	done
+	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
+        names=$(cat expoutput.txt | tail -n 1)
+        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+        # Convert the cleaned names into an array
+        IFS=',' read -ra expnames_array <<< "$cleaned_names"
+        # Iterate over the names
+        validate_status=0
+        for exp_name in ${expnames_array[@]}; do
+                ## Temporary code to differentiate between namespace and container experiments
+                pipe_count=$(echo "${exp_name}" | awk -F'|' '{print NF-1}')
+                if [ "$pipe_count" -eq 1 ]; then
+                        BENCHMARK_RESULTS_DIR="./recommendations_demo/validateNamespaceResults"
+                        EXP_TYPE="namespace"
+                elif [ "$pipe_count" -gt 1 ]; then
+                        BENCHMARK_RESULTS_DIR="./recommendations_demo/validateResults"
+                        EXP_TYPE="container"
+                fi
+
+                python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+                if [[ ${EXP_TYPE} == "namespace" ]]; then
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getNamespaceExperimentMetrics("metrics_recommendations_data.json")'
+                else
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
+                fi
+	done
+
 	
 }
 
 function validate_experiment_recommendations() {
-	BENCHMARK_RESULTS_DIR=$1
-        VALIDATE=$2
+        VALIDATE=$1
 
         python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
         names=$(cat expoutput.txt | tail -n 1)
@@ -288,8 +314,10 @@ function validate_experiment_recommendations() {
 		## Temporary code to differentiate between namespace and container experiments
 		pipe_count=$(echo "${exp_name}" | awk -F'|' '{print NF-1}')
 		if [ "$pipe_count" -eq 1 ]; then
+			BENCHMARK_RESULTS_DIR="./recommendations_demo/validateNamespaceResults"
 			EXP_TYPE="namespace"
 		elif [ "$pipe_count" -gt 1 ]; then
+			BENCHMARK_RESULTS_DIR="./recommendations_demo/validateResults"
 			EXP_TYPE="container"
 		fi
 
