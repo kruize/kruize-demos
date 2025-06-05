@@ -23,7 +23,7 @@ import sys
 import time
 from datetime import datetime
 
-from helpers.utils import create_json_from_csv
+from helpers.utils import create_json_from_csv, create_namespace_json_from_csv
 from kruize.kruize import *
 
 
@@ -74,19 +74,25 @@ def main(argv):
     form_kruize_url(cluster_type)
 
     # Create the performance profile
-    perf_profile_json_file = "./json_files/resource_optimization_openshift.json"
+    perf_profile_json_file = "./autotune/manifests/autotune/performance-profiles/resource_optimization_openshift.json"
     create_performance_profile(perf_profile_json_file)
 
     recommendations_json_arr = []
     ## Create experiments from the experiments_list and use related csv data to updateResults
     experiments_list = ['eap-app_deploymentconfig_america', 'example_replicationcontroller_america',
-                        'tfb-qrh_deployment_tfb-tests', 'rhsso-operator_deployment_sso']
+                        'tfb-qrh_deployment_tfb-tests', 'rhsso-operator_deployment_sso',
+                        'clowder-system-namespace-experiment']
     for exp in experiments_list:
         experiment_json = "./json_files/experiment_jsons/" + exp + ".json"
         experiment_csv = "./csv_data/" + exp + ".csv"
         create_experiment(experiment_json)
         json_data = json.load(open(experiment_json))
         experiment_name = json_data[0]['experiment_name']
+
+
+        # if json_data[0]['experiment_type'] is not None:
+        experiment_type = json_data[0].get('experiment_type')
+        print(experiment_type)
 
         with open(experiment_csv, 'r') as csv_file:
             reader = csv.reader(csv_file)
@@ -103,7 +109,12 @@ def main(argv):
 
                 # Convert the results csv to json
                 resultsjson_file = "./json_files/experiment_jsons/results.json"
-                create_json_from_csv("./intermediate.csv", resultsjson_file)
+
+                if experiment_type == "namespace":
+                    create_namespace_json_from_csv("./intermediate.csv", resultsjson_file)
+                else:
+                    create_json_from_csv("./intermediate.csv", resultsjson_file)
+
                 update_results(resultsjson_file)
 
                 resultsjson = json.load(open(resultsjson_file))

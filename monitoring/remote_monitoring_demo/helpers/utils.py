@@ -153,3 +153,152 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
 
 
 #create_json_from_csv('../csv_data/rhsso-operator_deployment_sso.csv', 'finaldata.csv')
+
+def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
+
+    # Check if output file already exists. If yes, delete that.
+    ## TODO: Recheck if this is necessary
+    if os.path.exists(outputjsonfile):
+        os.remove(outputjsonfile)
+
+    # Define the list that will hold the final JSON data
+    json_data = []
+
+    # Create an empty list to hold the deployments
+    deployments = []
+    mebibyte = 1048576
+
+    with open(csv_file_path, 'r') as csvfile:
+        csvreader = csv.DictReader(csvfile)
+
+        for row in csvreader:
+            namespace_metrics_all = {}
+            namespace_metrics = []
+
+            columns_tocheck = ["namespace", "cluster_name"]
+            namespace = "clowder-system"
+            cluster_name = "e23-alias"
+
+            for col in columns_tocheck:
+                if col not in row:
+                    if col == "namespace":
+                        row[col] = namespace
+                    elif col == "cluster_name":
+                        row[col] = cluster_name
+
+            if row["cpu_request_namespace_sum"]:
+                namespace_metrics.append({
+                    "name": "namespaceCpuRequest",
+                    "results": {
+                        "aggregation_info": {
+                            "sum": float(row["cpu_request_namespace_sum"]),
+                            "format": "cores"
+                        }
+                    }
+                })
+            if row["cpu_limit_namespace_sum"]:
+                namespace_metrics.append({
+                    "name" : "namespaceCpuLimit",
+                    "results": {
+                        "aggregation_info": {
+                            "sum": float(row["cpu_limit_namespace_sum"]),
+                            "format": "cores"
+                        }
+                    }
+                })
+            if row["cpu_throttle_namespace_max"]:
+                namespace_metrics.append({
+                    "name" : "namespaceCpuThrottle",
+                    "results": {
+                        "aggregation_info": {
+                            "min": float(row["cpu_throttle_namespace_min"]),
+                            "max": float(row["cpu_throttle_namespace_max"]),
+                            "avg": float(row["cpu_throttle_namespace_avg"]),
+                            "format": "cores"
+                        }
+                    }
+                })
+            if row["cpu_usage_namespace_avg"]:
+                namespace_metrics.append({
+                    "name" : "namespaceCpuUsage",
+                    "results": {
+                        "aggregation_info": {
+                            "min": float(row["cpu_usage_namespace_min"]),
+                            "max": float(row["cpu_usage_namespace_max"]),
+                            "avg": float(row["cpu_usage_namespace_avg"]),
+                            "format": "cores"
+                        }
+                    }
+                })
+            if row["memory_request_namespace_sum"]:
+                namespace_metrics.append({
+                    "name" : "namespaceMemoryRequest",
+                    "results": {
+                        "aggregation_info": {
+                            "sum": float(row["memory_request_namespace_sum"])/mebibyte,
+                            "format": "MiB"
+                        }
+                    }
+                })
+            if row["memory_limit_namespace_sum"]:
+                namespace_metrics.append({
+                    "name" : "namespaceMemoryLimit",
+                    "results": {
+                        "aggregation_info": {
+                            "sum": float(row["memory_limit_namespace_sum"])/mebibyte,
+                            "format": "MiB"
+                        }
+                    }
+                })
+            if row["memory_usage_namespace_avg"]:
+                namespace_metrics.append({
+                    "name" : "namespaceMemoryUsage",
+                    "results": {
+                        "aggregation_info": {
+                            "min": float(row["memory_usage_namespace_min"])/mebibyte,
+                            "max": float(row["memory_usage_namespace_max"])/mebibyte,
+                            "avg": float(row["memory_usage_namespace_avg"])/mebibyte,
+                            "format": "MiB"
+                        }
+                    }
+                })
+            if row["memory_rss_usage_namespace_avg"]:
+                namespace_metrics.append({
+                    "name" : "namespaceMemoryRSS",
+                    "results": {
+                        "aggregation_info": {
+                            "min": float(row["memory_rss_usage_namespace_min"])/mebibyte,
+                            "max": float(row["memory_rss_usage_namespace_max"])/mebibyte,
+                            "avg": float(row["memory_rss_usage_namespace_avg"])/mebibyte,
+                            "format": "MiB"
+                        }
+                    }
+                })
+
+            # Create a dictionary to hold the container information
+            namespace = {
+                "namespace": row["namespace"],
+                "metrics": namespace_metrics
+            }
+
+            # Create a list to hold the containers
+            namespaces = [namespace]
+
+            # Create a dictionary to hold the deployment information
+            kubernetes_object = {
+                "namespaces": namespace
+            }
+            kubernetes_objects = [kubernetes_object]
+
+            # Create a dictionary to hold the experiment data
+            experiment = {
+                "version": "v2.0",
+                "experiment_name": row["cluster_name"] + '|' + row["namespace"],
+                "interval_start_time": convert_date_format(row["start_timestamp"]),
+                "interval_end_time": convert_date_format(row["end_timestamp"]),
+                "kubernetes_objects": kubernetes_objects
+            }
+
+            json_data.append(experiment)
+    with open(outputjsonfile, "w") as json_file:
+        json.dump(json_data, json_file)
