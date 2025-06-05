@@ -1,0 +1,22 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "e23-alias|clowder-system",
+  "cluster_name": "e23-alias",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "experiment_type": "namespace",
+  "kubernetes_objects": [
+    {
+      "namespaces": {
+        "namespace": "clowder-system"
+      }
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
