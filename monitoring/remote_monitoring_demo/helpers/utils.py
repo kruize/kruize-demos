@@ -157,15 +157,12 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
 def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
 
     # Check if output file already exists. If yes, delete that.
-    ## TODO: Recheck if this is necessary
     if os.path.exists(outputjsonfile):
         os.remove(outputjsonfile)
 
     # Define the list that will hold the final JSON data
     json_data = []
 
-    # Create an empty list to hold the deployments
-    deployments = []
     mebibyte = 1048576
 
     with open(csv_file_path, 'r') as csvfile:
@@ -206,7 +203,7 @@ def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
                         }
                     }
                 })
-            if row["cpu_throttle_namespace_max"]:
+            if row["cpu_throttle_namespace_min"] and row["cpu_throttle_namespace_max"]:
                 namespace_metrics.append({
                     "name" : "namespaceCpuThrottle",
                     "results": {
@@ -218,6 +215,18 @@ def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
                         }
                     }
                 })
+            elif row["cpu_throttle_namespace_max"]:
+                namespace_metrics.append({
+                    "name" : "namespaceCpuThrottle",
+                    "results": {
+                        "aggregation_info": {
+                            "max": float(row["cpu_throttle_namespace_max"]),
+                            "avg": float(row["cpu_throttle_namespace_avg"]),
+                            "format": "cores"
+                        }
+                    }
+                })
+
             if row["cpu_usage_namespace_avg"]:
                 namespace_metrics.append({
                     "name" : "namespaceCpuUsage",

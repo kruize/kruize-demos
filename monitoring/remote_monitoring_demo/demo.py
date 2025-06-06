@@ -89,8 +89,6 @@ def main(argv):
         json_data = json.load(open(experiment_json))
         experiment_name = json_data[0]['experiment_name']
 
-
-        # if json_data[0]['experiment_type'] is not None:
         experiment_type = json_data[0].get('experiment_type')
         print(experiment_type)
 
