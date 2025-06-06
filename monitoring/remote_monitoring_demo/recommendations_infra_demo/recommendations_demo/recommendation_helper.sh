@@ -297,6 +297,8 @@ function monitoring_recommendations_demo_with_data() {
                 fi
 	done
 
+	# Cleaning up all temp files
+        rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv metrics_recommendations_data.json
 	
 }
 
