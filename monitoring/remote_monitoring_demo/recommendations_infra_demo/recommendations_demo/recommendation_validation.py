@@ -316,7 +316,7 @@ def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
                                 }
                             }
                         })
-            if row["cpu_throttle_namespace_max"]:
+            if row["cpu_throttle_namespace_min"] and row["cpu_throttle_namespace_max"]:
                 namespace_metrics.append({
             "name" : "namespaceCpuThrottle",
                         "results": {
@@ -328,6 +328,18 @@ def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
                                 }
                             }
                         })
+            elif row["cpu_throttle_namespace_max"]:
+                namespace_metrics.append({
+            "name" : "namespaceCpuThrottle",
+                        "results": {
+                            "aggregation_info": {
+                                "max": float(row["cpu_throttle_namespace_max"]),
+                                "avg": float(row["cpu_throttle_namespace_avg"]),
+                                "format": "cores"
+                                }
+                            }
+                        })
+
             if row["cpu_usage_namespace_avg"]:
                 namespace_metrics.append({
                     "name" : "namespaceCpuUsage",
