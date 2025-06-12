@@ -352,11 +352,13 @@ function kruize_local_demo_setup() {
 	bench=$1
 	# Start all the installs
 	start_time=$(get_date)
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "# Kruize Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
+	{
+	echo "#######################################"
+	echo "# Kruize Demo Setup on ${CLUSTER_TYPE} "
+	echo "#######################################"
+	echo
+	} >> "${LOG_FILE}"
 
 	echo -n "🔄 Pulling required repositories... "
 	{
@@ -421,6 +423,10 @@ function kruize_local_demo_setup() {
 	fi
 
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
+
+	if [ "${kafka}" -eq 1 ]; then
+		kruize_kafka_patch >> "${LOG_FILE}" 2>&1
+	fi
 
 	if [ ${demo} == "bulk" ]; then
 	  kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
@@ -515,10 +521,12 @@ function kruize_local_demo_setup() {
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
 	recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
-	echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
-	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
-	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
-	echo
+	if [ "${kafka}" -eq 0 ]; then
+    echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
+    echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
+    echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
+    echo
+	fi
 
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus

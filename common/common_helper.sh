@@ -692,6 +692,36 @@ function kruize_local_ros_patch() {
   	fi
 }
 
+#
+# "kafka" flag is turned off by default for now. This needs to be turned on.
+#
+function kruize_kafka_patch() {
+  echo -n "Applying Kafka Patch..."
+	CRC_DIR="./manifests/crc/default-db-included-installation"
+	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
+	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
+
+	pushd autotune >/dev/null
+		# Checkout mvp_demo to get the latest mvp_demo release version
+		git checkout mvp_demo >/dev/null 2>/dev/null
+
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			sed -i 's/"isKafkaEnabled" : "false"/"isKafkaEnabled" : "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+			# Replace the existing KAFKA_BOOTSTRAP_SERVERS value
+      sed -i "/name: KAFKA_BOOTSTRAP_SERVERS/{n;s|value: \".*\"|value: \"$BOOTSTRAP_SERVER\"|}" ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
+      # Replace the existing KAFKA_INCLUDE_FILTERS value
+      sed -i '/name: KAFKA_RESPONSE_FILTER_INCLUDE/{n;s#value: "summary"#value: "experiments|status|apis|recommendations|response|status_history"#}' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+		elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+			sed -i 's/"isKafkaEnabled" : "false"/"isKafkaEnabled" : "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+			# Replace the existing KAFKA_BOOTSTRAP_SERVERS value
+      sed -i "/name: KAFKA_BOOTSTRAP_SERVERS/{n;s|value: \".*\"|value: \"$BOOTSTRAP_SERVER\"|}" ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+      # Replace the existing KAFKA_INCLUDE_FILTERS value
+      sed -i '/name: KAFKA_RESPONSE_FILTER_INCLUDE/{n;s#value: "summary"#value: "experiments|status|apis|recommendations|response|status_history"#}' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+		fi
+	popd >/dev/null
+	echo "Done"
+}
 
 ###########################################
 #  Get URLs
@@ -783,9 +813,11 @@ function show_urls() {
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
 	echo "#             Access Kruize           #" >> "${LOG_FILE}" 2>&1
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
-	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
-	echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
-	echo "ℹ️  For kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
+	if [ "${kafka}" -eq 0 ]; then
+    echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
+    echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
+    echo "ℹ️  For kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
+	fi
 	echo | tee -a "${LOG_FILE}"
 	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
 	echo "          Access Kruize Interface          " >> "${LOG_FILE}" 2>&1

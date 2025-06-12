@@ -129,9 +129,10 @@ def bulk_status(job_id):
 
 def main(argv):
     cluster_type = "minikube"
+    kafka = False
 
     try:
-        opts, args = getopt.getopt(argv, "h:c:d:")
+        opts, args = getopt.getopt(argv, "h:c:d:k")
     except getopt.GetoptError:
         print("bulk_demo.py -c <cluster type>")
         sys.exit(2)
@@ -141,6 +142,8 @@ def main(argv):
             sys.exit()
         elif opt == '-c':
             cluster_type = arg
+        elif opt == '-k':
+            kafka = True
 
     with open(log_file, "a") as log:
         with redirect_stdout(log):
@@ -189,13 +192,15 @@ def main(argv):
 
         if status:
             # print("✅ Completed!")
-            print("📌 List of all experiments available in experiment_list.txt")
-            print("📌 Recommendations for a single container in cluster can be found in recommendations_data.json.")
-            print("📌 Job status is available in job_status.json\n")
+            if not kafka:
+                print("📌 List of all experiments available in experiment_list.txt")
+                print("📌 Recommendations for a single container in cluster can be found in recommendations_data.json.")
+                print("📌 Job status is available in job_status.json\n")
         else:
-            print("❌ Error while processing the job. Exiting!")
-            print("📌 Job status is available in job_status.json\n")
-            print("For detailed logs, look in kruize-bulk-demo.log")
+            if not kafka:
+                print("❌ Error while processing the job. Exiting!")
+                print("📌 Job status is available in job_status.json\n")
+                print("For detailed logs, look in kruize-bulk-demo.log")
             sys.exit(1)
 
 
