@@ -77,6 +77,21 @@ This step ensures that the operator can run in environments where `runAsNonRoot`
 
 The script continuously monitors the test execution and logs its progress.
 
+**Note:**
+When running kruize_gpu_demo.py, you can override the default InstaSlice controller and daemonset images using the following optional arguments:
+
+```bash
+python kruize_gpu_demo.py \
+--insta-cntrl quay.io/instaslice/instaslice:your-controller-tag \
+--insta-dmst quay.io/instaslice/instaslice:your-daemonset-tag
+```
+
+If not provided, it uses the default images:
+
+    Controller: quay.io/instaslice/instaslice:test-e2e-cntrl
+
+    Daemonset: quay.io/instaslice/instaslice:test-e2e-dmnst
+
 ---
 
 ### **7. Installing the Fake GPU Operator**
