@@ -93,10 +93,10 @@ function run_monitoring_exp() {
 		EXP_TYPE="container"
 	fi
 	if [ -z "$DAYS_DATA" ]; then
-		echo "${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p \"./recommendations_demo/json_files/resource_optimization_openshift.json\" -e \"./recommendations_demo/json_files/create_exp.json\" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -t ${EXP_TYPE}"
-		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -t ${EXP_TYPE}
+		echo "${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p \"./autotune/manifests/autotune/performance-profiles/resource_optimization_openshift.json\" -e \"./recommendations_demo/json_files/create_exp.json\" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -t ${EXP_TYPE}"
+		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./autotune/manifests/autotune/performance-profiles/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -t ${EXP_TYPE}
 	else
-		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -d ${DAYS_DATA} -t ${EXP_TYPE}
+		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./autotune/manifests/autotune/performance-profiles/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -d ${DAYS_DATA} -t ${EXP_TYPE}
 	fi
 }
 
