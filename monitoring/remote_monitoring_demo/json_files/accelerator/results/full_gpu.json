@@ -1,0 +1,155 @@
+[
+  {
+    "version": "v2.0",
+    "experiment_name": "full-gpu-exp",
+    "interval_start_time": "2022-01-23T18:25:43.511Z",
+    "interval_end_time": "2022-01-23T18:25:43.511Z",
+    "kubernetes_objects": [
+      {
+        "type": "deployment",
+        "name": "tfb-qrh-deployment_0",
+        "namespace": "default_0",
+        "containers": [
+          {
+            "container_image_name": "kruize/tfb-qrh:1.13.2.F_et17",
+            "container_name": "tfb-server-1",
+            "metrics": [
+              {
+                "name": "cpuRequest",
+                "results": {
+                  "aggregation_info": {
+                    "sum": 4.4,
+                    "avg": 1.1,
+                    "format": "cores"
+                  }
+                }
+              },
+              {
+                "name": "cpuLimit",
+                "results": {
+                  "aggregation_info": {
+                    "sum": 2.0,
+                    "avg": 0.5,
+                    "format": "cores"
+                  }
+                }
+              },
+              {
+                "name": "cpuUsage",
+                "results": {
+                  "aggregation_info": {
+                    "min": 0.14,
+                    "max": 0.84,
+                    "sum": 0.84,
+                    "avg": 0.12,
+                    "format": "cores"
+                  }
+                }
+              },
+              {
+                "name": "cpuThrottle",
+                "results": {
+                  "aggregation_info": {
+                    "sum": 0.19,
+                    "max": 0.09,
+                    "avg": 0.045,
+                    "format": "cores"
+                  }
+                }
+              },
+              {
+                "name": "memoryRequest",
+                "results": {
+                  "aggregation_info": {
+                    "sum": 250.85,
+                    "avg": 50.21,
+                    "format": "MiB"
+                  }
+                }
+              },
+              {
+                "name": "memoryLimit",
+                "results": {
+                  "aggregation_info": {
+                    "sum": 500,
+                    "avg": 100,
+                    "format": "MiB"
+                  }
+                }
+              },
+              {
+                "name": "memoryUsage",
+                "results": {
+                  "aggregation_info": {
+                    "min": 50.6,
+                    "max": 198.50,
+                    "sum": 198.50,
+                    "avg": 40.1,
+                    "format": "MiB"
+                  }
+                }
+              },
+              {
+                "name": "memoryRSS",
+                "results": {
+                  "aggregation_info": {
+                    "min": 50.6,
+                    "max": 123.6,
+                    "sum": 123.6,
+                    "avg": 31.91,
+                    "format": "MiB"
+                  }
+                }
+              },
+              {
+                "name": "acceleratorCoreUsage",
+                "results": {
+                  "metadata": {
+                    "accelerator_model_name": "NVIDIA-A100-SXM4-40GB",
+                    "node": "ip-255-255-255-255.ec2.internal"
+                  },
+                  "aggregation_info": {
+                    "min": 35.11,
+                    "max": 46.06,
+                    "avg": 38.51,
+                    "format": "percentage"
+                  }
+                }
+              },
+              {
+                "name": "acceleratorMemoryUsage",
+                "results": {
+                  "metadata": {
+                    "accelerator_model_name": "NVIDIA-A100-SXM4-40GB",
+                    "node": "ip-255-255-255-255.ec2.internal"
+                  },
+                  "aggregation_info": {
+                    "min": 29.68,
+                    "max": 43.09,
+                    "avg": 39.35,
+                    "format": "percentage"
+                  }
+                }
+              },
+              {
+                "name": "acceleratorFrameBufferUsage",
+                "results": {
+                  "metadata": {
+                    "accelerator_model_name": "NVIDIA-A100-SXM4-40GB",
+                    "node": "ip-255-255-255-255.ec2.internal"
+                  },
+                  "aggregation_info": {
+                    "min": 7912,
+                    "max": 19433,
+                    "avg": 11303,
+                    "format": "MiB"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
