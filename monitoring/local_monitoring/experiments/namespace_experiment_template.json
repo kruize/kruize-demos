@@ -11,7 +11,7 @@
   "kubernetes_objects": [
       {
         "namespaces": {
-          "namespace_name": "PLACEHOLDER_NAMESPACE_NAME"
+          "namespace": "PLACEHOLDER_NAMESPACE_NAME"
         }
       }
     ],
