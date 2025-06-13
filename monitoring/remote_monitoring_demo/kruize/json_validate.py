@@ -77,13 +77,40 @@ exp_input_schema = {
                   "container_name"
                 ]
               }
+            },
+            "namespaces": {
+              "type": "object",
+              "properties": {
+                "namespace": {
+                 "type": "string"
+                }
+              }
             }
           },
-          "required": [
-            "type",
-            "name",
-            "namespace",
-            "containers"
+          "oneOf": [
+            {
+              "required": [
+                "namespaces"
+              ],
+              "not": {
+                "required": [
+                  "containers"
+                ]
+              }
+            },
+            {
+              "required": [
+                "containers",
+                "type",
+                "name",
+                "namespace"
+              ],
+              "not": {
+                "required": [
+                  "namespaces"
+                ]
+              }
+            }
           ]
         }
       },
