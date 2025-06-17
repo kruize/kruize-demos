@@ -79,11 +79,30 @@ exp_input_schema = {
               }
             }
           },
-          "required": [
-            "type",
-            "name",
-            "namespace",
-            "containers"
+          "oneOf": [
+            {
+              "required": [
+                "namespaces"
+              ],
+              "not": {
+                "required": [
+                  "containers"
+                ]
+              }
+            },
+            {
+              "required": [
+                "containers",
+                "type",
+                "name",
+                "namespace"
+              ],
+              "not": {
+                "required": [
+                  "namespaces"
+                ]
+              }
+            }
           ]
         }
       },

@@ -64,18 +64,17 @@ def create_experiment(input_json_file):
     print("\n************************************************************")
 
     # Validate the json
-    # COmmenting the validation as jsons are created through automation
-    #print("\nValidating the input json...")
-    #isInvalid = validate_exp_input_json(input_json)
-    #if isInvalid:
-    #    print(isInvalid)
-    #    print("Input Json is invalid")
-    #    exit(1)
-    #else:
-    print("\nCreating the experiment...")
-    url = URL + "/createExperiment"
-    response = requests.post(url, json=input_json)
-    print("URL = ", url, "   Response status code = ", response.status_code)
+    print("\nValidating the input json...")
+    isInvalid = validate_exp_input_json(input_json)
+    if isInvalid:
+        print(isInvalid)
+        print("Input Json is invalid")
+        exit(1)
+    else:
+        print("\nCreating the experiment...")
+        url = URL + "/createExperiment"
+        response = requests.post(url, json=input_json)
+        print("URL = ", url, "   Response status code = ", response.status_code)
 
 # Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
 # Input Parameters: resource usage metrics json

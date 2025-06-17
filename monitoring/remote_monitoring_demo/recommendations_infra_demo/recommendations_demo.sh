@@ -237,22 +237,16 @@ function monitoring_demo_start() {
 		summarize_all_data
 	elif [[ ${validateRecommendations} -eq 1 ]]; then
 		if [[ -z ${daysData} ]]; then
-			echo "Validating the container Recommendations..."
-			resultsDir="./recommendations_demo/validateResults"
-			monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} "" "container"
-			echo "-----------------------------------------"
-			echo "Validating the namespace Recommendations..."
-			resultsDir="./recommendations_demo/validateNamespaceResults"
-			monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} "" "namespace"
-		else
-			echo "Validating the container Recommendations..."
-			resultsDir="./recommendations_demo/validateResults"
-			monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData} "container"
-			echo "-----------------------------------------"
-			echo "Validating the namespace Recommendations..."
-			resultsDir="./recommendations_demo/validateNamespaceResults"
-			monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} ${daysData} "namespace"
+			daysData="None"
 		fi
+		echo "Validating the container Recommendations..."
+		resultsDir="./recommendations_demo/validateResults"
+		monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData} "container"
+		echo "-----------------------------------------"
+		echo "Validating the namespace Recommendations..."
+		resultsDir="./recommendations_demo/validateNamespaceResults"
+		monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} ${daysData} "namespace"
+
 		validate_experiment_recommendations true
 		exit_code=$?
 		if [[ ${exit_code} == 0 ]]; then

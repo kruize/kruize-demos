@@ -250,23 +250,13 @@ function monitoring_recommendations_demo_with_data() {
 				# metrics.csv is generated with aggregated data for a k8 object.
 				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
 				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
-				if [ -z "$DAYS_DATA" ]; then
-					run_monitoring_exp metrics.csv ${BULK_RESULTS} "" ${EXP_TYPE}
-				else
-					run_monitoring_exp metrics.csv ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}
-				fi
+				run_monitoring_exp metrics.csv ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}
 
 			else
 				echo "Running the results for not crc mode"
 				${SCRIPTS_REPO}/replaceheaders.sh $file
-				## Convert the csv into json
-				if [ -z "$DAYS_DATA" ]; then
-					echo "run_monitoring_exp $file ${BULK_RESULTS} "" ${EXP_TYPE}"
-					run_monitoring_exp $file ${BULK_RESULTS} "" ${EXP_TYPE}
-				else
-					echo "run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}"
-                                        run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}
-				fi
+				echo "run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}"
+				run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}
 			fi
 		fi
 	done

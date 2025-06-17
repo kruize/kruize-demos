@@ -250,6 +250,7 @@ def convert_date_format(input_date_str):
             continue
     raise ValueError(f"Unrecognized date format: {input_date_str} ")
 
+# Create results json for namespace experiment from csv
 def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
 
     # Check if output file already exists. If yes, delete that.
@@ -425,10 +426,7 @@ def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
     with open(outputjsonfile, "w") as json_file:
         json.dump(json_data, json_file)
 
-
-
-
-
+# Create results json for container experiment from csv
 def create_json_from_csv(csv_file_path, outputjsonfile):
 
     # Check if output file already exists. If yes, delete that.

@@ -149,7 +149,7 @@ def create_expjson(filename, exp_type=None):
         file.write(newdata)
 
 def createExpAndupdateResults(resultscsv,days=None,bulk=None,exp_type=None):
-    if days is not None:
+    if days is not None and days != "None":
         num_entries = int(days) * 96
         num_entries += 1
     if bulk == "1":
@@ -233,7 +233,7 @@ def createExpAndupdateResults(resultscsv,days=None,bulk=None,exp_type=None):
         with open(resultscsv, newline='') as csvfile:
             reader = csv.reader(csvfile)
             header = next(reader)
-            if days is not None:
+            if days is not None and days != "None":
                 reader = itertools.islice(reader, num_entries)
             for row in reader:
                 recommendations_json_arr = []
