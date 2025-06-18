@@ -71,13 +71,10 @@ def create_experiment(input_json_file):
         print("Input Json is invalid")
         exit(1)
     else:
-        # read the json
         print("\nCreating the experiment...")
-
         url = URL + "/createExperiment"
         response = requests.post(url, json=input_json)
         print("URL = ", url, "   Response status code = ", response.status_code)
-        #print(response.text)
 
 # Description: This function validates the result json and posts the experiment results using updateResults API to Kruize
 # Input Parameters: resource usage metrics json

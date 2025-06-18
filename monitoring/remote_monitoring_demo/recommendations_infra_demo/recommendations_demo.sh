@@ -236,9 +236,20 @@ function monitoring_demo_start() {
 		echo "Summarizing all the data available in kruize"
 		summarize_all_data
 	elif [[ ${validateRecommendations} -eq 1 ]]; then
-		echo "Validating the Recommendations..."
+		if [[ -z ${daysData} ]]; then
+			daysData="None"
+		fi
+		echo "Validating the container Recommendations..."
+		# Use below resultsDir to validate container type experiments
 		resultsDir="./recommendations_demo/validateResults"
-		monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData}
+		monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData} "container"
+		echo "-----------------------------------------"
+		echo "Validating the namespace Recommendations..."
+		# Use below resultsDir to validate namespace experiments
+		resultsDir="./recommendations_demo/validateNamespaceResults"
+		monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} ${daysData} "namespace"
+
+		validate_experiment_recommendations true
 		exit_code=$?
 		if [[ ${exit_code} == 0 ]]; then
 			exit 0

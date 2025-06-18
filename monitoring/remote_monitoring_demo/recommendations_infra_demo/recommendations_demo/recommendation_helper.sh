@@ -88,12 +88,14 @@ function run_monitoring_exp() {
 	RESULTS_FILE=$1
 	BULK_RESULTS=$2
 	DAYS_DATA=$3
-	if [ -z "$DAYS_DATA" ]; then
-		echo "${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p \"./recommendations_demo/json_files/resource_optimization_openshift.json\" -e \"./recommendations_demo/json_files/create_exp.json\" -r  ${RESULTS_FILE} -b ${BULK_RESULTS}"
-		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS}
-	else
-		python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./recommendations_demo/json_files/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -d ${DAYS_DATA}
+	EXP_TYPE=$4
+	if [ -z "${EXP_TYPE}" ]; then
+		EXP_TYPE="container"
 	fi
+	if [ -z "${DAYS_DATA}" ]; then
+                DAYS_DATA="None"
+        fi
+	python3 ${SCRIPTS_REPO}/recommendation_experiment.py -c ${CLUSTER_TYPE} -p "./autotune/manifests/autotune/performance-profiles/resource_optimization_openshift.json" -e "./recommendations_demo/json_files/create_exp.json" -r  ${RESULTS_FILE} -b ${BULK_RESULTS} -d ${DAYS_DATA} -t ${EXP_TYPE}
 }
 
 # Generates recommendations along with the benchmark run in parallel
@@ -227,6 +229,7 @@ function monitoring_recommendations_demo_with_data() {
 	VALIDATE=$3
 	BULK_RESULTS=$4
 	DAYS_DATA=$5
+	EXP_TYPE=$6
 	echo "Inserting the results in kruize from :  ${BENCHMARK_RESULTS_DIR}"
 	if [ ! -d "${SCRIPTS_REPO}/results" ]; then
 		mkdir -p ${SCRIPTS_REPO}/results
@@ -245,57 +248,104 @@ function monitoring_recommendations_demo_with_data() {
 				# metrics.csv is generated with aggregated data for a k8 object.
 				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.aggregateWorkloads(\"$file\", \"metrics.csv\")"
 				${SCRIPTS_REPO}/replaceheaders.sh metrics.csv
-				run_monitoring_exp metrics.csv ${BULK_RESULTS} ${DAYS_DATA}
+				run_monitoring_exp metrics.csv ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}
+
 			else
+				echo "Running the results for not crc mode"
 				${SCRIPTS_REPO}/replaceheaders.sh $file
-				## Convert the csv into json
-				run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA}
+				echo "run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}"
+				run_monitoring_exp $file ${BULK_RESULTS} ${DAYS_DATA} ${EXP_TYPE}
 			fi
 		fi
 	done
-	
 	python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
-	names=$(cat expoutput.txt | tail -n 1)
-	cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
-	# Convert the cleaned names into an array
-	IFS=',' read -ra expnames_array <<< "$cleaned_names"
+        names=$(cat expoutput.txt | tail -n 1)
+        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+        # Convert the cleaned names into an array
+        IFS=',' read -ra expnames_array <<< "$cleaned_names"
+        # Iterate over the names
+        validate_status=0
+        for exp_name in ${expnames_array[@]}; do
+                ## Temporary code to differentiate between namespace and container experiments
+                pipe_count=$(echo "${exp_name}" | awk -F'|' '{print NF-1}')
+                if [ "$pipe_count" -eq 1 ]; then
+                        BENCHMARK_RESULTS_DIR="./recommendations_demo/validateNamespaceResults"
+                        EXP_TYPE="namespace"
+                elif [ "$pipe_count" -gt 1 ]; then
+                        BENCHMARK_RESULTS_DIR="./recommendations_demo/validateResults"
+                        EXP_TYPE="container"
+                fi
 
-	#experiment_names=$(python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')")
-	# Iterate over the names
-	validate_status=0
-	for exp_name in ${expnames_array[@]}; do
-		python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
-		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
-		python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
-		if [[ ${VALIDATE} == "true" ]]; then    
-			IFS="|" read -ra parts <<< "${exp_name}"
-			recommendation_file="${parts[1]}.csv"
-			recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
-			if [[ -f ${recommendation_filepath} ]]; then
-				recommendation_file_path="./recommendations_demo/validateResults/recommendations/"${recommendation_file}
-				boxplot_file_path="./recommendations_demo/validateResults/boxplots/"${recommendation_file}
-				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentMetrics_sorted.csv\", '${recommendation_file_path}',\"RECOMMENDATIONS\")"
-				python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', \"experimentPlotData_sorted.csv\", '${boxplot_file_path}',\"BOX PLOTS\")"
-				exit_code=$?
-				validate_status=$((validate_status + exit_code))
-				#validate_recommendations metrics_recommendations_data.json
-				#validate_recommendations recommendations_data.json
-				echo "=================================="
-			else
-				echo "No matching recommendation output exists for $exp_name"
-                                continue
-                        fi
-	       fi
+                python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+                if [[ ${EXP_TYPE} == "namespace" ]]; then
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getNamespaceExperimentMetrics("metrics_recommendations_data.json")'
+                else
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
+                fi
 	done
 
 	# Cleaning up all temp files
-	rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv metrics_recommendations_data.json
+        rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv metrics_recommendations_data.json
+	
+}
 
-	if [[ ${validate_status} == 0 ]]; then
-		return 0
-	else
-		return 1
-	fi
+function validate_experiment_recommendations() {
+        VALIDATE=$1
+
+        python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getExperimentNames('${CLUSTER_TYPE}')" > expoutput.txt
+        names=$(cat expoutput.txt | tail -n 1)
+        cleaned_names=$(echo "$names" | sed "s/\[//; s/\]//; s/'//g")
+        # Convert the cleaned names into an array
+        IFS=',' read -ra expnames_array <<< "$cleaned_names"
+	# Iterate over the names
+        validate_status=0
+        for exp_name in ${expnames_array[@]}; do
+		## Temporary code to differentiate between namespace and container experiments
+		pipe_count=$(echo "${exp_name}" | awk -F'|' '{print NF-1}')
+		if [ "$pipe_count" -eq 1 ]; then
+			BENCHMARK_RESULTS_DIR="./recommendations_demo/validateNamespaceResults"
+			EXP_TYPE="namespace"
+		elif [ "$pipe_count" -gt 1 ]; then
+			BENCHMARK_RESULTS_DIR="./recommendations_demo/validateResults"
+			EXP_TYPE="container"
+		fi
+
+                python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
+                if [[ ${EXP_TYPE} == "namespace" ]]; then
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getNamespaceExperimentMetrics("metrics_recommendations_data.json")'
+                else
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
+                fi
+                if [[ ${VALIDATE} == "true" ]]; then
+                        IFS="|" read -ra parts <<< "${exp_name}"
+                        recommendation_file="${parts[1]}.csv"
+                        recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
+                        boxplot_filepath="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
+                        if [[ -f ${recommendation_filepath} ]]; then
+                                python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
+                                if [[ ${EXP_TYPE} != "namespace" ]]; then
+                                        python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
+                                fi
+                                exit_code=$?
+                                validate_status=$((validate_status + exit_code))
+                                echo "=================================="
+                        else
+                                echo "No matching recommendation output exists for $exp_name"
+                                continue
+                        fi
+               fi
+        done
+
+	# Cleaning up all temp files
+        rm -rf ${SCRIPTS_REPO}/results aggregateClusterResults.csv output cop-withobjType.csv intermediate.csv expoutput.txt experimentMetrics_temp.csv experimentMetrics_sorted.csv experimentPlotData_temp.csv experimentPlotData_sorted.csv metrics_recommendations_data.json
+
+        if [[ ${validate_status} == 0 ]]; then
+                return 0
+        else
+                return 1
+        fi
 }
 
 # Split the csv data into multiple files of 6 hr data.
