@@ -240,10 +240,12 @@ function monitoring_demo_start() {
 			daysData="None"
 		fi
 		echo "Validating the container Recommendations..."
+		# Use below resultsDir to validate container type experiments
 		resultsDir="./recommendations_demo/validateResults"
 		monitoring_recommendations_demo_with_data ${resultsDir} crc true ${bulkResults} ${daysData} "container"
 		echo "-----------------------------------------"
 		echo "Validating the namespace Recommendations..."
+		# Use below resultsDir to validate namespace experiments
 		resultsDir="./recommendations_demo/validateNamespaceResults"
 		monitoring_recommendations_demo_with_data ${resultsDir} "none" true ${bulkResults} ${daysData} "namespace"
 
