@@ -192,3 +192,29 @@ def combine_jsons(result_json, reco_json):
     data[0].update(combined_data)
 
     return data[0]
+
+
+def remote_monitoring_summary() :
+    print()
+    print("##########################################")
+    print("Remote monitoring demo summary:")
+    print("##########################################")
+    print()
+    print("To view experiment details for container and namespace experiment types, check 'usage_data.json'.")
+    print("To view recommendations for container and namespace experiments, check 'recommendations_data.json'.")
+    print()
+    print("-------------------------------------------")
+    print("          CLI Commands for Kruize          ")
+    print("-------------------------------------------")
+    print("1. Create Experiment:")
+    print(f"   curl -X POST http://{URL}/createExperiment -d @./experiments/{{experiment}}.json")
+    print("2. Update Results for an Experiment:")
+    print(f"   curl -X POST http://{URL}/updateResults -d @./{{update_results}}.json")
+    print("3. Update Recommendations for an Experiment:")
+    print(f"    curl -X POST http://{URL}/updateRecommendations?experiment_name={{experiment_name}}&interval_end_time={{interval_end_time}}")
+    print("4. List Recommendations for an Experiment:")
+    print(f"   curl http://{URL}/listRecommendations?experiment_name={{experiment_name}}&rm=true")
+    print("5. List all Experiments:")
+    print(f"   curl http://{URL}/listExperiments?rm=true")
+    print("-------------------------------------------")
+    print("For kruize documentation, refer https://github.com/kruize/autotune/blob/master/design/MonitoringModeAPI.md")

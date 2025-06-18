@@ -193,6 +193,7 @@ def main(argv):
     with open('usage_data.json', 'w') as f:
         json.dump(list_exp_json, f, indent=4)
 
+    remote_monitoring_summary()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
