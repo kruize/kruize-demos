@@ -154,6 +154,7 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
 
 #create_json_from_csv('../csv_data/rhsso-operator_deployment_sso.csv', 'finaldata.csv')
 
+# Create results json for namespace experiment from csv
 def create_namespace_json_from_csv(csv_file_path, outputjsonfile):
 
     # Check if output file already exists. If yes, delete that.
