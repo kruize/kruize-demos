@@ -207,15 +207,15 @@ To view recommendations for container and namespace experiments, check 'recommen
           CLI Commands for Kruize                       
 -------------------------------------------
 1. Create Experiment:
-    curl -X POST http://{URL}/createExperiment -d @./experiments/{{experiment}}.json
+    curl -X POST {URL}/createExperiment -d @./{{experiment}}.json
 2. Update Results for an Experiment:
-    curl -X POST http://{URL}/updateResults -d @./{{update_results}}.json
+    curl -X POST {URL}/updateResults -d @./{{update_results}}.json
 3. Update Recommendations for an Experiment:
-    curl -X POST http://{URL}/updateRecommendations?experiment_name={{experiment_name}}&interval_end_time={{interval_end_time}}")
+    curl -X POST {URL}/updateRecommendations?experiment_name={{experiment_name}}&interval_end_time={{interval_end_time}}")
 4. List Recommendations for an Experiment:
-    curl http://{URL}/listRecommendations?experiment_name={{experiment_name}}&rm=true
+    curl {URL}/listRecommendations?experiment_name={{experiment_name}}&rm=true
 5. List all Experiments:
-    curl http://{URL}/listExperiments?rm=true
+    curl {URL}/listExperiments?rm=true
 -------------------------------------------
 For kruize documentation, refer https://github.com/kruize/autotune/blob/master/design/MonitoringModeAPI.md
 """
