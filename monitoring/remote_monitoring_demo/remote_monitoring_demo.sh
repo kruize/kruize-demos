@@ -221,7 +221,7 @@ function remote_monitoring_demo_start() {
 	echo "--> Clone Required Repos"
 
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-               minikube >/dev/null
+		minikube >/dev/null
       		check_err "ERROR: minikube not installed"
 		echo "--> Setup minikube"
 		echo "--> Installs Prometheus"
