@@ -211,8 +211,6 @@ function pronosana_init() {
 
 function remote_monitoring_demo_start() {
 
-	minikube >/dev/null
-	check_err "ERROR: minikube not installed"
 	# Start all the installs
 	start_time=$(get_date)
 	echo
@@ -223,6 +221,8 @@ function remote_monitoring_demo_start() {
 	echo "--> Clone Required Repos"
 
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+               minikube >/dev/null
+      		check_err "ERROR: minikube not installed"
 		echo "--> Setup minikube"
 		echo "--> Installs Prometheus"
 	fi
