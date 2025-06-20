@@ -7,13 +7,13 @@
   "target_cluster": "remote",
   "kubernetes_objects": [
     {
-      "type": "deployment",
-      "name": "tfb-qrh-deployment_0",
-      "namespace": "default_0",
+      "type": "statefulset",
+      "name": "gpu-full-app",
+      "namespace": "ml",
       "containers": [
         {
-          "container_image_name": "kruize/tfb-qrh:1.13.2.F_et17",
-          "container_name": "tfb-server-1"
+          "container_image_name": "quay.io/production/gpu-full-app:latest",
+          "container_name": "gpu-full-app-container"
         }
       ]
     }
