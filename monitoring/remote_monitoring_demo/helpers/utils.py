@@ -125,6 +125,104 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                     }
                 })
 
+            if "accelerator_core_usage_percentage_max" in row and row["accelerator_core_usage_percentage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorCoreUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_core_usage_percentage_min"]),
+                                "max": float(row["accelerator_core_usage_percentage_max"]),
+                                "avg": float(row["accelerator_core_usage_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorCoreUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_core_usage_percentage_min"]),
+                                "max": float(row["accelerator_core_usage_percentage_max"]),
+                                "avg": float(row["accelerator_core_usage_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+
+            if "accelerator_memory_copy_percentage_max" in row and row["accelerator_memory_copy_percentage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorMemoryUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_memory_copy_percentage_min"]),
+                                "max": float(row["accelerator_memory_copy_percentage_max"]),
+                                "avg": float(row["accelerator_memory_copy_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorMemoryUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_memory_copy_percentage_min"]),
+                                "max": float(row["accelerator_memory_copy_percentage_max"]),
+                                "avg": float(row["accelerator_memory_copy_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+            if "accelerator_frame_buffer_usage_max" in row and row["accelerator_frame_buffer_usage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorFrameBufferUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_frame_buffer_usage_min"]),
+                                "max": float(row["accelerator_frame_buffer_usage_max"]),
+                                "avg": float(row["accelerator_frame_buffer_usage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorFrameBufferUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_frame_buffer_usage_min"]),
+                                "max": float(row["accelerator_frame_buffer_usage_max"]),
+                                "avg": float(row["accelerator_frame_buffer_usage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+
             container = {
                 "container_image_name": row["image_name"],
                 "container_name": row["container_name"],

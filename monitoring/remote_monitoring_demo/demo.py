@@ -79,9 +79,16 @@ def main(argv):
 
     recommendations_json_arr = []
     ## Create experiments from the experiments_list and use related csv data to updateResults
-    experiments_list = ['eap-app_deploymentconfig_america', 'example_replicationcontroller_america',
-                        'tfb-qrh_deployment_tfb-tests', 'rhsso-operator_deployment_sso',
-                        'clowder-system-namespace-experiment']
+    experiments_list = [
+        'eap-app_deploymentconfig_america',
+        'example_replicationcontroller_america',
+        'tfb-qrh_deployment_tfb-tests',
+        'rhsso-operator_deployment_sso',
+        'clowder-system-namespace-experiment',
+        'gpu-full-app',
+        'gpu-partition-app',
+        'no-gpu-app'
+    ]
     for exp in experiments_list:
         experiment_json = "./json_files/experiment_jsons/" + exp + ".json"
         experiment_csv = "./csv_data/" + exp + ".csv"
