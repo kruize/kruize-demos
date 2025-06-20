@@ -1,6 +1,6 @@
 [{
   "version": "v2.0",
-  "experiment_name": "no-gpu-app",
+  "experiment_name": "no-gpu-app|deployment|default",
   "cluster_name": "cluster-one-division-bell",
   "performance_profile": "resource-optimization-openshift",
   "mode": "monitor",

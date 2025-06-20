@@ -1,6 +1,6 @@
 [{
   "version": "v2.0",
-  "experiment_name": "gpu-full-app",
+  "experiment_name": "gpu-full-app|statefulset|ml",
   "cluster_name": "cluster-one-division-bell",
   "performance_profile": "resource-optimization-openshift",
   "mode": "monitor",
