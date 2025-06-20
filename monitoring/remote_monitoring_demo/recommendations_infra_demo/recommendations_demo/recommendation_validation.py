@@ -792,7 +792,7 @@ def getExperimentMetrics(filename):
     else:
         with open('experimentMetrics_temp.csv', 'w', newline='') as f:
             datadict = data[0]
-            containsGPUdata=False
+            containsAcceleratordata=False
 
             ## Check if it has GPU recommendations
             for key, value in datadict.items():
@@ -803,13 +803,67 @@ def getExperimentMetrics(filename):
                                 for timezone, timezone_data in container_data["results"].items():
                                     for metric_name, metric_data in timezone_data["metrics"].items():
                                         if metric_name in ["acceleratorCoreUsage", "acceleratorMemoryUsage", "acceleratorFrameBufferUsage"]:
-                                            containsGPUdata=True
+                                            containsAcceleratordata=True
                                             break
 
-            if containsGPUdata == True:
-                fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'acceleratorFrameBufferUsage_min', 'acceleratorFrameBufferUsage_max', 'acceleratorFrameBufferUsage_avg', 'acceleratorMemoryUsage_min', 'acceleratorMemoryUsage_max', 'acceleratorMemoryUsage_avg', 'acceleratorCoreUsage_min', 'acceleratorCoreUsage_max', 'acceleratorCoreUsage_avg', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_short_term_gpu_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_medium_term_gpu_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_long_term_gpu_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_short_term_gpu_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_medium_term_gpu_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'performance_long_term_gpu_limits', 'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation', 'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation', 'performance_medium_term_cpu_requests_variation' , 'performance_medium_term_memory_requests_variation', 'performance_medium_term_cpu_limits_variation' , 'performance_medium_term_memory_limits_variation', 'performance_long_term_cpu_requests_variation' , 'performance_long_term_memory_requests_variation', 'performance_long_term_cpu_limits_variation' , 'performance_long_term_memory_limits_variation', 'cpuUsage_format', 'memoryUsage_format']
-            else:
-                fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation', 'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation', 'performance_medium_term_cpu_requests_variation' , 'performance_medium_term_memory_requests_variation', 'performance_medium_term_cpu_limits_variation' , 'performance_medium_term_memory_limits_variation', 'performance_long_term_cpu_requests_variation' , 'performance_long_term_memory_requests_variation', 'performance_long_term_cpu_limits_variation' , 'performance_long_term_memory_limits_variation', 'cpuUsage_format', 'memoryUsage_format']
+            fieldnames = [
+                    'experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone',
+                    'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min',
+                    'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max',
+                    'cpuRequest_sum', 'cpuRequest_avg',
+                    'cpuLimit_sum', 'cpuLimit_avg',
+                    'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min',
+                    'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min',
+                    'memoryRequest_sum', 'memoryRequest_avg',
+                    'memoryLimit_sum', 'memoryLimit_avg',
+                    # Cost fields
+                    'cost_short_term_cpu_requests', 'cost_short_term_memory_requests',
+                    'cost_short_term_cpu_limits', 'cost_short_term_memory_limits',
+                    'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests',
+                    'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits',
+                    'cost_long_term_cpu_requests', 'cost_long_term_memory_requests',
+                    'cost_long_term_cpu_limits', 'cost_long_term_memory_limits',
+
+                    # Cost variation fields
+                    'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation',
+                    'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation',
+                    'cost_medium_term_cpu_requests_variation', 'cost_medium_term_memory_requests_variation',
+                    'cost_medium_term_cpu_limits_variation', 'cost_medium_term_memory_limits_variation',
+                    'cost_long_term_cpu_requests_variation', 'cost_long_term_memory_requests_variation',
+                    'cost_long_term_cpu_limits_variation', 'cost_long_term_memory_limits_variation',
+
+                    # Performance fields
+                    'performance_short_term_cpu_requests', 'performance_short_term_memory_requests',
+                    'performance_short_term_cpu_limits', 'performance_short_term_memory_limits',
+                    'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests',
+                    'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits',
+                    'performance_long_term_cpu_requests', 'performance_long_term_memory_requests',
+                    'performance_long_term_cpu_limits', 'performance_long_term_memory_limits',
+
+                    # Performance variation fields
+                    'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation',
+                    'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation',
+                    'performance_medium_term_cpu_requests_variation', 'performance_medium_term_memory_requests_variation',
+                    'performance_medium_term_cpu_limits_variation', 'performance_medium_term_memory_limits_variation',
+                    'performance_long_term_cpu_requests_variation', 'performance_long_term_memory_requests_variation',
+                    'performance_long_term_cpu_limits_variation', 'performance_long_term_memory_limits_variation',
+
+                    # Final formatting fields
+                    'cpuUsage_format', 'memoryUsage_format'
+                    ]
+            # Additional GPU-related fields
+            accelerator_fields = [
+                    'acceleratorFrameBufferUsage_min', 'acceleratorFrameBufferUsage_max', 'acceleratorFrameBufferUsage_avg',
+                    'acceleratorMemoryUsage_min', 'acceleratorMemoryUsage_max', 'acceleratorMemoryUsage_avg',
+                    'acceleratorCoreUsage_min', 'acceleratorCoreUsage_max', 'acceleratorCoreUsage_avg',
+
+                    # Cost and performance GPU fields
+                    'cost_short_term_accelerator_limits', 'cost_medium_term_accelerator_limits', 'cost_long_term_accelerator_limits',
+                    'performance_short_term_accelerator_limits', 'performance_medium_term_accelerator_limits', 'performance_long_term_accelerator_limits'
+                    ]
+            # Conditionally extend the field list with GPU data
+            if containsAcceleratordata:
+                fieldnames.extend(accelerator_fields)
 
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
@@ -858,7 +912,7 @@ def getExperimentMetrics(filename):
                                                             for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                                     if recomm_resource not in ["cpu", "memory"]:
-                                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_gpu_' + recomm_config
+                                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_accelerator_' + recomm_config
                                                                         recomm_dict[recomm_var_name] = str(recomm_resource)
                                                                     else:
                                                                         recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
