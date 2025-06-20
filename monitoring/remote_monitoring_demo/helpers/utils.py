@@ -229,17 +229,21 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                 "metrics": container_metrics
             }
 
+            # Choose type and name based on available keys
+            workload_type = row.get("k8_object_type") or row.get("workload_type")
+            workload_name = row.get("k8_object_name") or row.get("workload")
+
             containers = [container]
             kubernetes_object = {
-                "type": row["k8_object_type"],
-                "name": row["k8_object_name"],
+                "type": workload_type,
+                "name": workload_name,
                 "namespace": row["namespace"],
                 "containers": containers
             }
             kubernetes_objects = [kubernetes_object]
             experiment = {
                 "version": "v2.0",
-                "experiment_name": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
+                "experiment_name": f"{workload_name}|{workload_type}|{row['namespace']}",
                 "interval_start_time": convert_date_format(row["interval_start"]),
                 "interval_end_time": convert_date_format(row["interval_end"]),
                 "kubernetes_objects": kubernetes_objects
