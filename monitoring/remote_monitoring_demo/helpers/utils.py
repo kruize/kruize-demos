@@ -7,7 +7,12 @@ import getopt
 
 # Convert any date format to kruize specific format
 def convert_date_format(input_date_str):
-    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y", "%Y-%m-%dT%H:%M:%S.%f", "%a %b %d %H:%M:%S UTC %Y", "%Y-%m-%d %H:%M:%S %Z", "%Y-%m-%d %H:%M:%S %z %Z"]
+    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y",
+                    "%Y-%m-%dT%H:%M:%S.%f",
+                    "%a %b %d %H:%M:%S UTC %Y",
+                    "%Y-%m-%d %H:%M:%S %Z",
+                    "%Y-%m-%d %H:%M:%S %z %Z",
+                    "%Y-%m-%dT%H:%M:%S"]
 
     for date_format in DATE_FORMATS:
         try:
@@ -125,23 +130,125 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                     }
                 })
 
+            if "accelerator_core_usage_percentage_max" in row and row["accelerator_core_usage_percentage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorCoreUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_core_usage_percentage_min"]),
+                                "max": float(row["accelerator_core_usage_percentage_max"]),
+                                "avg": float(row["accelerator_core_usage_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorCoreUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_core_usage_percentage_min"]),
+                                "max": float(row["accelerator_core_usage_percentage_max"]),
+                                "avg": float(row["accelerator_core_usage_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+
+            if "accelerator_memory_copy_percentage_max" in row and row["accelerator_memory_copy_percentage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorMemoryUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_memory_copy_percentage_min"]),
+                                "max": float(row["accelerator_memory_copy_percentage_max"]),
+                                "avg": float(row["accelerator_memory_copy_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorMemoryUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_memory_copy_percentage_min"]),
+                                "max": float(row["accelerator_memory_copy_percentage_max"]),
+                                "avg": float(row["accelerator_memory_copy_percentage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+            if "accelerator_frame_buffer_usage_max" in row and row["accelerator_frame_buffer_usage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorFrameBufferUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_frame_buffer_usage_min"]),
+                                "max": float(row["accelerator_frame_buffer_usage_max"]),
+                                "avg": float(row["accelerator_frame_buffer_usage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorFrameBufferUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_frame_buffer_usage_min"]),
+                                "max": float(row["accelerator_frame_buffer_usage_max"]),
+                                "avg": float(row["accelerator_frame_buffer_usage_avg"]),
+                                "format": "percentage"
+                            }
+                        }
+                    })
+
             container = {
                 "container_image_name": row["image_name"],
                 "container_name": row["container_name"],
                 "metrics": container_metrics
             }
 
+            # Choose type and name based on available keys
+            workload_type = row.get("k8_object_type") or row.get("workload_type")
+            workload_name = row.get("k8_object_name") or row.get("workload")
+
             containers = [container]
             kubernetes_object = {
-                "type": row["k8_object_type"],
-                "name": row["k8_object_name"],
+                "type": workload_type,
+                "name": workload_name,
                 "namespace": row["namespace"],
                 "containers": containers
             }
             kubernetes_objects = [kubernetes_object]
             experiment = {
                 "version": "v2.0",
-                "experiment_name": row["k8_object_name"] + '|' + row["k8_object_type"] + '|' + row["namespace"],
+                "experiment_name": f"{workload_name}|{workload_type}|{row['namespace']}",
                 "interval_start_time": convert_date_format(row["interval_start"]),
                 "interval_end_time": convert_date_format(row["interval_end"]),
                 "kubernetes_objects": kubernetes_objects

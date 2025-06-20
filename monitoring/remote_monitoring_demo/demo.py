@@ -39,6 +39,24 @@ def generate_json(find_arr, json_file, filename, i):
         file.write(data)
 
 
+def print_experiment_list(container_experiments: list, namespace_experiments: list, gpu_experiments: list):
+    def print_section(title, items):
+        print(f"\n{'=' * 40}")
+        print(f"{title}")
+        print(f"{'-' * 40}")
+        if items:
+            for item in items:
+                print(f"- {item}")
+        else:
+            print("(none)")
+        print(f"{'=' * 40}")
+
+    print_section("Container-Level Experiments", container_experiments)
+    print_section("Namespace-Level Experiments", namespace_experiments)
+    print_section("GPU-Based Experiments", gpu_experiments)
+
+
+
 def main(argv):
     cluster_type = "minikube"
     create_exp_json_file = "./json_files/create_exp.json"
@@ -79,9 +97,18 @@ def main(argv):
 
     recommendations_json_arr = []
     ## Create experiments from the experiments_list and use related csv data to updateResults
-    experiments_list = ['eap-app_deploymentconfig_america', 'example_replicationcontroller_america',
-                        'tfb-qrh_deployment_tfb-tests', 'rhsso-operator_deployment_sso',
-                        'clowder-system-namespace-experiment']
+    gpu_experiments = ['gpu-full-app', 'gpu-partition-app']
+    namespace_experiments = ['clowder-system-namespace-experiment']
+    container_experiments = [
+        'eap-app_deploymentconfig_america',
+        'example_replicationcontroller_america',
+        'tfb-qrh_deployment_tfb-tests',
+        'rhsso-operator_deployment_sso',
+        'no-gpu-app'
+    ]
+
+    experiments_list = container_experiments + namespace_experiments + gpu_experiments
+
     for exp in experiments_list:
         experiment_json = "./json_files/experiment_jsons/" + exp + ".json"
         experiment_csv = "./csv_data/" + exp + ".csv"
@@ -193,6 +220,9 @@ def main(argv):
     with open('usage_data.json', 'w') as f:
         json.dump(list_exp_json, f, indent=4)
 
+    print_experiment_list(container_experiments=container_experiments,
+                          namespace_experiments=namespace_experiments,
+                          gpu_experiments=gpu_experiments)
     remote_monitoring_summary()
 
 if __name__ == '__main__':

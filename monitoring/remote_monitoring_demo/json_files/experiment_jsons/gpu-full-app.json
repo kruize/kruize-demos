@@ -1,0 +1,27 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "gpu-full-app|statefulset|ml",
+  "cluster_name": "cluster-one-division-bell",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "kubernetes_objects": [
+    {
+      "type": "statefulset",
+      "name": "gpu-full-app",
+      "namespace": "ml",
+      "containers": [
+        {
+          "container_image_name": "quay.io/production/gpu-full-app:latest",
+          "container_name": "gpu-full-app-container"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]

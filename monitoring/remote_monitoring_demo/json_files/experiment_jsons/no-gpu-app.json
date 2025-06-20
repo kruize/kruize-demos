@@ -1,0 +1,27 @@
+[{
+  "version": "v2.0",
+  "experiment_name": "no-gpu-app|deployment|default",
+  "cluster_name": "cluster-one-division-bell",
+  "performance_profile": "resource-optimization-openshift",
+  "mode": "monitor",
+  "target_cluster": "remote",
+  "kubernetes_objects": [
+    {
+      "type": "deployment",
+      "name": "no-gpu-app",
+      "namespace": "default",
+      "containers": [
+        {
+          "container_image_name": "quay.io/production/no-gpu-app:latest",
+          "container_name": "no-gpu-app-container"
+        }
+      ]
+    }
+  ],
+  "trial_settings": {
+    "measurement_duration": "15min"
+  },
+  "recommendation_settings": {
+    "threshold": "0.1"
+  }
+}]
