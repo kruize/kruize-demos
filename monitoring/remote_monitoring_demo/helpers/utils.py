@@ -7,7 +7,12 @@ import getopt
 
 # Convert any date format to kruize specific format
 def convert_date_format(input_date_str):
-    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y", "%Y-%m-%dT%H:%M:%S.%f", "%a %b %d %H:%M:%S UTC %Y", "%Y-%m-%d %H:%M:%S %Z", "%Y-%m-%d %H:%M:%S %z %Z"]
+    DATE_FORMATS = ["%a %b %d %H:%M:%S %Z %Y",
+                    "%Y-%m-%dT%H:%M:%S.%f",
+                    "%a %b %d %H:%M:%S UTC %Y",
+                    "%Y-%m-%d %H:%M:%S %Z",
+                    "%Y-%m-%d %H:%M:%S %z %Z",
+                    "%Y-%m-%dT%H:%M:%S"]
 
     for date_format in DATE_FORMATS:
         try:
