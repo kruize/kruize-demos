@@ -567,7 +567,104 @@ def create_json_from_csv(csv_file_path, outputjsonfile):
                                 "format": "MiB"
                                 }
                             }
-                        }) 
+                        })
+            if "accelerator_core_usage_percentage_max" in row and row["accelerator_core_usage_percentage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorCoreUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_core_usage_percentage_min"]),
+                                "max": float(row["accelerator_core_usage_percentage_max"]),
+                                "avg": float(row["accelerator_core_usage_percentage_avg"]),
+                                "format": "percentage"
+                                }
+                            }
+                        })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorCoreUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_core_usage_percentage_min"]),
+                                "max": float(row["accelerator_core_usage_percentage_max"]),
+                                "avg": float(row["accelerator_core_usage_percentage_avg"]),
+                                "format": "percentage"
+                                }
+                            }
+                        })
+
+            if "accelerator_memory_copy_percentage_max" in row and row["accelerator_memory_copy_percentage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorMemoryUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_memory_copy_percentage_min"]),
+                                "max": float(row["accelerator_memory_copy_percentage_max"]),
+                                "avg": float(row["accelerator_memory_copy_percentage_avg"]),
+                                "format": "percentage"
+                                }
+                            }
+                        })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorMemoryUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_memory_copy_percentage_min"]),
+                                "max": float(row["accelerator_memory_copy_percentage_max"]),
+                                "avg": float(row["accelerator_memory_copy_percentage_avg"]),
+                                "format": "percentage"
+                                }
+                            }
+                        })
+            if "accelerator_frame_buffer_usage_max" in row and row["accelerator_frame_buffer_usage_max"]:
+                if "node" in row and row["node"]:
+                    container_metrics.append({
+                        "name" : "acceleratorFrameBufferUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"],
+                                "node": row["node"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_frame_buffer_usage_min"]),
+                                "max": float(row["accelerator_frame_buffer_usage_max"]),
+                                "avg": float(row["accelerator_frame_buffer_usage_avg"]),
+                                "format": "percentage"
+                                }
+                            }
+                        })
+                else:
+                    container_metrics.append({
+                        "name" : "acceleratorFrameBufferUsage",
+                        "results": {
+                            "metadata": {
+                                "accelerator_model_name": row["accelerator_model_name"]
+                            },
+                            "aggregation_info": {
+                                "min": float(row["accelerator_frame_buffer_usage_min"]),
+                                "max": float(row["accelerator_frame_buffer_usage_max"]),
+                                "avg": float(row["accelerator_frame_buffer_usage_avg"]),
+                                "format": "percentage"
+                                }
+                            }
+                        })
 
 
             # Create a dictionary to hold the container information
@@ -694,11 +791,84 @@ def getExperimentMetrics(filename):
         print("No experiments found!")
     else:
         with open('experimentMetrics_temp.csv', 'w', newline='') as f:
-            fieldnames = ['experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min', 'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max', 'cpuRequest_sum', 'cpuRequest_avg', 'cpuLimit_sum', 'cpuLimit_avg', 'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min', 'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min', 'memoryRequest_sum', 'memoryRequest_avg',  'memoryLimit_sum', 'memoryLimit_avg', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation', 'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation', 'performance_medium_term_cpu_requests_variation' , 'performance_medium_term_memory_requests_variation', 'performance_medium_term_cpu_limits_variation' , 'performance_medium_term_memory_limits_variation', 'performance_long_term_cpu_requests_variation' , 'performance_long_term_memory_requests_variation', 'performance_long_term_cpu_limits_variation' , 'performance_long_term_memory_limits_variation', 'cpuUsage_format', 'memoryUsage_format']
+            datadict = data[0]
+            containsAcceleratordata=False
+
+            ## Check if it has GPU recommendations
+            for key, value in datadict.items():
+                if key == "kubernetes_objects":
+                    for kobj in value:
+                        for container_name,container_data in kobj["containers"].items():
+                            if "results" in container_data:
+                                for timezone, timezone_data in container_data["results"].items():
+                                    for metric_name, metric_data in timezone_data["metrics"].items():
+                                        if metric_name in ["acceleratorCoreUsage", "acceleratorMemoryUsage", "acceleratorFrameBufferUsage"]:
+                                            containsAcceleratordata=True
+                                            break
+
+            fieldnames = [
+                    'experiment_name', 'namespace', 'type', 'name', 'container_name', 'timezone',
+                    'cpuUsage_sum', 'cpuUsage_avg', 'cpuUsage_max', 'cpuUsage_min',
+                    'cpuThrottle_sum', 'cpuThrottle_avg', 'cpuThrottle_max',
+                    'cpuRequest_sum', 'cpuRequest_avg',
+                    'cpuLimit_sum', 'cpuLimit_avg',
+                    'memoryRSS_sum', 'memoryRSS_avg', 'memoryRSS_max', 'memoryRSS_min',
+                    'memoryUsage_sum', 'memoryUsage_avg', 'memoryUsage_max', 'memoryUsage_min',
+                    'memoryRequest_sum', 'memoryRequest_avg',
+                    'memoryLimit_sum', 'memoryLimit_avg',
+                    # Cost fields
+                    'cost_short_term_cpu_requests', 'cost_short_term_memory_requests',
+                    'cost_short_term_cpu_limits', 'cost_short_term_memory_limits',
+                    'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests',
+                    'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits',
+                    'cost_long_term_cpu_requests', 'cost_long_term_memory_requests',
+                    'cost_long_term_cpu_limits', 'cost_long_term_memory_limits',
+
+                    # Cost variation fields
+                    'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation',
+                    'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation',
+                    'cost_medium_term_cpu_requests_variation', 'cost_medium_term_memory_requests_variation',
+                    'cost_medium_term_cpu_limits_variation', 'cost_medium_term_memory_limits_variation',
+                    'cost_long_term_cpu_requests_variation', 'cost_long_term_memory_requests_variation',
+                    'cost_long_term_cpu_limits_variation', 'cost_long_term_memory_limits_variation',
+
+                    # Performance fields
+                    'performance_short_term_cpu_requests', 'performance_short_term_memory_requests',
+                    'performance_short_term_cpu_limits', 'performance_short_term_memory_limits',
+                    'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests',
+                    'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits',
+                    'performance_long_term_cpu_requests', 'performance_long_term_memory_requests',
+                    'performance_long_term_cpu_limits', 'performance_long_term_memory_limits',
+
+                    # Performance variation fields
+                    'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation',
+                    'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation',
+                    'performance_medium_term_cpu_requests_variation', 'performance_medium_term_memory_requests_variation',
+                    'performance_medium_term_cpu_limits_variation', 'performance_medium_term_memory_limits_variation',
+                    'performance_long_term_cpu_requests_variation', 'performance_long_term_memory_requests_variation',
+                    'performance_long_term_cpu_limits_variation', 'performance_long_term_memory_limits_variation',
+
+                    # Final formatting fields
+                    'cpuUsage_format', 'memoryUsage_format'
+                    ]
+            # Additional GPU-related fields
+            accelerator_fields = [
+                    'acceleratorFrameBufferUsage_min', 'acceleratorFrameBufferUsage_max', 'acceleratorFrameBufferUsage_avg',
+                    'acceleratorMemoryUsage_min', 'acceleratorMemoryUsage_max', 'acceleratorMemoryUsage_avg',
+                    'acceleratorCoreUsage_min', 'acceleratorCoreUsage_max', 'acceleratorCoreUsage_avg',
+
+                    # Cost and performance GPU fields
+                    'cost_short_term_accelerator_limits', 'cost_medium_term_accelerator_limits', 'cost_long_term_accelerator_limits',
+                    'performance_short_term_accelerator_limits', 'performance_medium_term_accelerator_limits', 'performance_long_term_accelerator_limits'
+                    ]
+            # Conditionally extend the field list with GPU data
+            if containsAcceleratordata:
+                fieldnames.extend(accelerator_fields)
+
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
-            datadict = data[0]
+
             for key, value in datadict.items():
                 if key == "experiment_name":
                     experiment_name = value
@@ -741,8 +911,12 @@ def getExperimentMetrics(filename):
                                                         if "config" in recomm_enginedata:
                                                             for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                                    recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
-                                                                    recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
+                                                                    if recomm_resource not in ["cpu", "memory"]:
+                                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_accelerator_' + recomm_config
+                                                                        recomm_dict[recomm_var_name] = str(recomm_resource)
+                                                                    else:
+                                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
+                                                                        recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                                         if "variation" in recomm_enginedata:
                                                             for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
