@@ -429,7 +429,10 @@ function kruize_local_demo_setup() {
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [ ${CLUSTER_TYPE} != "local" ]; then
-	  kruize_install &
+	  	docker pull quay.io/kruize/kruize_operator
+	  make bundle IMG="kruize/kruize-operator:v0.0.1" 
+	  make bundle-build bundle-push BUNDLE_IMG="kruize/kruize-operator-bundle:v0.0.1" 
+	  operator-sdk run bundle kruize/kruize-operator-bundle:v0.0.1 &
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
