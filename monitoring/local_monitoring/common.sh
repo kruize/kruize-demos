@@ -429,10 +429,7 @@ function kruize_local_demo_setup() {
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [ ${CLUSTER_TYPE} != "local" ]; then
-	  	docker pull quay.io/kruize/kruize_operator
-	  make bundle IMG="kruize/kruize-operator:v0.0.1" 
-	  make bundle-build bundle-push BUNDLE_IMG="kruize/kruize-operator-bundle:v0.0.1" 
-	  operator-sdk run bundle kruize/kruize-operator-bundle:v0.0.1 &
+	  operator_setup
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
@@ -526,6 +523,37 @@ function kruize_local_demo_setup() {
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
+}
+
+#setup the operator and deploy it
+operator_setup() {
+    # Clean up any existing operator resources first
+    echo "🧹 Cleaning up existing operator resources..."
+    kubectl delete catalogsource kruize-operator-catalog -n olm --ignore-not-found=true
+    kubectl delete subscription kruize-operator -n kruize-system --ignore-not-found=true
+    kubectl delete csv -l operators.coreos.com/kruize-operator.kruize-system -n kruize-system --ignore-not-found=true
+    kubectl delete deployment kruize-operator-controller-manager -n kruize-system --ignore-not-found=true
+    
+    sleep 5
+
+	echo "🔧 Installing OLM..."
+	operator-sdk olm install --timeout 5m || echo "OLM already installed"
+	
+	echo "🚀 Deploying operator via OLM..."
+	operator-sdk run bundle $BUNDLE_IMAGE --timeout 10m
+
+	echo "⏳ Waiting for operator to be ready..."
+	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n $NAMESPACE --timeout=300s
+
+	echo "📄 Applying Kruize resource..."
+	kubectl apply -f $SAMPLE_FILE
+
+	echo "✅ Deployment complete! Checking status..."
+	kubectl get kruize -n $NAMESPACE
+	kubectl get pods -n $NAMESPACE
+
+	echo "🔍 To view operator logs:"
+	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
 
 # Gnerate experiment with the container which is long running
