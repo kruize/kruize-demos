@@ -527,26 +527,58 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-    # Clean up any existing operator resources first
-    echo "🧹 Cleaning up existing operator resources..."
-    kubectl delete catalogsource kruize-operator-catalog -n olm --ignore-not-found=true
-    kubectl delete subscription kruize-operator -n kruize-system --ignore-not-found=true
-    kubectl delete csv -l operators.coreos.com/kruize-operator.kruize-system -n kruize-system --ignore-not-found=true
-    kubectl delete deployment kruize-operator-controller-manager -n kruize-system --ignore-not-found=true
-    
-    sleep 5
+	echo "🔄 pulling the kruize operator repository"
+	git clone -b test-operator https://github.com/ncau/kruize-operator.git
 
-	echo "🔧 Installing OLM..."
-	operator-sdk olm install --timeout 5m || echo "OLM already installed"
-	
-	echo "🚀 Deploying operator via OLM..."
-	operator-sdk run bundle $BUNDLE_IMAGE --timeout 10m
+	echo "🔄 installing crds"
+	cd kruize-operator
+	make install kruize-operator
 
-	echo "⏳ Waiting for operator to be ready..."
-	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n $NAMESPACE --timeout=300s
+	echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE}"
+	make deploy IMG=${OPERATOR_IMAGE}
+	cd ..
+
+	echo "🔄 waiting for kruize operator to be ready"
+	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
 
 	echo "📄 Applying Kruize resource..."
-	kubectl apply -f $SAMPLE_FILE
+	pwd
+	kubectl apply -f ./kruize-operator/config/samples/v1alpha1_kruize.yaml -n $NAMESPACE
+
+	sleep 10
+	
+	echo "⏳ Waiting for all operator pods to be ready..."
+
+    echo "⏳ Waiting for kruize-db pod to be ready..."
+    kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
+    if [ $? -ne 0 ]; then
+        echo "❌ Kruize-db pod failed to become ready"
+        kubectl get pods -n $NAMESPACE
+        kubectl describe pod -l app=kruize-db -n $NAMESPACE
+        exit 1
+    fi
+
+	sleep 300
+
+	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
+    if [ $? -ne 0 ]; then
+        echo "❌ Kruize pod failed to become ready"
+        kubectl get pods -n $NAMESPACE
+        kubectl describe pod -l app=kruize -n $NAMESPACE
+        exit 1
+    fi
+
+	sleep 300
+
+    echo "⏳ Waiting for kruize-ui pod to be ready..."
+    kubectl wait --for=condition=Ready pod -l app=kruize-ui -n $NAMESPACE --timeout=600s
+    if [ $? -ne 0 ]; then
+        echo "❌ Kruize-ui pod failed to become ready"
+        kubectl get pods -n $NAMESPACE
+        kubectl describe pod -l app=kruize-ui -n $NAMESPACE
+        exit 1
+    fi
+    echo "✅ All Kruize application pods are ready!"
 
 	echo "✅ Deployment complete! Checking status..."
 	kubectl get kruize -n $NAMESPACE

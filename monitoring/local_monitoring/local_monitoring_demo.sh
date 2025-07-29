@@ -24,7 +24,7 @@ source ${current_dir}/common.sh
 #Operator Setup
 OPERATOR_IMAGE="quay.io/ncaughey/kruize-operator:latest"
 BUNDLE_IMAGE="quay.io/ncaughey/kruize-operator-bundle:latest"
-SAMPLE_FILE="${common_dir}/_v1alpha1_kruize.yaml"
+SAMPLE_FILE="${common_dir}_v1alpha1_kruize.yaml"
 NAMESPACE="test-operator"
 
 # Default docker image repo
