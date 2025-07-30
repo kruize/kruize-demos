@@ -549,6 +549,24 @@ operator_setup() {
 	
 	echo "⏳ Waiting for all operator pods to be ready..."
 
+	# First wait for pod to exist
+	timeout=120
+	elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		if kubectl get pod -l app=kruize-db -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-db; then
+			break
+		fi
+		echo -n "."
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	if [ $elapsed -ge $timeout ]; then
+		echo "❌ Timeout waiting for kruize-db pod to be created"
+		kubectl get pods -n $NAMESPACE
+		exit 1
+	fi
+
     echo "⏳ Waiting for kruize-db pod to be ready..."
     kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
     if [ $? -ne 0 ]; then
@@ -558,7 +576,23 @@ operator_setup() {
         exit 1
     fi
 
-	sleep 300
+	# First wait for pod to exist
+	timeout=120
+	elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		if kubectl get pod -l app=kruize -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize; then
+			break
+		fi
+		echo -n "."
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	if [ $elapsed -ge $timeout ]; then
+		echo "❌ Timeout waiting for kruize pod to be created"
+		kubectl get pods -n $NAMESPACE
+		exit 1
+	fi
 
 	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
     if [ $? -ne 0 ]; then
@@ -568,7 +602,25 @@ operator_setup() {
         exit 1
     fi
 
-	sleep 300
+	echo "⏳ Waiting for kruize-ui pod to be ready..."
+	# First wait for pod to exist
+	timeout=120
+	elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		if kubectl get pod -l app=kruize-ui -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-ui; then
+			break
+		fi
+		echo -n "."
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	if [ $elapsed -ge $timeout ]; then
+		echo "❌ Timeout waiting for kruize-ui pod to be created"
+		kubectl get pods -n $NAMESPACE
+		exit 1
+	fi
+
 
     echo "⏳ Waiting for kruize-ui pod to be ready..."
     kubectl wait --for=condition=Ready pod -l app=kruize-ui -n $NAMESPACE --timeout=600s
