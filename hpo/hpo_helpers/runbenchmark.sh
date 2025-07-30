@@ -146,6 +146,7 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 	START_TIME=$(date +%s)
 	if [ -z "${queueId}" ]; then
 		echo "Failed to retrieve queueId. Check if the job was triggered successfully."
+  		echo "${response}"
 		JOB_COMPLETE = "invalid"
 	else
 		while true; do
