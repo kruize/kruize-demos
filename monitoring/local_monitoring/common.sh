@@ -532,7 +532,7 @@ operator_setup() {
 
 	echo "🔄 installing crds"
 	cd kruize-operator
-	make install kruize-operator
+	make install
 
 	echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE}"
 	make deploy IMG=${OPERATOR_IMAGE}
