@@ -18,12 +18,12 @@
 # include the common_utils.sh script to access methods
 current_dir="$(dirname "$0")"
 common_dir="${current_dir}/../../common/"
-source ${common_dir}/common_helper.sh
+source ${common_dir}common_helper.sh
 source ${current_dir}/common.sh
 
 #Operator Setup
 OPERATOR_IMAGE="quay.io/ncaughey/kruize-operator:latest"
-NAMESPACE="test-operator"
+NAMESPACE="openshift-tuning"
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"

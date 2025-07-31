@@ -550,7 +550,7 @@ operator_setup() {
 	echo "⏳ Waiting for all operator pods to be ready..."
 
 	# First wait for pod to exist
-	timeout=120
+	timeout=180
 	elapsed=0
 	while [ $elapsed -lt $timeout ]; do
 		if kubectl get pod -l app=kruize-db -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-db; then
@@ -577,7 +577,7 @@ operator_setup() {
     fi
 
 	# First wait for pod to exist
-	timeout=120
+	timeout=180
 	elapsed=0
 	while [ $elapsed -lt $timeout ]; do
 		if kubectl get pod -l app=kruize -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize; then
@@ -604,10 +604,10 @@ operator_setup() {
 
 	echo "⏳ Waiting for kruize-ui pod to be ready..."
 	# First wait for pod to exist
-	timeout=120
+	timeout=180
 	elapsed=0
 	while [ $elapsed -lt $timeout ]; do
-		if kubectl get pod -l app=kruize-ui -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-ui; then
+		if kubectl get pod -l app=kruize-ui-nginx -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-ui-nginx; then
 			break
 		fi
 		echo -n "."
@@ -623,11 +623,11 @@ operator_setup() {
 
 
     echo "⏳ Waiting for kruize-ui pod to be ready..."
-    kubectl wait --for=condition=Ready pod -l app=kruize-ui -n $NAMESPACE --timeout=600s
+    kubectl wait --for=condition=Ready pod -l app=kruize-ui-nginx -n $NAMESPACE --timeout=600s
     if [ $? -ne 0 ]; then
-        echo "❌ Kruize-ui pod failed to become ready"
+        echo "❌ kruize-ui-nginx pod failed to become ready"
         kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize-ui -n $NAMESPACE
+        kubectl describe pod -l app=kruize-ui-nginx -n $NAMESPACE
         exit 1
     fi
     echo "✅ All Kruize application pods are ready!"
