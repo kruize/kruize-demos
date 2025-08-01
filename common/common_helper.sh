@@ -746,19 +746,25 @@ function get_urls() {
     export KRUIZE_UI_URL="127.0.0.1:8080"
 
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+
+		if oc get project openshift-tuning >/dev/null 2>&1; then
+			echo "Project openshift-tuning exists"
+		else
+			echo "Project openshift-tuning does not exist"
+			oc create ns openshift-tuning
+			check_err "ERROR: Failed to create openshift-tuning project"
+		fi
+
 		kubectl_cmd="oc -n openshift-tuning"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
-		${kubectl_cmd} expose service kruize
-		${kubectl_cmd} expose service kruize-ui-nginx-service
 		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			${kubectl_app_cmd} expose service tfb-qrh-service
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
-
-		export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
+		export KRUIZE_URL=$(oc -n openshift-tuning get route kruize -o jsonpath='{.spec.host}')
 		export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 	fi
 }

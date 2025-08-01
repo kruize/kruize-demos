@@ -429,7 +429,7 @@ function kruize_local_demo_setup() {
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [ ${CLUSTER_TYPE} != "local" ]; then
-	  kruize_install &
+	  operator_setup
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
@@ -523,6 +523,121 @@ function kruize_local_demo_setup() {
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
+}
+
+#setup the operator and deploy it
+operator_setup() {
+	echo "🔄 pulling the kruize operator repository"
+	git clone -b test-operator https://github.com/ncau/kruize-operator.git
+
+	echo "🔄 installing crds"
+	cd kruize-operator
+	make install
+
+	echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE}"
+	make deploy IMG=${OPERATOR_IMAGE}
+	cd ..
+
+	echo "🔄 waiting for kruize operator to be ready"
+	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
+
+	echo "📄 Applying Kruize resource..."
+	pwd
+	kubectl apply -f ./kruize-operator/config/samples/v1alpha1_kruize.yaml -n $NAMESPACE
+
+	sleep 10
+	
+	echo "⏳ Waiting for all operator pods to be ready..."
+
+	# First wait for pod to exist
+	timeout=180
+	elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		if kubectl get pod -l app=kruize-db -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-db; then
+			break
+		fi
+		echo -n "."
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	if [ $elapsed -ge $timeout ]; then
+		echo "❌ Timeout waiting for kruize-db pod to be created"
+		kubectl get pods -n $NAMESPACE
+		exit 1
+	fi
+
+    echo "⏳ Waiting for kruize-db pod to be ready..."
+    kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
+    if [ $? -ne 0 ]; then
+        echo "❌ Kruize-db pod failed to become ready"
+        kubectl get pods -n $NAMESPACE
+        kubectl describe pod -l app=kruize-db -n $NAMESPACE
+        exit 1
+    fi
+
+	# First wait for pod to exist
+	timeout=180
+	elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		if kubectl get pod -l app=kruize -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize; then
+			break
+		fi
+		echo -n "."
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	if [ $elapsed -ge $timeout ]; then
+		echo "❌ Timeout waiting for kruize pod to be created"
+		kubectl get pods -n $NAMESPACE
+		exit 1
+	fi
+
+	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
+    if [ $? -ne 0 ]; then
+        echo "❌ Kruize pod failed to become ready"
+        kubectl get pods -n $NAMESPACE
+        kubectl describe pod -l app=kruize -n $NAMESPACE
+        exit 1
+    fi
+
+	echo "⏳ Waiting for kruize-ui pod to be ready..."
+	# First wait for pod to exist
+	timeout=180
+	elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		if kubectl get pod -l app=kruize-ui-nginx -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-ui-nginx; then
+			break
+		fi
+		echo -n "."
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	if [ $elapsed -ge $timeout ]; then
+		echo "❌ Timeout waiting for kruize-ui pod to be created"
+		kubectl get pods -n $NAMESPACE
+		exit 1
+	fi
+
+
+    echo "⏳ Waiting for kruize-ui pod to be ready..."
+    kubectl wait --for=condition=Ready pod -l app=kruize-ui-nginx -n $NAMESPACE --timeout=600s
+    if [ $? -ne 0 ]; then
+        echo "❌ kruize-ui-nginx pod failed to become ready"
+        kubectl get pods -n $NAMESPACE
+        kubectl describe pod -l app=kruize-ui-nginx -n $NAMESPACE
+        exit 1
+    fi
+    echo "✅ All Kruize application pods are ready!"
+
+	echo "✅ Deployment complete! Checking status..."
+	kubectl get kruize -n $NAMESPACE
+	kubectl get pods -n $NAMESPACE
+
+	echo "🔍 To view operator logs:"
+	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
 
 # Gnerate experiment with the container which is long running
