@@ -530,6 +530,16 @@ operator_setup() {
 	echo "🔄 pulling the kruize operator repository"
 	git clone -b test-operator https://github.com/ncau/kruize-operator.git
 
+	echo "🔄 checking for existence of kruize-operator namespace"
+
+		if oc get project openshift-tuning >/dev/null 2>&1; then
+			echo "Project openshift-tuning exists"
+		else
+			echo "Project openshift-tuning does not exist"
+			oc create ns openshift-tuning
+			check_err "ERROR: Failed to create openshift-tuning project"
+		fi
+
 	echo "🔄 installing crds"
 	cd kruize-operator
 	make install

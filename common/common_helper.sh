@@ -746,15 +746,6 @@ function get_urls() {
     export KRUIZE_UI_URL="127.0.0.1:8080"
 
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-
-		if oc get project openshift-tuning >/dev/null 2>&1; then
-			echo "Project openshift-tuning exists"
-		else
-			echo "Project openshift-tuning does not exist"
-			oc create ns openshift-tuning
-			check_err "ERROR: Failed to create openshift-tuning project"
-		fi
-
 		kubectl_cmd="oc -n openshift-tuning"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
