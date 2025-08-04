@@ -36,7 +36,7 @@ KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p] [-a]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind, aks and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
@@ -48,7 +48,7 @@ function usage() {
 	echo "l = Run a load against the benchmark"
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
-
+    echo "a = creates all experiments including error scenarios"
 	exit 1
 }
 
@@ -67,10 +67,15 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
+export CREATE_ALL_EXPERIMENTS=0
+
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:n:pstu: gopts
+while getopts abc:d:e:fi:lm:n:pstu: gopts
 do
 	case "${gopts}" in
+	    a)
+            export CREATE_ALL_EXPERIMENTS=1
+            ;;
 		b)
 			start_demo=2
 			benchmark=1
@@ -118,8 +123,13 @@ export demo="local"
 export vpa_install_required="1"
 
 EXPERIMENT_TYPE="container"
-export EXPERIMENTS=("container_vpa_experiment_sysbench")
 BENCHMARK="sysbench"
+
+if [ ${CREATE_ALL_EXPERIMENTS} -eq 1 ]; then
+	export EXPERIMENTS=("container_vpa_experiment_sysbench" "container_vpa_experiment_quota_violation" "container_vpa_experiment_limitrange_violation")
+else
+	export EXPERIMENTS=("container_vpa_experiment_sysbench")
+fi
 
 
 if [ ${start_demo} -eq 1 ]; then
