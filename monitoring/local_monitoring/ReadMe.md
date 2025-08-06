@@ -9,6 +9,8 @@ Kruize Local provides services to generate recommendations for both single and b
 ## Prerequisites
 Ensure you have one of the clusters: kind, minikube, or openShift.
 
+You also require make and a go version > 1.21. 
+
 ## Getting Started with the Demo
 
 To begin exploring local monitoring capabilities, follow these steps:
