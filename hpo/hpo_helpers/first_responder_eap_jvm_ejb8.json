@@ -42,7 +42,7 @@
         {
             "name": "SUBSYSTEM_DATASOURCES_DATA_SOURCE_FRDemoDS__MAX_POOL_SIZE",
             "value_type": "integer",
-            "upper_bound": 1000,
+            "upper_bound": 100,
             "lower_bound": 10,
             "step": 10
         },
