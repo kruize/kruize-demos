@@ -146,6 +146,7 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 	START_TIME=$(date +%s)
 	if [ -z "${queueId}" ]; then
 		echo "Failed to retrieve queueId. Check if the job was triggered successfully."
+  		echo "${response}"
 		JOB_COMPLETE = "invalid"
 	else
 		while true; do
@@ -197,6 +198,9 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
                         break
 		elif [[ "$JOB_RESULT" == "FAILURE" ]]; then
 			break
+		elif [[ "$JOB_RESULT" == "ABORTED" ]]; then
+                        break
+
 		fi
 		#Commenting out timeout for the benchmark job
 		#if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ]] && [[ "$JOB_RESULT" == "SUCCESS" ]]; then
