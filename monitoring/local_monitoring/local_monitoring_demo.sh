@@ -39,7 +39,6 @@ function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind, aks and openshift cluster-type"
-	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "e = supports container, namespace and gpu"
@@ -62,7 +61,6 @@ export KRUIZE_DOCKER_IMAGE=""
 export benchmark_load=0
 export benchmark=0
 export prometheus=0
-export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
@@ -84,9 +82,6 @@ do
 			;;
 		e)
 			EXPERIMENT_TYPE="${OPTARG}"
-			;;
-		f)
-			env_setup=1
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
@@ -135,13 +130,8 @@ elif [ "${EXPERIMENT_TYPE}" == "gpu" ]; then
 		exit 0
 	fi
 else
-	if [ ${env_setup} -ne 1 ]; then
-		export EXPERIMENTS=("container_experiment_local" "namespace_experiment_local")
-		BENCHMARK="self"
-	else
-		export EXPERIMENTS=("container_experiment_sysbench" "namespace_experiment_sysbench")
-		BENCHMARK="sysbench"
-	fi
+  export EXPERIMENTS=("container_experiment_sysbench" "namespace_experiment_sysbench")
+  BENCHMARK="sysbench"
 fi
 
 if [ ${start_demo} -eq 1 ]; then
