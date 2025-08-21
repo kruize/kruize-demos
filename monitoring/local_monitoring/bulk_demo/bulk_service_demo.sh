@@ -70,7 +70,6 @@ sys_cpu_mem_check
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
 export prometheus=0
-export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
@@ -87,9 +86,6 @@ do
 			;;
 		p)
 			prometheus=1
-			;;
-		f)
-			env_setup=1
 			;;
 	  	l)
 			start_demo=2
