@@ -755,7 +755,13 @@ function get_urls() {
 			${kubectl_app_cmd} expose service tfb-qrh-service
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
-		export KRUIZE_URL=$(oc -n openshift-tuning get route kruize -o jsonpath='{.spec.host}')
+
+		if [[ -v KRUIZE_OPERATOR ]]
+			export KRUIZE_URL=$(oc -n openshift-tuning get route kruize -o jsonpath='{.spec.host}')
+		else
+			export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
+		fi
+		
 		export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 	fi
 }

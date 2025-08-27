@@ -19,6 +19,10 @@
 #
 ###########################################
 
+current_dir="$(dirname "$0")"
+common_dir="${current_dir}/../../common/"
+source ${common_dir}/common_helper.sh
+
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -540,13 +544,13 @@ operator_setup() {
 			check_err "ERROR: Failed to create openshift-tuning project"
 		fi
 
-	echo "🔄 installing crds"
-	cd kruize-operator
-	make install
+    echo "🔄 installing crds"
+    pushd kruize-operator  # Use pushd instead of cd
+    make install
 
-	echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE}"
-	make deploy IMG=${OPERATOR_IMAGE}
-	cd ..
+    echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE"
+    make deploy IMG=${OPERATOR_IMAGE}
+    popd  # Return to original directory
 
 	echo "🔄 waiting for kruize operator to be ready"
 	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
