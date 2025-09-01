@@ -532,7 +532,7 @@ function kruize_local_demo_setup() {
 #setup the operator and deploy it
 operator_setup() {
 	echo "🔄 pulling the kruize operator repository"
-	git clone -b test-operator https://github.com/ncau/kruize-operator.git
+	git clone -b test-operator https://github.com/kruize/kruize-operator
 
 	echo "🔄 checking for existence of kruize-operator namespace"
 

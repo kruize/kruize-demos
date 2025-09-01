@@ -757,8 +757,8 @@ function get_urls() {
 		fi
 
 		if [[ -v KRUIZE_OPERATOR ]]; then
-			export KRUIZE_URL=$(oc -n openshift-tuning get route kruize -o jsonpath='{.spec.host}')
-			export KRUIZE_UI_URL=$(oc -n openshift-tuning  get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
+			export KRUIZE_URL=$(${kubectl_cmd} get route kruize -o jsonpath='{.spec.host}')
+			export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		else
 			export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 			export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
