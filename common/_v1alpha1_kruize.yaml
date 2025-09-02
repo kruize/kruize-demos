@@ -1,4 +1,3 @@
-apiVersion: my.domain/v1alpha1
 kind: Kruize
 metadata:
   labels:

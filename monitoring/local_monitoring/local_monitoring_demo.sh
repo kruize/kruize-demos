@@ -22,7 +22,7 @@ source ${common_dir}common_helper.sh
 source ${current_dir}/common.sh
 
 #Operator Setup
-OPERATOR_IMAGE="quay.io/ncaughey/kruize-operator:latest"
+OPERATOR_IMAGE="quay.io/kruize/kruize-operator:latest"
 NAMESPACE="openshift-tuning"
 
 # Default docker image repo

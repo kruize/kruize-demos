@@ -240,6 +240,7 @@ function kruize_local_demo_terminate() {
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		kind_delete >> "${LOG_FILE}" 2>&1
 	else
+		./cleanup_openshift.sh >> "${LOG_FILE}" 2>&1
 		kruize_uninstall
 	fi
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
@@ -532,7 +533,7 @@ function kruize_local_demo_setup() {
 #setup the operator and deploy it
 operator_setup() {
 	echo "🔄 pulling the kruize operator repository"
-	git clone -b test-operator https://github.com/kruize/kruize-operator
+	git clone -b main https://github.com/kruize/kruize-operator
 
 	echo "🔄 checking for existence of kruize-operator namespace"
 
