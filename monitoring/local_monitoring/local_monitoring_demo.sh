@@ -18,8 +18,12 @@
 # include the common_utils.sh script to access methods
 current_dir="$(dirname "$0")"
 common_dir="${current_dir}/../../common/"
-source ${common_dir}/common_helper.sh
+source ${common_dir}common_helper.sh
 source ${current_dir}/common.sh
+
+#Operator Setup
+OPERATOR_IMAGE="quay.io/kruize/kruize-operator:latest"
+NAMESPACE="openshift-tuning"
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
@@ -34,6 +38,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
+KRUIZE_OPERATOR=1
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"

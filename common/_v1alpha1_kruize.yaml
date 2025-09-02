@@ -1,0 +1,15 @@
+kind: Kruize
+metadata:
+  labels:
+    app.kubernetes.io/name: kruize-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: kruize-sample
+spec:
+  cluster_type: "openshift"
+  size: 3
+  autotune_version: "0.2"
+  autotune_ui_version: "0.0.9"
+  non_interactive: 1
+  use_yaml_build: 0	
+  autotune_configmaps: "autotune-configmaps"
+  namespace: "test-operator"
