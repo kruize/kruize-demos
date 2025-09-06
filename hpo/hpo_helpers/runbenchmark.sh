@@ -196,11 +196,10 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 		if [[ "$JOB_RESULT" == "SUCCESS" ]]; then
 			JOB_COMPLETE=true
                         break
-		elif [[ "$JOB_RESULT" == "FAILURE" ]]; then
+		elif [[ "$JOB_RESULT" == "FAILURE" ]] || [[ "$JOB_RESULT" == "UNSTABLE" ]]; then
 			break
 		elif [[ "$JOB_RESULT" == "ABORTED" ]]; then
-                        break
-
+            break
 		fi
 		#Commenting out timeout for the benchmark job
 		#if [[ $((JOB_TIMESTAMP + JOB_DURATION)) -gt "${JOBSTART_TIME}" ]] && [[ "$JOB_RESULT" == "SUCCESS" ]]; then
