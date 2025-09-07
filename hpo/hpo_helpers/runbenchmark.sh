@@ -259,7 +259,13 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 		fi
 	else
 		benchmark_status="failure"
-		objfunc_result=0
+  		if [[ "$JOB_RESULT" == "FAILURE" ]]; then
+			objfunc_result=0
+   		elif [[ "$JOB_RESULT" == "UNSTABLE" ]]; then
+	 		objfunc_result=-1
+		elif [[ "$JOB_RESULT" == "ABORTED" ]]; then
+	 		objfunc_result=-1
+		fi
 	fi
 	### Add the HPO config and output data from benchmark of all trials into single csv
 	${PY_CMD} -c "import hpo_helpers.utils; hpo_helpers.utils.merge_hpoconfig_benchoutput(\"hpo_config.json\",\"output.csv\",\"jenkins-trial-output.csv\",\"${TRIAL}\")"
