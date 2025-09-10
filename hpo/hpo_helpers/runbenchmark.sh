@@ -216,7 +216,7 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 		sleep 5
 	done
 
-	if [[ ${JOB_COMPLETE} == true ]]; then
+	if [[ ${JOB_COMPLETE} == true ]] || [[ "$JOB_RESULT" == "UNSTABLE" ]]; then
 		if [[ ${BENCHMARK_NAME} == "techempower" ]]; then
 			curl -ks https://${JENKINS_MACHINE_NAME}:${JENKINS_EXPOSED_PORT}/job/${JENKINS_SETUP_JOB}/${run_id}/artifact/run/${PROV_HOST}/output.csv > output.csv
 			## Format csv file
@@ -245,7 +245,11 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 			echo "horreumID=${HORREUM_RUNID}"
 
 			## Calculate objective function result value
-			objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.json\", \"${OBJFUNC_VARIABLES}\")"`
+   			if [[ "$JOB_RESULT" == "SUCCESS" ]]; then
+				objfunc_result=`${PY_CMD} -c "import hpo_helpers.getobjfuncresult; hpo_helpers.getobjfuncresult.calcobj(\"${SEARCHSPACE_JSON}\", \"output.json\", \"${OBJFUNC_VARIABLES}\")"`
+			elif [[ "$JOB_RESULT" == "UNSTABLE" ]]; then
+   				objfunc_result=-1
+   			fi
 			#Create a csv with benchmark data to append
 			python3 -c "import hpo_helpers.json2csv; hpo_helpers.json2csv.horreumjson2csv(\"output.json\", \"output.csv\",\"objfn_result\", \"${objfunc_result}\")"
 
@@ -257,12 +261,10 @@ if [[ ${BENCHMARK_RUN_THRU} == "jenkins" ]]; then
 			objfunc_result=0
 			echo "Error calculating the objective function result value" >> ${LOGFILE}
 		fi
-	else
+ 	else
 		benchmark_status="failure"
   		if [[ "$JOB_RESULT" == "FAILURE" ]]; then
-			objfunc_result=0
-   		elif [[ "$JOB_RESULT" == "UNSTABLE" ]]; then
-	 		objfunc_result=-1
+			objfunc_result=0 		
 		elif [[ "$JOB_RESULT" == "ABORTED" ]]; then
 	 		objfunc_result=-1
 		fi
