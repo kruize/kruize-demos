@@ -338,13 +338,8 @@ function benchmarks_install() {
 			echo "#######################################"
 			echo "Running HumanEval benchmark job in background"
 			echo
-			pushd human-eval-benchmark/manifests >/dev/null
-				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' pvc.yaml
-				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' job.yaml
-				# Update num_prompts value to 150 to run the benchmark for atleast 15 mins
-				sed -i "s/value: '10'/value: '150'/" job.yaml
-				oc apply -f pvc.yaml -n ${NAMESPACE}
-				oc apply -f job.yaml -n ${NAMESPACE}
+			pushd accelerator-benches/human-eval >/dev/null
+				./run_humaneval.sh ${NAMESPACE} -n 150
 				check_err "ERROR: Human eval job failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -399,8 +394,7 @@ function benchmarks_uninstall() {
 		if [ ${BENCHMARK} == "human-eval" ]; then
 			echo "Uninstalling humanEval benchmark job in cluster"
 			pushd human-eval-benchmark >/dev/null
-				oc delete -f job.yaml
-				oc delete -f pvc.yaml
+				./cleanup.sh ${NAMESPACE}
 				#check_err "ERROR: human-eval benchmark failed to delete, exiting"
 			popd >/dev/null
 		fi
