@@ -21,8 +21,8 @@ common_dir="${current_dir}/../../common/"
 source ${common_dir}common_helper.sh
 source ${current_dir}/common.sh
 
-#Operator Setup
-OPERATOR_IMAGE="quay.io/kruize/kruize-operator:latest"
+# Default operator docker image repo
+KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 NAMESPACE="openshift-tuning"
 
 # Default docker image repo
@@ -47,6 +47,7 @@ function usage() {
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "o = Kruize operator Image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
 	echo "e = supports container, namespace and gpu"
 	echo "b = deploy the benchmark."
 	echo "m = manifests of the benchmark"
@@ -73,8 +74,9 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
+export KRUIZE_OPERATOR_IMAGE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:n:pstu: gopts
+while getopts bc:d:e:fi:lm:no:pstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -117,6 +119,9 @@ do
 			;;
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
+			;;
+		o) 
+			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
 		*)
 			usage

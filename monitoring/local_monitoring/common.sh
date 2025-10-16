@@ -549,12 +549,27 @@ operator_setup() {
     pushd kruize-operator  # Use pushd instead of cd
     make install
 
-    echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE"
-    make deploy IMG=${OPERATOR_IMAGE}
+	KRUIZE_OPERATOR_VERSION=$(grep '^VERSION' "Makefile" | awk '{print $NF}')
+	echo ${KRUIZE_OPERATOR_VERSION}
+
+	if [ -z "${KRUIZE_OPERATOR_IMAGE}" ]; then
+		KRUIZE_OPERATOR_IMAGE=${KRUIZE_OPERATOR_DOCKER_REPO}:${KRUIZE_OPERATOR_VERSION}
+	fi
+
+    echo "🔄 deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
+    make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
     popd  # Return to original directory
 
 	echo "🔄 waiting for kruize operator to be ready"
 	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
+
+	if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
+		sed -i -E 's#^([[:space:]]*)autotune_image:.*#\1autotune_image: "'"${KRUIZE_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml
+	fi
+
+	if [ -n "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+	fi
 
 	echo "📄 Applying Kruize resource..."
 	pwd
