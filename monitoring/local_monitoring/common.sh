@@ -564,7 +564,7 @@ operator_setup() {
 	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
 
 	if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
-		sed -i -E 's#^([[:space:]]*)autotune_image:.*#\1autotune_image: "'"${KRUIZE_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml
+		sed -i -E 's#^([[:space:]]*)autotune_image:.*#\1autotune_image: "'"${KRUIZE_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 	fi
 
 	if [ -n "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
