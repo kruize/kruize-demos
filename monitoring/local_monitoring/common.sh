@@ -19,10 +19,6 @@
 #
 ###########################################
 
-current_dir="$(dirname "$0")"
-common_dir="${current_dir}/../../common/"
-source ${common_dir}/common_helper.sh
-
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -240,7 +236,7 @@ function kruize_local_demo_terminate() {
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		kind_delete >> "${LOG_FILE}" 2>&1
 	else
-		./cleanup_openshift.sh >> "${LOG_FILE}" 2>&1
+		../cleanup_openshift.sh >> "${LOG_FILE}" 2>&1
 		kruize_uninstall
 	fi
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
@@ -550,7 +546,6 @@ operator_setup() {
     make install
 
 	KRUIZE_OPERATOR_VERSION=$(grep '^VERSION' "Makefile" | awk '{print $NF}')
-	echo ${KRUIZE_OPERATOR_VERSION}
 
 	if [ -z "${KRUIZE_OPERATOR_IMAGE}" ]; then
 		KRUIZE_OPERATOR_IMAGE=${KRUIZE_OPERATOR_DOCKER_REPO}:${KRUIZE_OPERATOR_VERSION}
@@ -757,4 +752,3 @@ sed -i \
         "$namespace_json"
 
 }
-

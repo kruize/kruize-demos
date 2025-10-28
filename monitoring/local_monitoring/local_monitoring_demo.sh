@@ -47,7 +47,7 @@ function usage() {
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
-	echo "o = Kruize operator Image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
 	echo "e = supports container, namespace and gpu"
 	echo "b = deploy the benchmark."
 	echo "m = manifests of the benchmark"
