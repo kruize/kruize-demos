@@ -19,6 +19,9 @@
 #
 ###########################################
 
+# Gets the absolute path to the directory
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -236,7 +239,7 @@ function kruize_local_demo_terminate() {
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		kind_delete >> "${LOG_FILE}" 2>&1
 	else
-		../cleanup_openshift.sh >> "${LOG_FILE}" 2>&1
+		source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
 		kruize_uninstall
 	fi
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
