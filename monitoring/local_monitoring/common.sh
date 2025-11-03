@@ -433,7 +433,7 @@ function kruize_local_demo_setup() {
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [ ${CLUSTER_TYPE} != "local" ]; then
-	  operator_setup
+	  operator_setup >> "${LOG_FILE}" 2>&1
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
@@ -531,8 +531,7 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-	echo "🔄 pulling the kruize operator repository"
-	git clone -b main https://github.com/kruize/kruize-operator
+  	clone_repos kruize-operator
 
 	echo "🔄 checking for existence of kruize-operator namespace"
 
