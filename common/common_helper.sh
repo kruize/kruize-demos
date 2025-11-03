@@ -315,7 +315,7 @@ function prometheus_install() {
 #   Benchmarks Install
 ###########################################
 function benchmarks_install() {
-	NAMESPACE="${1:-${APP_NAMESPACE}}"
+	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
 
@@ -330,7 +330,7 @@ function benchmarks_install() {
 			sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/postgres.yaml
 			sed -i '/requests:/ {n; s/\(cpu: \)\([0-9]*\.[0-9]*\|\([0-9]*\)\)/\11.5/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
 			sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
-			kubectl apply -f manifests/${MANIFESTS} -n ${NAMESPACE}
+			kubectl apply -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -339,12 +339,12 @@ function benchmarks_install() {
 			echo "Running HumanEval benchmark job in background"
 			echo
 			pushd human-eval-benchmark/manifests >/dev/null
-				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' pvc.yaml
-				sed -i 's/namespace: kruize-hackathon/namespace: "'"${NAMESPACE}"'"/' job.yaml
+				sed -i 's/namespace: kruize-hackathon/namespace: "'"${APP_NAMESPACE}"'"/' pvc.yaml
+				sed -i 's/namespace: kruize-hackathon/namespace: "'"${APP_NAMESPACE}"'"/' job.yaml
 				# Update num_prompts value to 150 to run the benchmark for atleast 15 mins
 				sed -i "s/value: '10'/value: '150'/" job.yaml
-				oc apply -f pvc.yaml -n ${NAMESPACE}
-				oc apply -f job.yaml -n ${NAMESPACE}
+				oc apply -f pvc.yaml -n ${APP_NAMESPACE}
+				oc apply -f job.yaml -n ${APP_NAMESPACE}
 				check_err "ERROR: Human eval job failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -353,7 +353,7 @@ function benchmarks_install() {
 			echo "Running Training TTM benchmark job in background"
 			pushd AI-MLbenchmarks/ttm >/dev/null
 				echo ""
-				./run_ttm.sh ${NAMESPACE} >> ${LOG_FILE} &
+				./run_ttm.sh ${APP_NAMESPACE} >> ${LOG_FILE} &
 				check_err "ERROR: Training ttm jobs failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -361,7 +361,7 @@ function benchmarks_install() {
 			echo "#######################################"
 			echo "Installing LLM-RAG benchmark into cluster"
 			pushd AI-MLbenchmarks/llm-rag >/dev/null
-				./deploy.sh ${NAMESPACE}
+				./deploy.sh ${APP_NAMESPACE}
 				check_err "ERROR: llm-rag benchmark failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -369,7 +369,7 @@ function benchmarks_install() {
 			echo "#######################################"
 			echo "Installing sysbench into cluster"
 			pushd sysbench >/dev/null
-				kubectl apply -f manifests/sysbench.yaml -n ${NAMESPACE}
+				kubectl apply -f manifests/sysbench.yaml -n ${APP_NAMESPACE}
 				check_err "ERROR: sysbench failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -383,7 +383,7 @@ function benchmarks_install() {
 #   Benchmarks Uninstall
 ###########################################
 function benchmarks_uninstall() {
-	NAMESPACE="${1:-${APP_NAMESPACE}}"
+	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
 	echo
@@ -392,7 +392,7 @@ function benchmarks_uninstall() {
 		if [ ${BENCHMARK} == "tfb" ]; then
 			echo "Uninstalling TechEmpower (Quarkus REST EASY) benchmark in cluster"
 			pushd techempower >/dev/null
-				kubectl delete -f manifests/${MANIFESTS} -n ${NAMESPACE}
+				kubectl delete -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
 				#check_err "ERROR: TechEmpower app failed to delete, exiting"
 			popd >/dev/null
 		fi
@@ -407,14 +407,14 @@ function benchmarks_uninstall() {
 		if [ ${BENCHMARK} == "ttm" ] || [ ${BENCHMARK} == "llm-rag" ]; then
 			echo "Uninstalling ${BENCHMARK} benchmark in cluster"
 			pushd AI-MLbenchmarks/ttm >/dev/null
-				./cleanup.sh ${NAMESPACE}
+				./cleanup.sh ${APP_NAMESPACE}
 				#check_err "ERROR: ${BENCHMARK} benchmark failed to delete, exiting"
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "sysbench" ]; then
 			echo "Uninstalling sysbench in cluster"
 			pushd sysbench >/dev/null
-				kubectl delete -f manifests/sysbench.yaml -n ${NAMESPACE}
+				kubectl delete -f manifests/sysbench.yaml -n ${APP_NAMESPACE}
 			popd >/dev/null
 		fi
 	popd >/dev/null
