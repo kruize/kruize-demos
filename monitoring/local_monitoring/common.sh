@@ -533,17 +533,18 @@ function kruize_local_demo_setup() {
 operator_setup() {
   	clone_repos kruize-operator
 
-	echo "🔄 checking for existence of kruize-operator namespace"
+	echo "🔄 Checking for existence of kruize-operator namespace"
 
-		if oc get project openshift-tuning >/dev/null 2>&1; then
-			echo "Project openshift-tuning exists"
-		else
-			echo "Project openshift-tuning does not exist"
-			oc create ns openshift-tuning
-			check_err "ERROR: Failed to create openshift-tuning project"
-		fi
+  if oc get project openshift-tuning >/dev/null 2>&1; then
+    echo "Project openshift-tuning exists"
+  else
+    echo "Project openshift-tuning does not exist"
+    oc create ns openshift-tuning
+    check_err "ERROR: Failed to create openshift-tuning project"
+  fi
 
-    echo "🔄 installing crds"
+    echo
+    echo "🔄 Installing CRDs"
     pushd kruize-operator  # Use pushd instead of cd
     make install
 
@@ -553,11 +554,13 @@ operator_setup() {
 		KRUIZE_OPERATOR_IMAGE=${KRUIZE_OPERATOR_DOCKER_REPO}:${KRUIZE_OPERATOR_VERSION}
 	fi
 
-    echo "🔄 deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
+    echo
+    echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
     make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
     popd  # Return to original directory
 
-	echo "🔄 waiting for kruize operator to be ready"
+	echo
+	echo "🔄 Waiting for kruize operator to be ready"
 	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
 
 	if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
@@ -568,12 +571,14 @@ operator_setup() {
 		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 	fi
 
+	echo
 	echo "📄 Applying Kruize resource..."
 	pwd
 	kubectl apply -f ./kruize-operator/config/samples/v1alpha1_kruize.yaml -n $NAMESPACE
 
 	sleep 10
-	
+
+	echo
 	echo "⏳ Waiting for all operator pods to be ready..."
 
 	# First wait for pod to exist
@@ -663,6 +668,7 @@ operator_setup() {
 	kubectl get kruize -n $NAMESPACE
 	kubectl get pods -n $NAMESPACE
 
+  echo
 	echo "🔍 To view operator logs:"
 	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
