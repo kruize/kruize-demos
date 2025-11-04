@@ -535,13 +535,13 @@ operator_setup() {
 
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
-  if oc get project openshift-tuning >/dev/null 2>&1; then
-    echo "Project openshift-tuning exists"
-  else
-    echo "Project openshift-tuning does not exist"
-    oc create ns openshift-tuning
-    check_err "ERROR: Failed to create openshift-tuning project"
-  fi
+    if oc get project openshift-tuning >/dev/null 2>&1; then
+      echo "Project openshift-tuning exists"
+    else
+      echo "Project openshift-tuning does not exist"
+      oc create ns openshift-tuning
+      check_err "ERROR: Failed to create openshift-tuning project"
+    fi
 
     echo
     echo "🔄 Installing CRDs"
