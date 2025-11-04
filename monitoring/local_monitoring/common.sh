@@ -19,9 +19,8 @@
 #
 ###########################################
 
-current_dir="$(dirname "$0")"
-common_dir="${current_dir}/../../common/"
-source ${common_dir}/common_helper.sh
+# Gets the absolute path to the directory
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
@@ -240,7 +239,7 @@ function kruize_local_demo_terminate() {
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		kind_delete >> "${LOG_FILE}" 2>&1
 	else
-		./cleanup_openshift.sh >> "${LOG_FILE}" 2>&1
+		source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
 		kruize_uninstall
 	fi
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
@@ -434,7 +433,7 @@ function kruize_local_demo_setup() {
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [ ${CLUSTER_TYPE} != "local" ]; then
-	  operator_setup
+	  operator_setup >> "${LOG_FILE}" 2>&1
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
@@ -532,36 +531,54 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-	echo "🔄 pulling the kruize operator repository"
-	git clone -b main https://github.com/kruize/kruize-operator
+  	clone_repos kruize-operator
 
-	echo "🔄 checking for existence of kruize-operator namespace"
+	echo "🔄 Checking for existence of kruize-operator namespace"
 
-		if oc get project openshift-tuning >/dev/null 2>&1; then
-			echo "Project openshift-tuning exists"
-		else
-			echo "Project openshift-tuning does not exist"
-			oc create ns openshift-tuning
-			check_err "ERROR: Failed to create openshift-tuning project"
-		fi
+    if oc get project openshift-tuning >/dev/null 2>&1; then
+      echo "Project openshift-tuning exists"
+    else
+      echo "Project openshift-tuning does not exist"
+      oc create ns openshift-tuning
+      check_err "ERROR: Failed to create openshift-tuning project"
+    fi
 
-    echo "🔄 installing crds"
+    echo
+    echo "🔄 Installing CRDs"
     pushd kruize-operator  # Use pushd instead of cd
     make install
 
-    echo "🔄 deploying kruize operator image: $OPERATOR_IMAGE"
-    make deploy IMG=${OPERATOR_IMAGE}
+	KRUIZE_OPERATOR_VERSION=$(grep '^VERSION' "Makefile" | awk '{print $NF}')
+
+	if [ -z "${KRUIZE_OPERATOR_IMAGE}" ]; then
+		KRUIZE_OPERATOR_IMAGE=${KRUIZE_OPERATOR_DOCKER_REPO}:${KRUIZE_OPERATOR_VERSION}
+	fi
+
+    echo
+    echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
+    make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
     popd  # Return to original directory
 
-	echo "🔄 waiting for kruize operator to be ready"
+	echo
+	echo "🔄 Waiting for kruize operator to be ready"
 	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
 
+	if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
+		sed -i -E 's#^([[:space:]]*)autotune_image:.*#\1autotune_image: "'"${KRUIZE_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+	fi
+
+	if [ -n "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+	fi
+
+	echo
 	echo "📄 Applying Kruize resource..."
 	pwd
 	kubectl apply -f ./kruize-operator/config/samples/v1alpha1_kruize.yaml -n $NAMESPACE
 
 	sleep 10
-	
+
+	echo
 	echo "⏳ Waiting for all operator pods to be ready..."
 
 	# First wait for pod to exist
@@ -651,6 +668,7 @@ operator_setup() {
 	kubectl get kruize -n $NAMESPACE
 	kubectl get pods -n $NAMESPACE
 
+  echo
 	echo "🔍 To view operator logs:"
 	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
@@ -742,4 +760,3 @@ sed -i \
         "$namespace_json"
 
 }
-
