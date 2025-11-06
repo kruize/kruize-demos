@@ -442,7 +442,7 @@ function kruize_local_demo_setup() {
 			echo "✅ kind exists!"
 		fi
 	fi
-	if [ ${demo} == "local" ]; then
+	if [[ ${demo} == "local" || ${demo} == "runtimes" ]]; then
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
@@ -548,7 +548,7 @@ function kruize_local_demo_setup() {
 		echo "✅ Collection of metadata complete!"
 
 		# Create Layers
-         	echo "🔄 Creating Layers..."
+		echo "🔄 Creating Layers..."
 		create_layers
 		echo "✅ Creating Layers complete!"
 
