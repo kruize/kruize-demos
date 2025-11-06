@@ -124,9 +124,8 @@ function kruize_local_metadata() {
 }
 
 function create_layers() {
-	layers_dir="./json/layers"
+	layers_dir="./jsons/layers"
 	LAYERS=("container-layer.json" "hotspot-layer.json" "quarkus-layer.json")
-	echo
 	{
 		echo
 		echo "######################################################"
@@ -135,7 +134,7 @@ function create_layers() {
 		echo
 		for layer in "${LAYERS[@]}"; do
 			echo "curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}"
-			#curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}
+			curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}
 	    	done
 	} >> "${LOG_FILE}" 2>&1
 }
@@ -143,7 +142,6 @@ function create_layers() {
 function create_ruleset() {
 	ruleset_dir="./jsons/rulesets"
 	RULESET=("container-hotspot-quarkus.json")
-	echo
 	{
 		echo
 		echo "######################################################"
@@ -151,8 +149,8 @@ function create_ruleset() {
 		echo "######################################################"
 		echo
 		for ruleset in "${RULESET[@]}"; do
-			echo "curl -X POST http://${KRUIZE_URL}/createRuleset -d @${ruleset_dir}/${ruleset}"
-			#curl -X POST http://${KRUIZE_URL}/createLayer -d @${ruleset_dir}/${ruleset}
+			echo "curl -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset_dir}/${ruleset}"
+			curl -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset_dir}/${ruleset}
     		done
 	} >> "${LOG_FILE}" 2>&1
 }
@@ -548,12 +546,12 @@ function kruize_local_demo_setup() {
 		echo "✅ Collection of metadata complete!"
 
 		# Create Layers
-		echo "🔄 Creating Layers..."
+		echo -n "🔄 Creating Layers..."
 		create_layers
 		echo "✅ Creating Layers complete!"
 
 		# Create Ruleset
-         	echo "🔄 Creating Ruleset..."
+		echo -n "🔄 Creating Ruleset..."
 		create_ruleset
 		echo "✅ Creating Ruleset complete!"
 
