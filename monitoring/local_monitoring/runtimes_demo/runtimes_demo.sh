@@ -128,11 +128,10 @@ do
 	esac
 done
 
-export demo="local"
-
 export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
 BENCHMARK="tfb"
 
+export demo="runtimes"
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
 	kruize_local_demo_setup ${BENCHMARK}

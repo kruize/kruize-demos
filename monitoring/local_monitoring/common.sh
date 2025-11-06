@@ -123,6 +123,40 @@ function kruize_local_metadata() {
 	} >> "${LOG_FILE}" 2>&1
 }
 
+function create_layers() {
+	layers_dir="./json/layers"
+	LAYERS=("container-layer.json" "hotspot-layer.json" "quarkus-layer.json")
+	echo
+	{
+		echo
+		echo "######################################################"
+		echo "#     Create Layers "			
+		echo "######################################################"
+		echo
+		for layer in "${LAYERS[@]}"; do
+			echo "curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}"
+			#curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}
+	    	done
+	} >> "${LOG_FILE}" 2>&1
+}
+
+function create_ruleset() {
+	ruleset_dir="./jsons/rulesets"
+	RULESET=("container-hotspot-quarkus.json")
+	echo
+	{
+		echo
+		echo "######################################################"
+		echo "#     Create Ruleset"			
+		echo "######################################################"
+		echo
+		for ruleset in "${RULESET[@]}"; do
+			echo "curl -X POST http://${KRUIZE_URL}/createRuleset -d @${ruleset_dir}/${ruleset}"
+			#curl -X POST http://${KRUIZE_URL}/createLayer -d @${ruleset_dir}/${ruleset}
+    		done
+	} >> "${LOG_FILE}" 2>&1
+}
+
 function kruize_local_experiments() {
 	{
 	echo
@@ -508,6 +542,27 @@ function kruize_local_demo_setup() {
 		recomm_start_time=$(get_date)
 		kruize_bulk
 		recomm_end_time=$(get_date)
+	elif [ ${demo} == "runtimes" ]; then
+		echo -n "🔄 Collecting metadata..."
+		kruize_local_metadata
+		echo "✅ Collection of metadata complete!"
+
+		# Create Layers
+         	echo "🔄 Creating Layers..."
+		create_layers
+		echo "✅ Creating Layers complete!"
+
+		# Create Ruleset
+         	echo "🔄 Creating Ruleset..."
+		create_ruleset
+		echo "✅ Creating Ruleset complete!"
+
+		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+			recomm_start_time=$(get_date)
+			kruize_local_experiments
+			recomm_end_time=$(get_date)
+		fi
+
 	fi
 	
 	if [ "${vpa_install_required:-}" == "1" ]; then
