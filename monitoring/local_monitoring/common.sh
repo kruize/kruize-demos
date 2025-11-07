@@ -139,6 +139,33 @@ function create_layers() {
 	} >> "${LOG_FILE}" 2>&1
 }
 
+function list_layers() {
+	{
+		echo
+		echo "######################################################"
+		echo "#     List Layers "			
+		echo "######################################################"
+		echo
+		echo "curl http://${KRUIZE_URL}/listLayers"
+		curl http://${KRUIZE_URL}/listLayers
+
+	} >> "${LOG_FILE}" 2>&1
+}
+
+function list_rulesets() {
+	{
+		echo
+		echo "######################################################"
+		echo "#     List RuleSets "			
+		echo "######################################################"
+		echo
+		echo "curl http://${KRUIZE_URL}/listRuleSets"
+		curl http://${KRUIZE_URL}/listRuleSets
+
+	} >> "${LOG_FILE}" 2>&1
+}
+
+
 function create_ruleset() {
 	ruleset_dir="./jsons/rulesets"
 	RULESET=("container-hotspot-quarkus.json")
@@ -550,10 +577,20 @@ function kruize_local_demo_setup() {
 		create_layers
 		echo "✅ Creating Layers complete!"
 
+		# List Layers
+		echo -n "🔄 List Layers..."
+		list_layers
+		echo "✅ Listing Layers complete!"
+
 		# Create Ruleset
 		echo -n "🔄 Creating Ruleset..."
 		create_ruleset
 		echo "✅ Creating Ruleset complete!"
+
+		# List RuleSets
+		echo -n "🔄 List RuleSets..."
+		list_rulesets
+		echo "✅ Listing RuleSets complete!"
 
 		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
 			recomm_start_time=$(get_date)
