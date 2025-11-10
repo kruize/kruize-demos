@@ -124,8 +124,13 @@ function kruize_local_metadata() {
 }
 
 function create_layers() {
-	layers_dir="./jsons/layers"
-	LAYERS=("container-layer.json" "hotspot-layer.json" "quarkus-layer.json")
+	layers_dir="./autotune/design/sample-jsons/layers"
+	LAYERS=()
+	for file in "${layers_dir}"/*.json; do
+		if [ -e "$file" ]; then
+			LAYERS+=("$file")
+		fi
+	done
 	{
 		echo
 		echo "######################################################"
@@ -133,8 +138,8 @@ function create_layers() {
 		echo "######################################################"
 		echo
 		for layer in "${LAYERS[@]}"; do
-			echo "curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}"
-			curl -X POST http://${KRUIZE_URL}/createLayer -d @${layers_dir}/${layer}
+			echo "curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}"
+			curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}
 	    	done
 	} >> "${LOG_FILE}" 2>&1
 }
@@ -146,8 +151,8 @@ function list_layers() {
 		echo "#     List Layers "			
 		echo "######################################################"
 		echo
-		echo "curl http://${KRUIZE_URL}/listLayers"
-		curl http://${KRUIZE_URL}/listLayers
+		echo "curl -s http://${KRUIZE_URL}/listLayers"
+		curl -s http://${KRUIZE_URL}/listLayers
 
 	} >> "${LOG_FILE}" 2>&1
 }
@@ -159,25 +164,30 @@ function list_rulesets() {
 		echo "#     List RuleSets "			
 		echo "######################################################"
 		echo
-		echo "curl http://${KRUIZE_URL}/listRuleSets"
-		curl http://${KRUIZE_URL}/listRuleSets
+		echo "curl -s http://${KRUIZE_URL}/listRuleSets"
+		curl -s http://${KRUIZE_URL}/listRuleSets
 
 	} >> "${LOG_FILE}" 2>&1
 }
 
 
 function create_ruleset() {
-	ruleset_dir="./jsons/rulesets"
-	RULESET=("container-hotspot-quarkus.json")
+	ruleset_dir="./autotune/design/sample-jsons/rulesets"
+	RULESETS=()
+	for file in "${ruleset_dir}"/*.json; do
+		if [ -e "$file" ]; then
+			RULESETS+=("$file")
+	        fi
+	done
 	{
 		echo
 		echo "######################################################"
 		echo "#     Create Ruleset"			
 		echo "######################################################"
 		echo
-		for ruleset in "${RULESET[@]}"; do
-			echo "curl -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset_dir}/${ruleset}"
-			curl -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset_dir}/${ruleset}
+		for ruleset in "${RULESETS[@]}"; do
+			echo "curl -s -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset}"
+			curl -s -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset}
     		done
 	} >> "${LOG_FILE}" 2>&1
 }
