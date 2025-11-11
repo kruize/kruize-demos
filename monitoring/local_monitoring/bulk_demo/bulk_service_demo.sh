@@ -23,6 +23,10 @@ source ${current_dir}/../common.sh
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
+NAMESPACE="openshift-tuning"
+
+# Default operator docker image repo
+KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 
 # Default cluster
 export CLUSTER_TYPE="minikube"
@@ -49,6 +53,7 @@ function usage() {
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
+	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
 
 	exit 1
 }
@@ -76,7 +81,7 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:lprstu: gopts
+while getopts c:i:n:d:lprstu:o: gopts
 do
 	case "${gopts}" in
 		c)
@@ -104,10 +109,13 @@ do
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
 		n)
-			APP_NAMESPACE="${OPTARG}"
+			export APP_NAMESPACE="${OPTARG}"
 			;;
 		d)
 			LOAD_DURATION="${OPTARG}"
+			;;
+		o) 
+			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
 		*)
 			usage

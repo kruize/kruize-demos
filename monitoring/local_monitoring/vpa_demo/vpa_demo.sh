@@ -23,6 +23,10 @@ source ${current_dir}/../common.sh
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
+NAMESPACE="openshift-tuning"
+
+# Default operator docker image repo
+KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 
 # Default cluster
 export CLUSTER_TYPE="kind"
@@ -42,6 +46,7 @@ function usage() {
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
 	echo "b = deploy the benchmark."
 	echo "m = manifests of the benchmark"
 	echo "n = namespace of benchmark. Default - default"
@@ -68,7 +73,7 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:n:pstu: gopts
+while getopts bc:d:e:fi:lm:n:pstu:o: gopts
 do
 	case "${gopts}" in
 		b)
@@ -109,6 +114,9 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
+    o)
+      KRUIZE_OPERATOR_IMAGE="${OPTARG}"
+      ;;
 		*)
 			usage
 	esac
