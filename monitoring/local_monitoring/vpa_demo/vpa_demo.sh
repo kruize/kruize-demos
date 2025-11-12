@@ -116,12 +116,12 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
-    o)
-      KRUIZE_OPERATOR_IMAGE="${OPTARG}"
-      ;;
-    k)
-      KRUIZE_OPERATOR=0
-      ;;
+   		o)
+      			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
+      			;;
+    		k)
+      			KRUIZE_OPERATOR=0
+      			;;
 		*)
 			usage
 	esac

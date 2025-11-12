@@ -241,7 +241,7 @@ function kruize_local_demo_terminate() {
 		kind_delete >> "${LOG_FILE}" 2>&1
 	else
 		if [[ "${kruize_operator}" -eq 1 ]]; then
-       source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
+       			source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
 		fi
 		kruize_uninstall
 	fi

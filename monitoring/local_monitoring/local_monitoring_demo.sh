@@ -124,9 +124,9 @@ do
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
-	  k)
-      KRUIZE_OPERATOR=0
-      ;;
+	 	k)
+      			KRUIZE_OPERATOR=0
+      			;;
 		*)
 			usage
 	esac

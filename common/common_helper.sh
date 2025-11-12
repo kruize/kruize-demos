@@ -752,7 +752,7 @@ function get_urls() {
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
 		${kubectl_cmd} expose service kruize
-    ${kubectl_cmd} expose service kruize-ui-nginx-service
+    		${kubectl_cmd} expose service kruize-ui-nginx-service
 
 		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
@@ -761,7 +761,7 @@ function get_urls() {
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
 
-    if [[ "${kruize_operator}" -eq 1 ]]; then
+    		if [[ "${kruize_operator}" -eq 1 ]]; then
 			export KRUIZE_URL=$(${kubectl_cmd} get route kruize -o jsonpath='{.spec.host}')
 			export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		else

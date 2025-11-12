@@ -55,7 +55,7 @@ function usage() {
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
-  echo "k = install kruize using deploy scripts."
+      	echo "k = install kruize using deploy scripts."
 
 	exit 1
 }
@@ -119,9 +119,9 @@ do
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
-    k)
-      KRUIZE_OPERATOR=0
-      ;;
+    		k)
+      			KRUIZE_OPERATOR=0
+      			;;
 		*)
 			usage
 	esac
