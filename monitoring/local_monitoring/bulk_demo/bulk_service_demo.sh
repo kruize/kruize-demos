@@ -38,6 +38,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
+KRUIZE_OPERATOR=1
 
 PYTHON_CMD=python3
 export LOG_FILE="${current_dir}/kruize-bulk-demo.log"
@@ -54,6 +55,7 @@ function usage() {
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+  echo "k = install kruize using deploy scripts."
 
 	exit 1
 }
@@ -81,7 +83,7 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:lprstu:o: gopts
+while getopts c:i:n:d:klprstu:o: gopts
 do
 	case "${gopts}" in
 		c)
@@ -117,22 +119,30 @@ do
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
+    k)
+      KRUIZE_OPERATOR=0
+      ;;
 		*)
 			usage
 	esac
 done
 
 export demo="bulk"
+
+if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+   KRUIZE_OPERATOR=0
+fi
+
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup
+	kruize_local_demo_setup "" ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update
 else
 	echo >> "${LOG_FILE}" 2>&1
-	kruize_local_demo_terminate
+	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 fi

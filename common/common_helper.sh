@@ -698,6 +698,8 @@ function kruize_local_ros_patch() {
 ###########################################
 function get_urls() {
 	bench=$1
+	kruize_operator=$2
+	echo ${kruize_operator}
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 		kubectl_app_cmd="kubectl -n ${APP_NAMESPACE}"
@@ -749,6 +751,9 @@ function get_urls() {
 		kubectl_cmd="oc -n openshift-tuning"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
+		${kubectl_cmd} expose service kruize
+    ${kubectl_cmd} expose service kruize-ui-nginx-service
+
 		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
@@ -756,7 +761,7 @@ function get_urls() {
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
 
-		if [[ -v KRUIZE_OPERATOR ]]; then
+    if [[ "${kruize_operator}" -eq 1 ]]; then
 			export KRUIZE_URL=$(${kubectl_cmd} get route kruize -o jsonpath='{.spec.host}')
 			export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		else

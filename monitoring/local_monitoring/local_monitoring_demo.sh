@@ -55,6 +55,7 @@ function usage() {
 	echo "l = Run a load against the benchmark"
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
+	echo "k = install kruize using deploy scripts."
 
 	exit 1
 }
@@ -76,7 +77,7 @@ export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:no:pstu: gopts
+while getopts bc:d:e:fi:klm:no:pstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -123,12 +124,19 @@ do
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
+	  k)
+      KRUIZE_OPERATOR=0
+      ;;
 		*)
 			usage
 	esac
 done
 
 export demo="local"
+
+if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+   KRUIZE_OPERATOR=0
+fi
 
 if [ "${EXPERIMENT_TYPE}" == "container" ]; then
 	export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
@@ -156,14 +164,14 @@ fi
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup ${BENCHMARK}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update ${BENCHMARK}
 else
 	echo >> "${LOG_FILE}" 2>&1
-	kruize_local_demo_terminate
+	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 fi
