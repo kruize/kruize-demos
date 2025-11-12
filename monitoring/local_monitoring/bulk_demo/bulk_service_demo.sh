@@ -39,6 +39,7 @@ KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 KRUIZE_OPERATOR=1
+BENCHMARK=""
 
 PYTHON_CMD=python3
 export LOG_FILE="${current_dir}/kruize-bulk-demo.log"
@@ -135,7 +136,7 @@ fi
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup "" ${KRUIZE_OPERATOR}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
