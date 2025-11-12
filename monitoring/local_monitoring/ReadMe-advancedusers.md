@@ -37,9 +37,11 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
-o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile#L6)>
+o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = install kruize using deploy scripts
 ```
+
+Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 Here’s a breakdown of what happens during the demo:
 

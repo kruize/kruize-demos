@@ -48,9 +48,11 @@ s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
-o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile#L6)>
+o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = install kruize using deploy scripts
 ```
+
+Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 ## Bulk API configuration
 
