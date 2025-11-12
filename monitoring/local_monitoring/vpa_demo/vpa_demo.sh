@@ -38,6 +38,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
+KRUIZE_OPERATOR=1
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
@@ -53,6 +54,7 @@ function usage() {
 	echo "l = Run a load against the benchmark"
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
+	echo "k = install kruize using deploy scripts."
 
 	exit 1
 }
@@ -73,7 +75,7 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:n:pstu:o: gopts
+while getopts bc:d:e:kfi:lm:n:pstu:o: gopts
 do
 	case "${gopts}" in
 		b)
@@ -117,6 +119,9 @@ do
     o)
       KRUIZE_OPERATOR_IMAGE="${OPTARG}"
       ;;
+    k)
+      KRUIZE_OPERATOR=0
+      ;;
 		*)
 			usage
 	esac
@@ -125,6 +130,10 @@ done
 export demo="local"
 export vpa_install_required="1"
 
+if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+   KRUIZE_OPERATOR=0
+fi
+
 EXPERIMENT_TYPE="container"
 export EXPERIMENTS=("container_vpa_experiment_sysbench")
 BENCHMARK="sysbench"
@@ -132,14 +141,14 @@ BENCHMARK="sysbench"
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}"
-	kruize_local_demo_setup ${BENCHMARK}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update ${BENCHMARK}
 else
 	echo | tee -a "${LOG_FILE}"
-	kruize_local_demo_terminate
+	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 fi
