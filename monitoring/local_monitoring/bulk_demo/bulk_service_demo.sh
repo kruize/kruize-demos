@@ -23,6 +23,10 @@ source ${current_dir}/../common.sh
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
+NAMESPACE="openshift-tuning"
+
+# Default operator docker image repo
+KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 
 # Default cluster
 export CLUSTER_TYPE="minikube"
@@ -34,6 +38,8 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
+KRUIZE_OPERATOR=1
+BENCHMARK=""
 
 PYTHON_CMD=python3
 export LOG_FILE="${current_dir}/kruize-bulk-demo.log"
@@ -49,6 +55,9 @@ function usage() {
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
+	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+      	echo "k = install kruize using deploy scripts."
+  echo "f = create environment setup if cluster-type is minikube, kind"
 
 	exit 1
 }
@@ -76,7 +85,7 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:lprstu: gopts
+while getopts c:i:n:d:klfprstu:o: gopts
 do
 	case "${gopts}" in
 		c)
@@ -104,27 +113,38 @@ do
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
 		n)
-			APP_NAMESPACE="${OPTARG}"
+			export APP_NAMESPACE="${OPTARG}"
 			;;
 		d)
 			LOAD_DURATION="${OPTARG}"
 			;;
+		o) 
+			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
+			;;
+    		k)
+      			KRUIZE_OPERATOR=0
+      			;;
 		*)
 			usage
 	esac
 done
 
 export demo="bulk"
+
+if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+   KRUIZE_OPERATOR=0
+fi
+
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update
 else
 	echo >> "${LOG_FILE}" 2>&1
-	kruize_local_demo_terminate
+	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 fi

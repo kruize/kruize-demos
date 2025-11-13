@@ -40,7 +40,11 @@ r = restart kruize only
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
+o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+k = install kruize using deploy scripts.
 ```
+
+Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 ## Create Experiment JSON
 

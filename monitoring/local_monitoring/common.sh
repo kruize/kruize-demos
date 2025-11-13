@@ -226,6 +226,7 @@ function kruize_local_experiments() {
 }
 
 function kruize_local_demo_terminate() {
+  kruize_operator=$1
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
@@ -239,7 +240,9 @@ function kruize_local_demo_terminate() {
 	elif [ ${CLUSTER_TYPE} == "kind" ]; then
 		kind_delete >> "${LOG_FILE}" 2>&1
 	else
-		source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
+		if [[ "${kruize_operator}" -eq 1 ]]; then
+       			source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
+		fi
 		kruize_uninstall
 	fi
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
@@ -354,6 +357,7 @@ function update_vpa_roles() {
 
 function kruize_local_demo_setup() {
 	bench=$1
+	kruize_operator=$2
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
@@ -432,8 +436,10 @@ function kruize_local_demo_setup() {
 
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
-	if [ ${CLUSTER_TYPE} != "local" ]; then
+	if [[ "${kruize_operator}" -eq 1 ]]; then
 	  operator_setup >> "${LOG_FILE}" 2>&1
+	else
+	  kruize_install >> "${LOG_FILE}" 2>&1
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
@@ -454,7 +460,7 @@ function kruize_local_demo_setup() {
 		port_forward
 	fi
 	{
-		get_urls $bench
+		get_urls $bench $kruize_operator
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
 

@@ -23,6 +23,10 @@ source ${current_dir}/../common.sh
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
+NAMESPACE="openshift-tuning"
+
+# Default operator docker image repo
+KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 
 # Default cluster
 export CLUSTER_TYPE="kind"
@@ -34,6 +38,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
+KRUIZE_OPERATOR=1
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
@@ -42,12 +47,14 @@ function usage() {
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
 	echo "b = deploy the benchmark."
 	echo "m = manifests of the benchmark"
 	echo "n = namespace of benchmark. Default - default"
 	echo "l = Run a load against the benchmark"
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
+	echo "k = install kruize using deploy scripts."
 
 	exit 1
 }
@@ -68,7 +75,7 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:n:pstu: gopts
+while getopts bc:d:e:kfi:lm:n:pstu:o: gopts
 do
 	case "${gopts}" in
 		b)
@@ -109,6 +116,12 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
+   		o)
+      			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
+      			;;
+    		k)
+      			KRUIZE_OPERATOR=0
+      			;;
 		*)
 			usage
 	esac
@@ -117,6 +130,10 @@ done
 export demo="local"
 export vpa_install_required="1"
 
+if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+   KRUIZE_OPERATOR=0
+fi
+
 EXPERIMENT_TYPE="container"
 export EXPERIMENTS=("container_vpa_experiment_sysbench")
 BENCHMARK="sysbench"
@@ -124,14 +141,14 @@ BENCHMARK="sysbench"
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}"
-	kruize_local_demo_setup ${BENCHMARK}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update ${BENCHMARK}
 else
 	echo | tee -a "${LOG_FILE}"
-	kruize_local_demo_terminate
+	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 fi
