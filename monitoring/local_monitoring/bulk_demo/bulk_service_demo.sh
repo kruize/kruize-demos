@@ -57,6 +57,7 @@ function usage() {
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
       	echo "k = install kruize using deploy scripts."
+  echo "f = create environment setup if cluster-type is minikube, kind"
 
 	exit 1
 }
@@ -84,7 +85,7 @@ export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 
 # Iterate through the commandline options
-while getopts c:i:n:d:klprstu:o: gopts
+while getopts c:i:n:d:klfprstu:o: gopts
 do
 	case "${gopts}" in
 		c)
