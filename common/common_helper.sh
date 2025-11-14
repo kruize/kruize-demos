@@ -147,7 +147,9 @@ function kruize_install() {
 	pushd autotune >/dev/null
 		{
 		# Chekout mvp_demo
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Commenting for testing runtimes-hackathon branch
+		#git checkout mvp_demo >/dev/null 2>/dev/null
+		git checkout runtimes-hackathon >/dev/null 2>/dev/null
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
@@ -638,7 +640,9 @@ function kruize_local_patch() {
 
 	pushd autotune >/dev/null
 		# Checkout mvp_demo to get the latest mvp_demo release version
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Commenting the below line to test runtimes-hackathon branch
+		#git checkout mvp_demo >/dev/null 2>/dev/null
+		git checkout runtimes-hackathon >/dev/null 2>/dev/null
 
 		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
