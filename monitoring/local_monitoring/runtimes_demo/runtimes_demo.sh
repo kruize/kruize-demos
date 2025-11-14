@@ -41,9 +41,9 @@ TECHEMPOWER_PORT=8082
 KRUIZE_OPERATOR=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p] [-o kruize operator image]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p] [-o kruize operator image] [-k]"
 	echo "s = start (default), t = terminate"
-	echo "c = supports minikube, kind, aks and openshift cluster-type"
+	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
@@ -55,6 +55,7 @@ function usage() {
 	echo "l = Run a load against the benchmark"
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
+	echo "k = install kruize using deploy scripts."
 
 	exit 1
 }
@@ -75,8 +76,9 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
+
 # Iterate through the commandline options
-while getopts bc:d:e:fi:lm:no:pstu: gopts
+while getopts bc:d:e:kfi:lm:no:pstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -123,10 +125,17 @@ do
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
+		k)
+			KRUIZE_OPERATOR=0
+			;;
 		*)
 			usage
 	esac
 done
+
+if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+   KRUIZE_OPERATOR=0
+fi
 
 export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
 BENCHMARK="tfb"
