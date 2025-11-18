@@ -541,12 +541,12 @@ operator_setup() {
 
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
-    if oc get project openshift-tuning >/dev/null 2>&1; then
-      echo "Project openshift-tuning exists"
+    if oc get project $NAMESPACE >/dev/null 2>&1; then
+      echo "Project ${NAMESPACE} exists"
     else
-      echo "Project openshift-tuning does not exist"
-      oc create ns openshift-tuning
-      check_err "ERROR: Failed to create openshift-tuning project"
+      echo "Project ${NAMESPACE} does not exist"
+      oc create ns $NAMESPACE
+      check_err "ERROR: Failed to create $NAMESPACE project"
     fi
 
     echo
@@ -576,6 +576,10 @@ operator_setup() {
 	if [ -n "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
 		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 	fi
+
+	sed -i -E 's#^([[:space:]]*)cluster_type:.*#\1cluster_type: "'"${CLUSTER_TYPE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+
+	sed -i -E 's#^([[:space:]]*)namespace:.*#\1namespace: "'"${NAMESPACE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
 	echo
 	echo "📄 Applying Kruize resource..."
@@ -670,13 +674,18 @@ operator_setup() {
     fi
     echo "✅ All Kruize application pods are ready!"
 
-	echo "✅ Deployment complete! Checking status..."
-	kubectl get kruize -n $NAMESPACE
-	kubectl get pods -n $NAMESPACE
+ echo "✅ Deployment complete! Checking status..."
+ kubectl get kruize -n $NAMESPACE
+ kubectl get pods -n $NAMESPACE
+
+ echo
+ echo "⏳ Waiting for Kruize service to be accessible..."
+ # Give the service a moment to be fully ready
+ sleep 10
 
   echo
-	echo "🔍 To view operator logs:"
-	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
+ echo "🔍 To view operator logs:"
+ echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
 
 # Gnerate experiment with the container which is long running
