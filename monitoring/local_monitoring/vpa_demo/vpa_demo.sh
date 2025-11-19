@@ -23,7 +23,6 @@ source ${current_dir}/../common.sh
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
-NAMESPACE="openshift-tuning"
 
 # Default operator docker image repo
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
@@ -131,7 +130,9 @@ export demo="local"
 export vpa_install_required="1"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
-   KRUIZE_OPERATOR=0
+  NAMESPACE="monitoring"
+else
+  NAMESPACE="openshift-tuning"
 fi
 
 EXPERIMENT_TYPE="container"

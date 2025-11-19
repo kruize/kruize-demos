@@ -459,9 +459,9 @@ function kruize_local_demo_setup() {
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		port_forward
 	fi
-	{
-		get_urls $bench $kruize_operator
-	} >> "${LOG_FILE}" 2>&1
+
+	get_urls $bench $kruize_operator >> "${LOG_FILE}" 2>&1
+  
 	echo "✅ Installation of kruize complete!"
 
 	if [ "${vpa_install_required:-}" == "1" ]; then
@@ -541,18 +541,18 @@ operator_setup() {
 
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
-    if oc get project $NAMESPACE >/dev/null 2>&1; then
-      echo "Project ${NAMESPACE} exists"
-    else
-      echo "Project ${NAMESPACE} does not exist"
-      oc create ns $NAMESPACE
-      check_err "ERROR: Failed to create $NAMESPACE project"
-    fi
+    	if oc get ns $NAMESPACE >/dev/null 2>&1; then
+          	echo "Namespace ${NAMESPACE} exists"
+    	else
+      		echo "Namespace ${NAMESPACE} does not exist"
+      		oc create ns $NAMESPACE
+      		check_err "ERROR: Failed to create $NAMESPACE namespace"
+    	fi
 
-    echo
-    echo "🔄 Installing CRDs"
-    pushd kruize-operator  # Use pushd instead of cd
-    make install
+    	echo
+    	echo "🔄 Installing CRDs"
+    	pushd kruize-operator  # Use pushd instead of cd
+    	make install
 
 	KRUIZE_OPERATOR_VERSION=$(grep '^VERSION' "Makefile" | awk '{print $NF}')
 
@@ -560,10 +560,10 @@ operator_setup() {
 		KRUIZE_OPERATOR_IMAGE=${KRUIZE_OPERATOR_DOCKER_REPO}:${KRUIZE_OPERATOR_VERSION}
 	fi
 
-    echo
-    echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
-    make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
-    popd  # Return to original directory
+    	echo
+    	echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
+    	make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
+    	popd  # Return to original directory
 
 	echo
 	echo "🔄 Waiting for kruize operator to be ready"
