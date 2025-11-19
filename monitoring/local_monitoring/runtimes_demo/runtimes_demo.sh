@@ -38,6 +38,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
+PETCLINIC_PORT=8083
 KRUIZE_OPERATOR=1
 
 function usage() {
@@ -137,13 +138,14 @@ if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; t
    KRUIZE_OPERATOR=0
 fi
 
-export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp")
+export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp" "create_petclinic_openj9_exp")
 BENCHMARK="tfb"
+BENCHMARK2="petclinic"
 
 export demo="runtimes"
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup ${BENCHMARK}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} ${BENCHMARK2}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then

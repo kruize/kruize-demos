@@ -427,6 +427,8 @@ function update_vpa_roles() {
 function kruize_local_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	bench2=$3
+
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
@@ -481,8 +483,8 @@ function kruize_local_demo_setup() {
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
-			benchmarks_install ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
-			apply_benchmark_load ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
+			apply_benchmark_load ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
 		fi
 		echo "" >> "${LOG_FILE}" 2>&1
@@ -529,7 +531,7 @@ function kruize_local_demo_setup() {
 		port_forward
 	fi
 	{
-		get_urls $bench $kruize_operator
+		get_urls $bench $kruize_operator $bench2
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
 
@@ -619,7 +621,7 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	show_urls $bench
+	show_urls $bench $bench2
 
 	end_time=$(get_date)
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
