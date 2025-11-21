@@ -374,40 +374,24 @@ function kruize_local_demo_setup() {
 		fi
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Done!"
-	if [[ ${env_setup} -eq 1 ]]; then
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			echo -n "🔄 Installing minikube and prometheus! Please wait..."
-			sys_cpu_mem_check
-			check_minikube
-			minikube >/dev/null
-			check_err "ERROR: minikube not installed"
-			minikube_start
-			prometheus_install autotune
-			echo "✅ Installation of minikube and prometheus complete!"
-		elif [ ${CLUSTER_TYPE} == "kind" ]; then
-			echo -n "🔄 Installing kind and prometheus! Please wait..."
-			check_kind
-			kind >/dev/null
-			check_err "ERROR: kind not installed"
-			kind_start
-			prometheus_install
-			echo "✅ Installation of kind and prometheus complete!"
-		fi
-	elif [[ ${env_setup} -eq 0 ]]; then
-		if [ ${CLUSTER_TYPE} == "minikube" ]; then
-			echo -n "🔄 Checking if minikube exists..."
-			check_minikube
-			minikube >/dev/null
-			check_err "ERROR: minikube is not available. Please install and try again!"
-			echo "✅ minikube exists!"
-		elif [ ${CLUSTER_TYPE} == "kind" ]; then
-			echo -n "🔄 Checking if kind exists..."
-			check_kind
-			kind >/dev/null
-			check_err "ERROR: kind is not available. Please install and try again!"
-			echo "✅ kind exists!"
-		fi
-	fi
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+    echo -n "🔄 Installing minikube and prometheus! Please wait..."
+    sys_cpu_mem_check
+    check_minikube
+    minikube >/dev/null
+    check_err "ERROR: minikube not installed"
+    minikube_start
+    prometheus_install autotune
+    echo "✅ Installation of minikube and prometheus complete!"
+  elif [ ${CLUSTER_TYPE} == "kind" ]; then
+    echo -n "🔄 Installing kind and prometheus! Please wait..."
+    check_kind
+    kind >/dev/null
+    check_err "ERROR: kind not installed"
+    kind_start
+    prometheus_install
+    echo "✅ Installation of kind and prometheus complete!"
+  fi
 	if [ ${demo} == "local" ]; then
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
