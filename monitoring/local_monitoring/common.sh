@@ -235,16 +235,12 @@ function kruize_local_demo_terminate() {
 	echo | tee -a "${LOG_FILE}"
 	echo "Clean up in progress..."
 
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		minikube_delete >> "${LOG_FILE}" 2>&1
-	elif [ ${CLUSTER_TYPE} == "kind" ]; then
-		kind_delete >> "${LOG_FILE}" 2>&1
-	else
-		if [[ "${kruize_operator}" -eq 1 ]]; then
-       			source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
-		fi
-		kruize_uninstall
-	fi
+    	if [[ "${kruize_operator}" -eq 1 ]]; then
+         	 kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
+    	else
+          	kruize_uninstall >> "${LOG_FILE}" 2>&1
+    	fi
+
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
 		if kubectl get pods -n "${APP_NAMESPACE}" | grep -q "tfb"; then
 			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
@@ -267,6 +263,13 @@ function kruize_local_demo_terminate() {
 	#		delete_namespace ${ns_name}-${loop}
 	#	done
 	fi
+
+  	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+    		minikube_delete >> "${LOG_FILE}" 2>&1
+  	elif [ ${CLUSTER_TYPE} == "kind" ]; then
+    		kind_delete >> "${LOG_FILE}" 2>&1
+  	fi
+
 	{
 		delete_repos autotune
 		delete_repos "benchmarks"
@@ -458,6 +461,11 @@ function kruize_local_demo_setup() {
 	# port forward the urls in case of kind
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		port_forward
+
+	# Wait for port forwarding to be established
+    	echo -n "⏳ Waiting for port forwarding to be established..."
+    	sleep 10
+    	echo " done!"
 	fi
 
 	get_urls $bench $kruize_operator >> "${LOG_FILE}" 2>&1
@@ -537,7 +545,7 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-  	clone_repos kruize-operator
+  	git clone -b kind_cluster_support https://github.com/shreyabiradar07/kruize-operator/
 
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
@@ -680,8 +688,11 @@ operator_setup() {
 
  echo
  echo "⏳ Waiting for Kruize service to be accessible..."
- # Give the service a moment to be fully ready
- sleep 10
+ # Loops until the service has at least one backend IP assigned
+ until kubectl get endpoints kruize -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; do
+   sleep 5
+ done
+ echo "Service is wired to pods!"
 
   echo
  echo "🔍 To view operator logs:"
@@ -774,4 +785,52 @@ sed -i \
         -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
         "$namespace_json"
 
+}
+
+#  Kruize Operator Cleanup
+function kruize_operator_cleanup() {
+	local namespace="${1:-openshift-tuning}"
+	local kubectl_cmd="kubectl"
+
+	# Use oc command for OpenShift, kubectl for other clusters
+	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		kubectl_cmd="oc"
+	fi
+
+	echo
+	echo "#######################################"
+	echo "Cleaning up Kruize Operator resources"
+	echo "#######################################"
+
+	# Undeploy operator if kruize-operator directory exists
+	if [ -d "kruize-operator" ]; then
+		echo "Undeploying Kruize Operator..."
+		pushd kruize-operator >/dev/null
+
+		# Delete deployments
+		kubectl delete -f ./config/samples/v1alpha1_kruize.yaml -n $namespace
+
+		make undeploy 2>/dev/null || echo "Warning: make undeploy failed or already undeployed"
+		popd >/dev/null
+
+		echo "Deleting kruize-operator directory..."
+		rm -rf kruize-operator
+	else
+		echo "kruize-operator directory not found, skipping undeploy"
+	fi
+
+	# Delete cluster-level resources
+	echo "Deleting cluster roles..."
+	${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
+
+	echo "Deleting cluster role bindings..."
+	${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
+
+	# Delete ConfigMap
+	echo "Deleting kruize ConfigMap in namespace: ${namespace}..."
+	${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || echo "kruizeconfig ConfigMap not found"
+
+	echo "Kruize Operator cleanup complete!"
+	echo "#######################################"
+	echo
 }
