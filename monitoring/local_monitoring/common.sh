@@ -361,22 +361,37 @@ function update_vpa_roles() {
 function kruize_local_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	monitoring_restart_flag=${3:-0}
+	
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "# Kruize Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
+	if [[ ${monitoring_restart_flag} -eq 1 ]]; then
+		echo "# Kruize Monitoring Restart on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
+	else
+		echo "# Kruize Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
+	fi
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
-	echo -n "🔄 Pulling required repositories... "
-	{
-		clone_repos autotune
-		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
-			clone_repos benchmarks
-		fi
-	} >> "${LOG_FILE}" 2>&1
-	echo "✅ Done!"
+	# Handle monitoring restart scenario - cleanup first
+	if [[ ${monitoring_restart_flag} -eq 1 ]]; then
+		kruize_monitoring_restart $NAMESPACE $kruize_operator
+	fi
+
+	# Clone repos only for new setup, not for restart
+	if [[ ${monitoring_restart_flag} -ne 1 ]]; then
+		echo -n "🔄 Pulling required repositories... "
+		{
+			clone_repos autotune
+			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+				clone_repos benchmarks
+			fi
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	fi
+
 	if [[ ${env_setup} -eq 1 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
@@ -434,19 +449,19 @@ function kruize_local_demo_setup() {
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "bulk" ]; then
-	  kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
+        	kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
 	fi
 
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
-	  operator_setup >> "${LOG_FILE}" 2>&1
+		operator_setup >> "${LOG_FILE}" 2>&1
 	else
-	  kruize_install >> "${LOG_FILE}" 2>&1
+		kruize_install >> "${LOG_FILE}" 2>&1
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
- 	do
+  	do
 		echo -n "."
 		sleep 5
 	done
@@ -461,15 +476,16 @@ function kruize_local_demo_setup() {
 	# port forward the urls in case of kind
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		port_forward
-
-	# Wait for port forwarding to be established
-    	echo -n "⏳ Waiting for port forwarding to be established..."
-    	sleep 10
-    	echo " done!"
 	fi
 
 	get_urls $bench $kruize_operator >> "${LOG_FILE}" 2>&1
-  
+
+  	# Give Kruize application time to fully initialize after pod is ready
+  	echo
+  	echo -n "⏳ Waiting for Kruize service to fully initialize..."
+  	sleep 20
+  	echo " done!"
+
 	echo "✅ Installation of kruize complete!"
 
 	if [ "${vpa_install_required:-}" == "1" ]; then
@@ -787,6 +803,21 @@ sed -i \
 
 }
 
+function kruize_monitoring_restart() {
+	local namespace=$1
+	local kruize_operator=$2
+	
+	echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
+	{
+		if [[ "${kruize_operator}" -eq 1 ]]; then
+			kruize_operator_cleanup $namespace true
+		else
+			kruize_uninstall
+		fi
+	} >> "${LOG_FILE}" 2>&1
+	echo "✅ Cleanup complete!"
+}
+
 #  Kruize Operator Cleanup
 function kruize_operator_cleanup() {
 	local namespace="${1:-openshift-tuning}"
@@ -818,6 +849,48 @@ function kruize_operator_cleanup() {
 	else
 		echo "kruize-operator directory not found, skipping undeploy"
 	fi
+
+  	echo "Deleting database PVC to clear existing data..."
+  	${kubectl_cmd} delete pvc kruize-db-pvc -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc not found or already deleted"
+
+  	# Wait for PVC to be fully deleted
+  	echo "Waiting for PVC to be fully deleted..."
+  	timeout=60
+  	elapsed=0
+  	while ${kubectl_cmd} get pvc kruize-db-pvc -n ${namespace} >/dev/null 2>&1; do
+    		if [ $elapsed -ge $timeout ]; then
+      			echo "Warning: Timeout waiting for PVC deletion, continuing anyway..."
+      			break
+    		fi
+    		sleep 2
+    		elapsed=$((elapsed + 2))
+  	done
+  	echo "Database PVC deleted successfully"
+
+  	local db_pv_name
+
+  	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+    		db_pv_name="kruize-db-pv"
+  	else
+    		db_pv_name="kruize-db-pv-volume"
+  	fi
+
+  	echo "Deleting database PV to clear existing data..."
+  	${kubectl_cmd} delete pv $db_pv_name -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pv not found or already deleted"
+
+  	# Wait for PV to be fully deleted
+  	echo "Waiting for PV to be fully deleted..."
+  	timeout=60
+  	elapsed=0
+  	while ${kubectl_cmd} get pv $db_pv_name -n ${namespace} >/dev/null 2>&1; do
+    		if [ $elapsed -ge $timeout ]; then
+      			echo "Warning: Timeout waiting for PV deletion, continuing anyway..."
+      			break
+    		fi
+    		sleep 2
+    		elapsed=$((elapsed + 2))
+  	done
+  	echo "Database PV deleted successfully"
 
 	# Delete cluster-level resources
 	echo "Deleting cluster roles..."
