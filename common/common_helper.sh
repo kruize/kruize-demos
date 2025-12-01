@@ -594,12 +594,13 @@ function is_port_in_use() {
 
 
 ###########################################
-#  Kill existing port-forward processes
+# kill only kruize port-forward
 ###########################################
 function kill_port_forward() {
-	echo "Killing existing port-forward processes..."
-	# Kill all kubectl port-forward processes
-	pkill -f "kubectl.*port-forward" 2>/dev/null || true
+	echo "Killing existing Kruize-related port-forward processes..."
+	# Kill only Kruize-related port-forward processes (kruize, kruize-ui-nginx-service)
+	pkill -f "kubectl.*port-forward.*kruize" 2>/dev/null || true
+	pkill -f "kubectl.*port-forward.*kruize-ui-nginx-service" 2>/dev/null || true
 	# Give processes time to terminate
 	sleep 2
 }
@@ -612,7 +613,7 @@ function port_forward() {
 	port_flag="false"
 
 	{
-	# Kill any existing port-forward processes first
+	# Kill any existing kruize port-forward processes first to ensure clean state
 	kill_port_forward
 	
 	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs

@@ -361,27 +361,49 @@ function update_vpa_roles() {
 function kruize_local_demo_setup() {
 	bench=$1
 	kruize_operator=$2
-	monitoring_restart_flag=${3:-0}
 	
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
-	if [[ ${monitoring_restart_flag} -eq 1 ]]; then
-		echo "# Kruize Monitoring Restart on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-	else
-		echo "# Kruize Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
-	fi
+	echo "# Kruize Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
-	# Handle monitoring restart scenario - cleanup first
-	if [[ ${monitoring_restart_flag} -eq 1 ]]; then
-		kruize_monitoring_restart $NAMESPACE $kruize_operator
+	# Check if autotune is already cloned and deployment is running
+	autotune_exists=0
+	if [ -d "autotune" ]; then
+		autotune_exists=1
+		echo -n "🔍 Checking if Kruize deployment is running..."
+		
+		# Check if kruize deployment exists and is running
+		deployment_check=$(kubectl get deployment kruize -n ${NAMESPACE} 2>&1)
+		pod_check=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+		
+		if [[ ! "$deployment_check" =~ "NotFound" ]] && [[ ! "$deployment_check" =~ "No resources" ]] || \
+		   [[ ! "$pod_check" =~ "NotFound" ]] && [[ ! "$pod_check" =~ "No resources" ]]; then
+			echo " found!"
+			echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
+			{
+				if [[ "${kruize_operator}" -eq 1 ]]; then
+					kruize_operator_cleanup $NAMESPACE
+				else
+					kruize_uninstall
+				fi
+			} >> "${LOG_FILE}" 2>&1
+			echo "✅ Cleanup complete!"
+			
+			# Wait for cleanup to complete and resources to be fully removed
+			echo -n "⏳ Waiting for resources to be fully removed..."
+			sleep 10
+			echo " done!"
+		else
+			echo " not running."
+		fi
 	fi
 
-	# Clone repos only for new setup, not for restart
-	if [[ ${monitoring_restart_flag} -ne 1 ]]; then
+	# Clone repos if not already present
+	if [ ${autotune_exists} -eq 0 ]; then
 		echo -n "🔄 Pulling required repositories... "
 		{
 			clone_repos autotune
@@ -516,7 +538,11 @@ function kruize_local_demo_setup() {
 		for experiment in "${EXPERIMENTS[@]}"; do
 			if [ $experiment == "container_experiment_local" ]; then
 				if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-					expose_prometheus >> "${LOG_FILE}" 2>&1 &
+					# Check if prometheus port-forward already exists (kubectl or oc)
+					if ! pgrep -f "(kubectl|oc).*port-forward.*prometheus" > /dev/null 2>&1; then
+						expose_prometheus >> "${LOG_FILE}" 2>&1 &
+						sleep 5  # Give prometheus port-forward time to establish
+					fi
 				fi
 				echo -n "🔄 Finding a long running container to create Kruize experiment..."
 				generate_experiment_from_prometheus
@@ -801,21 +827,6 @@ sed -i \
         -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
         "$namespace_json"
 
-}
-
-function kruize_monitoring_restart() {
-	local namespace=$1
-	local kruize_operator=$2
-	
-	echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
-	{
-		if [[ "${kruize_operator}" -eq 1 ]]; then
-			kruize_operator_cleanup $namespace true
-		else
-			kruize_uninstall
-		fi
-	} >> "${LOG_FILE}" 2>&1
-	echo "✅ Cleanup complete!"
 }
 
 #  Kruize Operator Cleanup

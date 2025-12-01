@@ -38,7 +38,6 @@ KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 KRUIZE_OPERATOR=1
-monitoring_restart=0
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
@@ -56,7 +55,6 @@ function usage() {
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
 	echo "k = install kruize using deploy scripts."
-	echo "r = restart kruize monitoring only"
 
 	exit 1
 }
@@ -78,7 +76,7 @@ export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:klm:no:prstu: gopts
+while getopts bc:d:e:fi:klm:no:pstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -122,27 +120,16 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
-		o) 
+		o)
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
 	 	k)
       			KRUIZE_OPERATOR=0
       			;;
-    		r)
-      			monitoring_restart=1
-      			;;
 		*)
 			usage
 	esac
 done
-
-# Check that -f and -r are mutually exclusive
-if [ ${env_setup} -eq 1 ] && [ ${monitoring_restart} -eq 1 ]; then
-	echo "Error: Options -f and -r cannot be used together"
-	echo "-f: create environment setup"
-	echo "-r: restart kruize monitoring only"
-	usage
-fi
 
 export demo="local"
 
@@ -178,7 +165,7 @@ fi
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} ${monitoring_restart}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
