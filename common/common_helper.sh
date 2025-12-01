@@ -598,9 +598,16 @@ function is_port_in_use() {
 ###########################################
 function kill_port_forward() {
 	echo "Killing existing Kruize-related port-forward processes..."
-	# Kill only Kruize-related port-forward processes (kruize, kruize-ui-nginx-service)
+	# Kill Kruize-related port-forward processes (kruize, kruize-ui-nginx-service)
 	pkill -f "kubectl.*port-forward.*kruize" 2>/dev/null || true
 	pkill -f "kubectl.*port-forward.*kruize-ui-nginx-service" 2>/dev/null || true
+	
+	# Check if TFB port-forward exists and kill it
+	if pgrep -f "kubectl.*port-forward.*tfb" > /dev/null 2>&1; then
+		echo "Killing existing TFB port-forward process..."
+		pkill -f "kubectl.*port-forward.*tfb" 2>/dev/null || true
+	fi
+	
 	# Give processes time to terminate
 	sleep 2
 }
