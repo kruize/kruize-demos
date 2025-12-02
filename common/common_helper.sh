@@ -32,9 +32,13 @@ function get_date() {
 }
 
 function time_diff() {
-	ssec=`date --utc --date "$1" +%s`
-	esec=`date --utc --date "$2" +%s`
-
+	if date --version > /dev/null 2>&1 ; then
+		ssec=`date --utc --date "$1" +%s`
+		esec=`date --utc --date "$2" +%s`
+	else
+		ssec=`date -j -f "%Y-%m-%d %H:%M:%S" "$1" +%s`
+		esec=`date -j -f "%Y-%m-%d %H:%M:%S" "$2" +%s`
+	fi
 	diffsec=$(($esec-$ssec))
 	echo $diffsec
 }
