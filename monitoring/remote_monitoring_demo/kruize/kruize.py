@@ -43,30 +43,31 @@ def form_kruize_url(cluster_type):
 
         ip = subprocess.run(['minikube ip'], shell=True, stdout=subprocess.PIPE)
         SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
+        URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
+        KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
 
     elif (cluster_type == "openshift"):
-        port = subprocess.run(
-            ['kubectl -n openshift-tuning get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
-            shell=True, stdout=subprocess.PIPE)
 
-        AUTOTUNE_PORT = port.stdout.decode('utf-8').strip('\n')
-        print("PORT = ", AUTOTUNE_PORT)
-
-        ui_port = subprocess.run([
-                                     'kubectl -n openshift-tuning get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
-                                 shell=True, stdout=subprocess.PIPE)
-
-        KRUIZE_UI_PORT = ui_port.stdout.decode('utf-8').strip('\n')
-        print("KRUIZE UI PORT = ", KRUIZE_UI_PORT)
-
-        ip = subprocess.run([
-                                'kubectl get pods -l=app=kruize -o wide -n openshift-tuning -o=custom-columns=NODE:.spec.nodeName --no-headers'],
-                            shell=True, stdout=subprocess.PIPE)
+        subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
+        ip = subprocess.run(
+            [
+                'oc status -n openshift-tuning | grep "kruize" | grep -v "kruize-ui" | grep -v "kruize-db" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
+            shell=True,
+            stdout=subprocess.PIPE)
         SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
         print("IP = ", SERVER_IP)
+        URL = "http://" + str(SERVER_IP)
 
-    URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
-    KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
+        subprocess.run(['oc expose svc/kruize-ui-nginx-service -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
+        ip = subprocess.run(
+            [
+                'oc status -n openshift-tuning | grep "kruize-ui-nginx-service" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
+            shell=True,
+            stdout=subprocess.PIPE)
+        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
+        print("IP = ", SERVER_IP)
+        KRUIZE_UI_URL = "http://" + str(SERVER_IP)
+
     print("\nKRUIZE AUTOTUNE URL = ", URL)
     print("\nKRUIZE UI URL = ", KRUIZE_UI_URL)
 
