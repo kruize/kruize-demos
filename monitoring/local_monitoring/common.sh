@@ -659,14 +659,14 @@ operator_setup() {
 		exit 1
 	fi
 
-    echo "⏳ Waiting for kruize-db pod to be ready..."
-    kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
-    if [ $? -ne 0 ]; then
-        echo "❌ Kruize-db pod failed to become ready"
-        kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize-db -n $NAMESPACE
-        exit 1
-    fi
+    	echo "⏳ Waiting for kruize-db pod to be ready..."
+    	kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
+    	if [ $? -ne 0 ]; then
+        	echo "❌ Kruize-db pod failed to become ready"
+        	kubectl get pods -n $NAMESPACE
+        	kubectl describe pod -l app=kruize-db -n $NAMESPACE
+        	exit 1
+    	fi
 
 	# First wait for pod to exist
 	timeout=180
@@ -687,12 +687,12 @@ operator_setup() {
 	fi
 
 	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
-    if [ $? -ne 0 ]; then
-        echo "❌ Kruize pod failed to become ready"
-        kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize -n $NAMESPACE
-        exit 1
-    fi
+    	if [ $? -ne 0 ]; then
+        	echo "❌ Kruize pod failed to become ready"
+        	kubectl get pods -n $NAMESPACE
+        	kubectl describe pod -l app=kruize -n $NAMESPACE
+        	exit 1
+    	fi
 
 	echo "⏳ Waiting for kruize-ui pod to be ready..."
 	# First wait for pod to exist
@@ -714,31 +714,31 @@ operator_setup() {
 	fi
 
 
-    echo "⏳ Waiting for kruize-ui pod to be ready..."
-    kubectl wait --for=condition=Ready pod -l app=kruize-ui-nginx -n $NAMESPACE --timeout=600s
-    if [ $? -ne 0 ]; then
-        echo "❌ kruize-ui-nginx pod failed to become ready"
-        kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize-ui-nginx -n $NAMESPACE
-        exit 1
-    fi
-    echo "✅ All Kruize application pods are ready!"
+    	echo "⏳ Waiting for kruize-ui pod to be ready..."
+    	kubectl wait --for=condition=Ready pod -l app=kruize-ui-nginx -n $NAMESPACE --timeout=600s
+    	if [ $? -ne 0 ]; then
+        	echo "❌ kruize-ui-nginx pod failed to become ready"
+        	kubectl get pods -n $NAMESPACE
+        	kubectl describe pod -l app=kruize-ui-nginx -n $NAMESPACE
+        	exit 1
+    	fi
+    	echo "✅ All Kruize application pods are ready!"
 
- echo "✅ Deployment complete! Checking status..."
- kubectl get kruize -n $NAMESPACE
- kubectl get pods -n $NAMESPACE
+ 	echo "✅ Deployment complete! Checking status..."
+ 	kubectl get kruize -n $NAMESPACE
+ 	kubectl get pods -n $NAMESPACE
 
- echo
- echo "⏳ Waiting for Kruize service to be accessible..."
- # Loops until the service has at least one backend IP assigned
- until kubectl get endpoints kruize -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; do
-   sleep 5
- done
- echo "Service is wired to pods!"
+ 	echo
+	echo "⏳ Waiting for Kruize service to be accessible..."
+ 	# Loops until the service has at least one backend IP assigned
+ 	until kubectl get endpoints kruize -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; do
+   		sleep 5
+ 	done
+ 	echo "Service is wired to pods!"
 
-  echo
- echo "🔍 To view operator logs:"
- echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
+  	echo
+ 	echo "🔍 To view operator logs:"
+ 	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
 
 # Gnerate experiment with the container which is long running
