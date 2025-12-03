@@ -123,6 +123,75 @@ function kruize_local_metadata() {
 	} >> "${LOG_FILE}" 2>&1
 }
 
+function create_layers() {
+	layers_dir="./autotune/design/sample-jsons/layers"
+	LAYERS=()
+	for file in "${layers_dir}"/*.json; do
+		if [ -e "$file" ]; then
+			LAYERS+=("$file")
+		fi
+	done
+	{
+		echo
+		echo "######################################################"
+		echo "#     Create Layers "			
+		echo "######################################################"
+		echo
+		for layer in "${LAYERS[@]}"; do
+			echo "curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}"
+			curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}
+	    	done
+	} >> "${LOG_FILE}" 2>&1
+}
+
+function list_layers() {
+	{
+		echo
+		echo "######################################################"
+		echo "#     List Layers "			
+		echo "######################################################"
+		echo
+		echo "curl -s http://${KRUIZE_URL}/listLayers"
+		curl -s http://${KRUIZE_URL}/listLayers
+
+	} >> "${LOG_FILE}" 2>&1
+}
+
+function list_rulesets() {
+	{
+		echo
+		echo "######################################################"
+		echo "#     List RuleSets "			
+		echo "######################################################"
+		echo
+		echo "curl -s http://${KRUIZE_URL}/listRuleSets"
+		curl -s http://${KRUIZE_URL}/listRuleSets
+
+	} >> "${LOG_FILE}" 2>&1
+}
+
+
+function create_ruleset() {
+	ruleset_dir="./autotune/design/sample-jsons/rulesets"
+	RULESETS=()
+	for file in "${ruleset_dir}"/*.json; do
+		if [ -e "$file" ]; then
+			RULESETS+=("$file")
+	        fi
+	done
+	{
+		echo
+		echo "######################################################"
+		echo "#     Create Ruleset"			
+		echo "######################################################"
+		echo
+		for ruleset in "${RULESETS[@]}"; do
+			echo "curl -s -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset}"
+			curl -s -X POST http://${KRUIZE_URL}/createRuleSet -d @${ruleset}
+    		done
+	} >> "${LOG_FILE}" 2>&1
+}
+
 function kruize_local_experiments() {
 	{
 	echo
@@ -358,6 +427,8 @@ function update_vpa_roles() {
 function kruize_local_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	bench2=$3
+
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
@@ -408,12 +479,12 @@ function kruize_local_demo_setup() {
 			echo "✅ kind exists!"
 		fi
 	fi
-	if [ ${demo} == "local" ]; then
+	if [[ ${demo} == "local" || ${demo} == "runtimes" ]]; then
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
-			benchmarks_install ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
-			apply_benchmark_load ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
+			apply_benchmark_load ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
 		fi
 		echo "" >> "${LOG_FILE}" 2>&1
@@ -460,7 +531,7 @@ function kruize_local_demo_setup() {
 		port_forward
 	fi
 	{
-		get_urls $bench $kruize_operator
+		get_urls $bench $kruize_operator $bench2
 	} >> "${LOG_FILE}" 2>&1
 	echo "✅ Installation of kruize complete!"
 
@@ -508,6 +579,37 @@ function kruize_local_demo_setup() {
 		recomm_start_time=$(get_date)
 		kruize_bulk
 		recomm_end_time=$(get_date)
+	elif [ ${demo} == "runtimes" ]; then
+		echo -n "🔄 Collecting metadata..."
+		kruize_local_metadata
+		echo "✅ Collection of metadata complete!"
+
+		# Create Layers
+		echo -n "🔄 Creating Layers..."
+		create_layers
+		echo "✅ Creating Layers complete!"
+
+		# List Layers
+		echo -n "🔄 List Layers..."
+		list_layers
+		echo "✅ Listing Layers complete!"
+
+		# Create Ruleset
+		echo -n "🔄 Creating Ruleset..."
+		create_ruleset
+		echo "✅ Creating Ruleset complete!"
+
+		# List RuleSets
+		echo -n "🔄 List RuleSets..."
+		list_rulesets
+		echo "✅ Listing RuleSets complete!"
+
+		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+			recomm_start_time=$(get_date)
+			kruize_local_experiments
+			recomm_end_time=$(get_date)
+		fi
+
 	fi
 	
 	if [ "${vpa_install_required:-}" == "1" ]; then
@@ -519,7 +621,7 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	show_urls $bench
+	show_urls $bench $bench2
 
 	end_time=$(get_date)
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
