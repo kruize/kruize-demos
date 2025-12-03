@@ -587,7 +587,13 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-  	git clone -b kind_cluster_support https://github.com/shreyabiradar07/kruize-operator/
+      	clone_repos kruize-operator
+
+      	# Checkout mvp_demo branch
+      	pushd kruize-operator >/dev/null
+        	git checkout mvp_demo >/dev/null 2>/dev/null
+        	check_err "ERROR: Failed to checkout mvp_demo branch in kruize-operator"
+      	popd >/dev/null
 
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
