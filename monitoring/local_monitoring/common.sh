@@ -385,6 +385,16 @@ function kruize_local_demo_setup() {
 			echo " found!"
 			echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 			{
+			  # Kill existing port-forwards before cleanup (only for kind cluster)
+        if [ ${CLUSTER_TYPE} == "kind" ]; then
+          kill_service_port_forward "kruize"
+          kill_service_port_forward "kruize-ui-nginx-service"
+          # Kill benchmark port-forwards if benchmark is tfb
+          if [[ "${bench}" == "tfb" ]]; then
+           kill_service_port_forward "tfb-qrh-service"
+          fi
+        fi
+
 				if [[ "${kruize_operator}" -eq 1 ]]; then
 					kruize_operator_cleanup $NAMESPACE
 				else
@@ -497,7 +507,7 @@ function kruize_local_demo_setup() {
 
 	# port forward the urls in case of kind
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
-		port_forward
+		port_forward "${bench}"
 	fi
 
 	get_urls $bench $kruize_operator >> "${LOG_FILE}" 2>&1
@@ -539,7 +549,7 @@ function kruize_local_demo_setup() {
 			if [ $experiment == "container_experiment_local" ]; then
 				if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
 					# Check if prometheus port-forward already exists (kubectl or oc)
-					if ! pgrep -f "(kubectl|oc).*port-forward.*prometheus" > /dev/null 2>&1; then
+					if ! ps aux | grep -E "kubectl|oc" | grep "port-forward" | grep -q "prometheus"; then
 						expose_prometheus >> "${LOG_FILE}" 2>&1 &
 						sleep 5  # Give prometheus port-forward time to establish
 					fi

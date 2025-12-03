@@ -594,34 +594,37 @@ function is_port_in_use() {
 
 
 ###########################################
-# kill only kruize port-forward
+# kill port-forward for a specific service
 ###########################################
-function kill_port_forward() {
-	echo "Killing existing Kruize-related port-forward processes..."
-	# Kill Kruize-related port-forward processes (kruize, kruize-ui-nginx-service)
-	pkill -f "kubectl.*port-forward.*kruize" 2>/dev/null || true
-	pkill -f "kubectl.*port-forward.*kruize-ui-nginx-service" 2>/dev/null || true
-	
-	# Check if TFB port-forward exists and kill it
-	if pgrep -f "kubectl.*port-forward.*tfb" > /dev/null 2>&1; then
-		echo "Killing existing TFB port-forward process..."
-		pkill -f "kubectl.*port-forward.*tfb" 2>/dev/null || true
+function kill_service_port_forward() {
+	local service_name="$1"
+	if [[ -z "${service_name}" ]]; then
+		echo "Error: Service name is required"
+		return 1
 	fi
 	
-	# Give processes time to terminate
-	sleep 2
+	# Find PIDs of port-forward processes for the specific service
+	# Using ps and grep to get exact matches without wildcards
+	local pids=$(ps aux | grep "[k]ubectl" | grep "port-forward" | grep "svc/${service_name}" | awk '{print $2}')
+	
+	if [[ -n "${pids}" ]]; then
+		echo "Killing existing port-forward for service: ${service_name}"
+		for pid in ${pids}; do
+			kill "${pid}" 2>/dev/null || true
+		done
+		sleep 1
+	fi
 }
 
 ###########################################
 #  Port forward the URLs
 ###########################################
 function port_forward() {
+	local benchmark="${1:-}"
 	kubectl_cmd="kubectl -n monitoring"
 	port_flag="false"
 
 	{
-	# Kill any existing kruize port-forward processes first to ensure clean state
-	kill_port_forward
 	
 	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
 	# Start port forwarding for kruize service in the background
@@ -638,12 +641,14 @@ function port_forward() {
 	else
 		${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
 	fi
-	# Start port forwarding for tfb-service in the background
-	if is_port_in_use ${TECHEMPOWER_PORT}; then
-		echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
-		port_flag="true"
-	else
-		kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
+	# Start port forwarding for tfb-service in the background only if benchmark is tfb
+	if [[ "${benchmark}" == "tfb" ]]; then
+		if is_port_in_use ${TECHEMPOWER_PORT}; then
+			echo "Error: Port ${TECHEMPOWER_PORT} is already in use. Port forwarding for tfb-service cannot be established."
+			port_flag="true"
+		else
+			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
+		fi
 	fi
 	} >> "${LOG_FILE}" 2>&1
 
