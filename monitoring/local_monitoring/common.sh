@@ -385,15 +385,16 @@ function kruize_local_demo_setup() {
 			echo " found!"
 			echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 			{
-			  # Kill existing port-forwards before cleanup (only for kind cluster)
-        if [ ${CLUSTER_TYPE} == "kind" ]; then
-          kill_service_port_forward "kruize"
-          kill_service_port_forward "kruize-ui-nginx-service"
-          # Kill benchmark port-forwards if benchmark is tfb
-          if [[ "${bench}" == "tfb" ]]; then
-           kill_service_port_forward "tfb-qrh-service"
-          fi
-        fi
+			  	# Kill existing port-forwards before cleanup (only for kind cluster)
+        			if [ ${CLUSTER_TYPE} == "kind" ]; then
+          				kill_service_port_forward "kruize"
+          				kill_service_port_forward "kruize-ui-nginx-service"
+          				
+          				# Kill benchmark port-forwards if benchmark is tfb
+          				if [[ "${bench}" == "tfb" ]]; then
+           					kill_service_port_forward "tfb-qrh-service"
+          				fi
+        			fi
 
 				if [[ "${kruize_operator}" -eq 1 ]]; then
 					kruize_operator_cleanup $NAMESPACE
