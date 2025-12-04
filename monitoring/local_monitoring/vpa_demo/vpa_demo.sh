@@ -58,8 +58,6 @@ function usage() {
 	exit 1
 }
 
-# Check system configs
-sys_cpu_mem_check ${CLUSTER_TYPE}
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""

@@ -71,8 +71,6 @@ function kruize_bulk() {
   } >> "${LOG_FILE}" 2>&1
 }
 
-# Check system configs
-sys_cpu_mem_check
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""

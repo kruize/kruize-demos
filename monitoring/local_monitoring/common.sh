@@ -428,7 +428,6 @@ function kruize_local_demo_setup() {
 	if [[ ${env_setup} -eq 1 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
-			sys_cpu_mem_check
 			check_minikube
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"
