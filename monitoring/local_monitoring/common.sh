@@ -244,6 +244,7 @@ function kruize_local_demo_terminate() {
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
 		if kubectl get pods -n "${APP_NAMESPACE}" | grep -q "tfb"; then
 			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+			kill_service_port_forward "tfb-qrh-service"
 		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "human-eval"; then
 			benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
 		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "sysbench"; then
@@ -267,6 +268,8 @@ function kruize_local_demo_terminate() {
   	if [ ${CLUSTER_TYPE} == "minikube" ]; then
     		minikube_delete >> "${LOG_FILE}" 2>&1
   	elif [ ${CLUSTER_TYPE} == "kind" ]; then
+  	    	kill_service_port_forward "kruize"
+  	    	kill_service_port_forward "kruize-ui-nginx-service"
     		kind_delete >> "${LOG_FILE}" 2>&1
   	fi
 
