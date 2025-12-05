@@ -235,19 +235,16 @@ function kruize_local_demo_terminate() {
 	echo | tee -a "${LOG_FILE}"
 	echo "Clean up in progress..."
 
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		minikube_delete >> "${LOG_FILE}" 2>&1
-	elif [ ${CLUSTER_TYPE} == "kind" ]; then
-		kind_delete >> "${LOG_FILE}" 2>&1
-	else
-		if [[ "${kruize_operator}" -eq 1 ]]; then
-       			source "$SCRIPT_DIR/cleanup_openshift.sh" >> "${LOG_FILE}" 2>&1
-		fi
-		kruize_uninstall
-	fi
+    	if [[ "${kruize_operator}" -eq 1 ]]; then
+         	 kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
+    	else
+          	kruize_uninstall >> "${LOG_FILE}" 2>&1
+    	fi
+
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
 		if kubectl get pods -n "${APP_NAMESPACE}" | grep -q "tfb"; then
 			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+			kill_service_port_forward "tfb-qrh-service"
 		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "human-eval"; then
 			benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
 		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "sysbench"; then
@@ -267,6 +264,15 @@ function kruize_local_demo_terminate() {
 	#		delete_namespace ${ns_name}-${loop}
 	#	done
 	fi
+
+  	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+    		minikube_delete >> "${LOG_FILE}" 2>&1
+  	elif [ ${CLUSTER_TYPE} == "kind" ]; then
+  	    	kill_service_port_forward "kruize"
+  	    	kill_service_port_forward "kruize-ui-nginx-service"
+    		kind_delete >> "${LOG_FILE}" 2>&1
+  	fi
+
 	{
 		delete_repos autotune
 		delete_repos "benchmarks"
@@ -358,6 +364,7 @@ function update_vpa_roles() {
 function kruize_local_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
@@ -366,18 +373,64 @@ function kruize_local_demo_setup() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
-	echo -n "🔄 Pulling required repositories... "
-	{
-		clone_repos autotune
-		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
-			clone_repos benchmarks
+	# Check if autotune is already cloned and deployment is running
+	autotune_exists=0
+	if [ -d "autotune" ]; then
+		autotune_exists=1
+		echo -n "🔍 Checking if Kruize deployment is running..."
+		
+		# Check if kruize deployment exists and is running
+		deployment_check=$(kubectl get deployment kruize -n ${NAMESPACE} 2>&1)
+		pod_check=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+		
+		if [[ ! "$deployment_check" =~ "NotFound" ]] && [[ ! "$deployment_check" =~ "No resources" ]] || \
+		   [[ ! "$pod_check" =~ "NotFound" ]] && [[ ! "$pod_check" =~ "No resources" ]]; then
+			echo " found!"
+			echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
+			{
+			  	# Kill existing port-forwards before cleanup (only for kind cluster)
+        			if [ ${CLUSTER_TYPE} == "kind" ]; then
+          				kill_service_port_forward "kruize"
+          				kill_service_port_forward "kruize-ui-nginx-service"
+          				
+          				# Kill benchmark port-forwards if benchmark is tfb
+          				if [[ "${bench}" == "tfb" ]]; then
+           					kill_service_port_forward "tfb-qrh-service"
+          				fi
+        			fi
+
+				if [[ "${kruize_operator}" -eq 1 ]]; then
+					kruize_operator_cleanup $NAMESPACE
+				else
+					kruize_uninstall
+				fi
+			} >> "${LOG_FILE}" 2>&1
+			echo "✅ Cleanup complete!"
+			
+			# Wait for cleanup to complete and resources to be fully removed
+			echo -n "⏳ Waiting for resources to be fully removed..."
+			sleep 10
+			echo " done!"
+		else
+			echo " not running."
 		fi
-	} >> "${LOG_FILE}" 2>&1
-	echo "✅ Done!"
+	fi
+
+	# Clone repos if not already present
+	if [ ${autotune_exists} -eq 0 ]; then
+		echo -n "🔄 Pulling required repositories... "
+		{
+			clone_repos autotune
+			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+				clone_repos benchmarks
+			fi
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	fi
+
 	if [[ ${env_setup} -eq 1 ]]; then
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
-			sys_cpu_mem_check
 			check_minikube
 			minikube >/dev/null
 			check_err "ERROR: minikube not installed"
@@ -431,19 +484,19 @@ function kruize_local_demo_setup() {
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "bulk" ]; then
-	  kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
+        	kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
 	fi
 
 	echo -n "🔄 Installing kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
-	  operator_setup >> "${LOG_FILE}" 2>&1
+		operator_setup >> "${LOG_FILE}" 2>&1
 	else
-	  kruize_install >> "${LOG_FILE}" 2>&1
+		kruize_install >> "${LOG_FILE}" 2>&1
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
- 	do
+  	do
 		echo -n "."
 		sleep 5
 	done
@@ -457,11 +510,17 @@ function kruize_local_demo_setup() {
 
 	# port forward the urls in case of kind
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
-		port_forward
+		port_forward "${bench}"
 	fi
-	{
-		get_urls $bench $kruize_operator
-	} >> "${LOG_FILE}" 2>&1
+
+	get_urls $bench $kruize_operator >> "${LOG_FILE}" 2>&1
+
+  	# Give Kruize application time to fully initialize after pod is ready
+  	echo
+  	echo -n "⏳ Waiting for Kruize service to fully initialize..."
+  	sleep 20
+  	echo " done!"
+
 	echo "✅ Installation of kruize complete!"
 
 	if [ "${vpa_install_required:-}" == "1" ]; then
@@ -492,7 +551,11 @@ function kruize_local_demo_setup() {
 		for experiment in "${EXPERIMENTS[@]}"; do
 			if [ $experiment == "container_experiment_local" ]; then
 				if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-					expose_prometheus >> "${LOG_FILE}" 2>&1 &
+					# Check if prometheus port-forward already exists (kubectl or oc)
+					if ! ps aux | grep -E "kubectl|oc" | grep "port-forward" | grep -q "prometheus"; then
+						expose_prometheus >> "${LOG_FILE}" 2>&1 &
+						sleep 5  # Give prometheus port-forward time to establish
+					fi
 				fi
 				echo -n "🔄 Finding a long running container to create Kruize experiment..."
 				generate_experiment_from_prometheus
@@ -537,22 +600,28 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-  	clone_repos kruize-operator
+      	clone_repos kruize-operator
+
+      	# Checkout mvp_demo branch
+      	pushd kruize-operator >/dev/null
+        	git checkout mvp_demo >/dev/null 2>/dev/null
+        	check_err "ERROR: Failed to checkout mvp_demo branch in kruize-operator"
+      	popd >/dev/null
 
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
-    if oc get project openshift-tuning >/dev/null 2>&1; then
-      echo "Project openshift-tuning exists"
-    else
-      echo "Project openshift-tuning does not exist"
-      oc create ns openshift-tuning
-      check_err "ERROR: Failed to create openshift-tuning project"
-    fi
+    	if oc get ns $NAMESPACE >/dev/null 2>&1; then
+          	echo "Namespace ${NAMESPACE} exists"
+    	else
+      		echo "Namespace ${NAMESPACE} does not exist"
+      		oc create ns $NAMESPACE
+      		check_err "ERROR: Failed to create $NAMESPACE namespace"
+    	fi
 
-    echo
-    echo "🔄 Installing CRDs"
-    pushd kruize-operator  # Use pushd instead of cd
-    make install
+    	echo
+    	echo "🔄 Installing CRDs"
+    	pushd kruize-operator  # Use pushd instead of cd
+    	make install
 
 	KRUIZE_OPERATOR_VERSION=$(grep '^VERSION' "Makefile" | awk '{print $NF}')
 
@@ -560,10 +629,10 @@ operator_setup() {
 		KRUIZE_OPERATOR_IMAGE=${KRUIZE_OPERATOR_DOCKER_REPO}:${KRUIZE_OPERATOR_VERSION}
 	fi
 
-    echo
-    echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
-    make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
-    popd  # Return to original directory
+    	echo
+    	echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
+    	make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
+    	popd  # Return to original directory
 
 	echo
 	echo "🔄 Waiting for kruize operator to be ready"
@@ -576,6 +645,10 @@ operator_setup() {
 	if [ -n "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
 		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 	fi
+
+	sed -i -E 's#^([[:space:]]*)cluster_type:.*#\1cluster_type: "'"${CLUSTER_TYPE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+
+	sed -i -E 's#^([[:space:]]*)namespace:.*#\1namespace: "'"${NAMESPACE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
 	echo
 	echo "📄 Applying Kruize resource..."
@@ -605,14 +678,14 @@ operator_setup() {
 		exit 1
 	fi
 
-    echo "⏳ Waiting for kruize-db pod to be ready..."
-    kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
-    if [ $? -ne 0 ]; then
-        echo "❌ Kruize-db pod failed to become ready"
-        kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize-db -n $NAMESPACE
-        exit 1
-    fi
+    	echo "⏳ Waiting for kruize-db pod to be ready..."
+    	kubectl wait --for=condition=Ready pod -l app=kruize-db -n $NAMESPACE --timeout=600s
+    	if [ $? -ne 0 ]; then
+        	echo "❌ Kruize-db pod failed to become ready"
+        	kubectl get pods -n $NAMESPACE
+        	kubectl describe pod -l app=kruize-db -n $NAMESPACE
+        	exit 1
+    	fi
 
 	# First wait for pod to exist
 	timeout=180
@@ -633,12 +706,12 @@ operator_setup() {
 	fi
 
 	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
-    if [ $? -ne 0 ]; then
-        echo "❌ Kruize pod failed to become ready"
-        kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize -n $NAMESPACE
-        exit 1
-    fi
+    	if [ $? -ne 0 ]; then
+        	echo "❌ Kruize pod failed to become ready"
+        	kubectl get pods -n $NAMESPACE
+        	kubectl describe pod -l app=kruize -n $NAMESPACE
+        	exit 1
+    	fi
 
 	echo "⏳ Waiting for kruize-ui pod to be ready..."
 	# First wait for pod to exist
@@ -660,23 +733,31 @@ operator_setup() {
 	fi
 
 
-    echo "⏳ Waiting for kruize-ui pod to be ready..."
-    kubectl wait --for=condition=Ready pod -l app=kruize-ui-nginx -n $NAMESPACE --timeout=600s
-    if [ $? -ne 0 ]; then
-        echo "❌ kruize-ui-nginx pod failed to become ready"
-        kubectl get pods -n $NAMESPACE
-        kubectl describe pod -l app=kruize-ui-nginx -n $NAMESPACE
-        exit 1
-    fi
-    echo "✅ All Kruize application pods are ready!"
+    	echo "⏳ Waiting for kruize-ui pod to be ready..."
+    	kubectl wait --for=condition=Ready pod -l app=kruize-ui-nginx -n $NAMESPACE --timeout=600s
+    	if [ $? -ne 0 ]; then
+        	echo "❌ kruize-ui-nginx pod failed to become ready"
+        	kubectl get pods -n $NAMESPACE
+        	kubectl describe pod -l app=kruize-ui-nginx -n $NAMESPACE
+        	exit 1
+    	fi
+    	echo "✅ All Kruize application pods are ready!"
 
-	echo "✅ Deployment complete! Checking status..."
-	kubectl get kruize -n $NAMESPACE
-	kubectl get pods -n $NAMESPACE
+ 	echo "✅ Deployment complete! Checking status..."
+ 	kubectl get kruize -n $NAMESPACE
+ 	kubectl get pods -n $NAMESPACE
 
-  echo
-	echo "🔍 To view operator logs:"
-	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
+ 	echo
+	echo "⏳ Waiting for Kruize service to be accessible..."
+ 	# Loops until the service has at least one backend IP assigned
+ 	until kubectl get endpoints kruize -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; do
+   		sleep 5
+ 	done
+ 	echo "Service is wired to pods!"
+
+  	echo
+ 	echo "🔍 To view operator logs:"
+ 	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
 }
 
 # Gnerate experiment with the container which is long running
@@ -765,4 +846,102 @@ sed -i \
         -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
         "$namespace_json"
 
+}
+
+#  Kruize Operator Cleanup
+function kruize_operator_cleanup() {
+	local namespace="${1:-openshift-tuning}"
+	local kubectl_cmd="kubectl"
+
+	# Use oc command for OpenShift, kubectl for other clusters
+	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		kubectl_cmd="oc"
+	fi
+
+	echo
+	echo "#######################################"
+	echo "Cleaning up Kruize Operator resources"
+	echo "#######################################"
+
+	# Undeploy operator if kruize-operator directory exists
+	if [ -d "kruize-operator" ]; then
+		echo "Undeploying Kruize Operator..."
+		pushd kruize-operator >/dev/null
+
+		# Delete deployments
+		kubectl delete -f ./config/samples/v1alpha1_kruize.yaml -n $namespace
+
+		make undeploy 2>/dev/null || echo "Warning: make undeploy failed or already undeployed"
+		popd >/dev/null
+
+		echo "Deleting kruize-operator directory..."
+		rm -rf kruize-operator
+		echo
+
+		echo "Deleting database PVC to clear existing data..."
+		${kubectl_cmd} delete pvc kruize-db-pvc -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc not found or already deleted"
+		echo
+
+		# Wait for PVC to be fully deleted
+		echo "Waiting for PVC to be fully deleted..."
+		timeout=60
+		elapsed=0
+		while ${kubectl_cmd} get pvc kruize-db-pvc -n ${namespace} >/dev/null 2>&1; do
+			if [ $elapsed -ge $timeout ]; then
+				echo "Warning: Timeout waiting for PVC deletion, continuing anyway..."
+				break
+			fi
+			sleep 2
+			elapsed=$((elapsed + 2))
+		done
+		echo "Database PVC deleted successfully"
+		echo
+
+		local db_pv_name
+
+		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+			db_pv_name="kruize-db-pv-volume"
+		else
+			db_pv_name="kruize-db-pv"
+		fi
+
+		echo "Deleting database PV to clear existing data..."
+		${kubectl_cmd} delete pv $db_pv_name -n ${namespace} 2>/dev/null || echo "PV $db_pv_name not found or already deleted"
+		echo
+
+		# Wait for PV to be fully deleted
+		echo "Waiting for PV to be fully deleted..."
+		timeout=60
+		elapsed=0
+		while ${kubectl_cmd} get pv $db_pv_name -n ${namespace} >/dev/null 2>&1; do
+			if [ $elapsed -ge $timeout ]; then
+				echo "Warning: Timeout waiting for PV deletion, continuing anyway..."
+				break
+			fi
+			sleep 2
+			elapsed=$((elapsed + 2))
+		done
+		echo "Database PV deleted successfully"
+		echo
+
+		# Delete cluster-level resources
+		echo "Deleting cluster roles..."
+		${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
+		echo
+
+		echo "Deleting cluster role bindings..."
+		${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
+		echo
+
+		# Delete ConfigMap
+		echo "Deleting kruize ConfigMap in namespace: ${namespace}..."
+		${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || echo "kruizeconfig ConfigMap not found"
+		echo
+	else
+		echo "kruize-operator directory not found, skipping cleanup"
+	fi
+
+	echo "Kruize Operator cleanup complete!"
+	echo "#######################################"
+	echo
 }

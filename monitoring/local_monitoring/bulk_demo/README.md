@@ -38,7 +38,7 @@ cd kruize-demos/monitoring/local_monitoring/bulk_demo
 ```
 
 ```
-Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]
+Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-k]
 c = supports minikube, kind and openshift cluster-type
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 p = expose prometheus port
@@ -48,11 +48,10 @@ s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
-o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = install kruize using deploy scripts
 ```
 
-Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
+Note: Kruize Operator doesn't support Bulk API yet, currently only non-operator deployment of Kruize `[-k]` is supported by Bulk demo. Stay tuned for more updates.
 
 ## Bulk API configuration
 

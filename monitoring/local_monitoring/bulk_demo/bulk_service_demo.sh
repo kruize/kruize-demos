@@ -23,7 +23,6 @@ source ${current_dir}/../common.sh
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
-NAMESPACE="openshift-tuning"
 
 # Default operator docker image repo
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
@@ -38,7 +37,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
-KRUIZE_OPERATOR=1
+KRUIZE_OPERATOR=0
 BENCHMARK=""
 
 PYTHON_CMD=python3
@@ -72,8 +71,6 @@ function kruize_bulk() {
   } >> "${LOG_FILE}" 2>&1
 }
 
-# Check system configs
-sys_cpu_mem_check
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
@@ -132,7 +129,9 @@ done
 export demo="bulk"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
-   KRUIZE_OPERATOR=0
+  NAMESPACE="monitoring"
+else
+  NAMESPACE="openshift-tuning"
 fi
 
 if [ ${start_demo} -eq 1 ]; then

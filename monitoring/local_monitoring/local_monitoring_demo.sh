@@ -23,7 +23,6 @@ source ${current_dir}/common.sh
 
 # Default operator docker image repo
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
-NAMESPACE="openshift-tuning"
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
@@ -60,8 +59,6 @@ function usage() {
 	exit 1
 }
 
-# Check system configs
-sys_cpu_mem_check ${CLUSTER_TYPE}
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
@@ -121,7 +118,7 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
-		o) 
+		o)
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
 	 	k)
@@ -135,7 +132,9 @@ done
 export demo="local"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
-   KRUIZE_OPERATOR=0
+    NAMESPACE="monitoring"
+else
+    NAMESPACE="openshift-tuning"
 fi
 
 if [ "${EXPERIMENT_TYPE}" == "container" ]; then
