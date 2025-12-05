@@ -876,9 +876,11 @@ function kruize_operator_cleanup() {
 
 		echo "Deleting kruize-operator directory..."
 		rm -rf kruize-operator
+		echo
 
 		echo "Deleting database PVC to clear existing data..."
 		${kubectl_cmd} delete pvc kruize-db-pvc -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc not found or already deleted"
+		echo
 
 		# Wait for PVC to be fully deleted
 		echo "Waiting for PVC to be fully deleted..."
@@ -893,6 +895,7 @@ function kruize_operator_cleanup() {
 			elapsed=$((elapsed + 2))
 		done
 		echo "Database PVC deleted successfully"
+		echo
 
 		local db_pv_name
 
@@ -904,6 +907,7 @@ function kruize_operator_cleanup() {
 
 		echo "Deleting database PV to clear existing data..."
 		${kubectl_cmd} delete pv $db_pv_name -n ${namespace} 2>/dev/null || echo "PV $db_pv_name not found or already deleted"
+		echo
 
 		# Wait for PV to be fully deleted
 		echo "Waiting for PV to be fully deleted..."
@@ -918,17 +922,21 @@ function kruize_operator_cleanup() {
 			elapsed=$((elapsed + 2))
 		done
 		echo "Database PV deleted successfully"
+		echo
 
 		# Delete cluster-level resources
 		echo "Deleting cluster roles..."
 		${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
+		echo
 
 		echo "Deleting cluster role bindings..."
 		${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
+		echo
 
 		# Delete ConfigMap
 		echo "Deleting kruize ConfigMap in namespace: ${namespace}..."
 		${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || echo "kruizeconfig ConfigMap not found"
+		echo
 	else
 		echo "kruize-operator directory not found, skipping cleanup"
 	fi
