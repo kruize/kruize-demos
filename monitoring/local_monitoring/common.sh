@@ -876,62 +876,62 @@ function kruize_operator_cleanup() {
 
 		echo "Deleting kruize-operator directory..."
 		rm -rf kruize-operator
+
+		echo "Deleting database PVC to clear existing data..."
+		${kubectl_cmd} delete pvc kruize-db-pvc -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc not found or already deleted"
+
+		# Wait for PVC to be fully deleted
+		echo "Waiting for PVC to be fully deleted..."
+		timeout=60
+		elapsed=0
+		while ${kubectl_cmd} get pvc kruize-db-pvc -n ${namespace} >/dev/null 2>&1; do
+			if [ $elapsed -ge $timeout ]; then
+				echo "Warning: Timeout waiting for PVC deletion, continuing anyway..."
+				break
+			fi
+			sleep 2
+			elapsed=$((elapsed + 2))
+		done
+		echo "Database PVC deleted successfully"
+
+		local db_pv_name
+
+		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+			db_pv_name="kruize-db-pv-volume"
+		else
+			db_pv_name="kruize-db-pv"
+		fi
+
+		echo "Deleting database PV to clear existing data..."
+		${kubectl_cmd} delete pv $db_pv_name -n ${namespace} 2>/dev/null || echo "PV $db_pv_name not found or already deleted"
+
+		# Wait for PV to be fully deleted
+		echo "Waiting for PV to be fully deleted..."
+		timeout=60
+		elapsed=0
+		while ${kubectl_cmd} get pv $db_pv_name -n ${namespace} >/dev/null 2>&1; do
+			if [ $elapsed -ge $timeout ]; then
+				echo "Warning: Timeout waiting for PV deletion, continuing anyway..."
+				break
+			fi
+			sleep 2
+			elapsed=$((elapsed + 2))
+		done
+		echo "Database PV deleted successfully"
+
+		# Delete cluster-level resources
+		echo "Deleting cluster roles..."
+		${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
+
+		echo "Deleting cluster role bindings..."
+		${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
+
+		# Delete ConfigMap
+		echo "Deleting kruize ConfigMap in namespace: ${namespace}..."
+		${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || echo "kruizeconfig ConfigMap not found"
 	else
-		echo "kruize-operator directory not found, skipping undeploy"
+		echo "kruize-operator directory not found, skipping cleanup"
 	fi
-
-  	echo "Deleting database PVC to clear existing data..."
-  	${kubectl_cmd} delete pvc kruize-db-pvc -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc not found or already deleted"
-
-  	# Wait for PVC to be fully deleted
-  	echo "Waiting for PVC to be fully deleted..."
-  	timeout=60
-  	elapsed=0
-  	while ${kubectl_cmd} get pvc kruize-db-pvc -n ${namespace} >/dev/null 2>&1; do
-    		if [ $elapsed -ge $timeout ]; then
-      			echo "Warning: Timeout waiting for PVC deletion, continuing anyway..."
-      			break
-    		fi
-    		sleep 2
-    		elapsed=$((elapsed + 2))
-  	done
-  	echo "Database PVC deleted successfully"
-
-  	local db_pv_name
-
-  	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
-    		db_pv_name="kruize-db-pv-volume"
-  	else
-    		db_pv_name="kruize-db-pv"
-  	fi
-
-  	echo "Deleting database PV to clear existing data..."
-  	${kubectl_cmd} delete pv $db_pv_name -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pv not found or already deleted"
-
-  	# Wait for PV to be fully deleted
-  	echo "Waiting for PV to be fully deleted..."
-  	timeout=60
-  	elapsed=0
-  	while ${kubectl_cmd} get pv $db_pv_name -n ${namespace} >/dev/null 2>&1; do
-    		if [ $elapsed -ge $timeout ]; then
-      			echo "Warning: Timeout waiting for PV deletion, continuing anyway..."
-      			break
-    		fi
-    		sleep 2
-    		elapsed=$((elapsed + 2))
-  	done
-  	echo "Database PV deleted successfully"
-
-	# Delete cluster-level resources
-	echo "Deleting cluster roles..."
-	${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
-
-	echo "Deleting cluster role bindings..."
-	${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
-
-	# Delete ConfigMap
-	echo "Deleting kruize ConfigMap in namespace: ${namespace}..."
-	${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || echo "kruizeconfig ConfigMap not found"
 
 	echo "Kruize Operator cleanup complete!"
 	echo "#######################################"
