@@ -900,9 +900,9 @@ function kruize_operator_cleanup() {
   	local db_pv_name
 
   	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
-    		db_pv_name="kruize-db-pv"
-  	else
     		db_pv_name="kruize-db-pv-volume"
+  	else
+    		db_pv_name="kruize-db-pv"
   	fi
 
   	echo "Deleting database PV to clear existing data..."
