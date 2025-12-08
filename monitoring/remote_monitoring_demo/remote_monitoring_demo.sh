@@ -243,8 +243,8 @@ function remote_monitoring_demo_start() {
 
 	if [ ${monitoring_restart} -eq 0 ]; then
 		echo -n "🔄 Pulling required repositories... "
-		clone_repos autotune
-		echo "Done!"
+		clone_repos autotune >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
 
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Installing minikube and prometheus! Please wait..."
@@ -257,11 +257,13 @@ function remote_monitoring_demo_start() {
 
 		if [ ${visualize} -eq 1 ]; then
 			echo -n "🔄 Installing pronsona! Please wait..."
+			{
 			clone_repos pronosana
 			rm -rf pronosana
 			git clone https://github.com/bharathappali/pronosana.git
 			echo "visualize = $visualize" >> "${LOG_FILE}" 2>&1
 			pronosana_init
+			} >> "${LOG_FILE}" 2>&1
 			echo "✅ Installation of pronosona complete!"
 		fi
 	fi
