@@ -871,6 +871,15 @@ function kruize_operator_cleanup() {
 		# Delete deployments
 		kubectl delete -f ./config/samples/v1alpha1_kruize.yaml -n $namespace
 
+		# Delete cluster-level resources
+		echo "Deleting cluster roles..."
+		${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
+		echo
+
+		echo "Deleting cluster role bindings..."
+		${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
+		echo
+
 		make undeploy 2>/dev/null || echo "Warning: make undeploy failed or already undeployed"
 		popd >/dev/null
 
@@ -878,21 +887,28 @@ function kruize_operator_cleanup() {
 		rm -rf kruize-operator
 		echo
 
+		echo -n "Waiting for all kruize pods to terminate..."
+		# Waits until the number of pods matching the label is 0
+		${kubectl_cmd} wait --for=delete pod -l app=kruize -n ${namespace} --timeout=60s 2>/dev/null || true
+		echo "Done!"
+		echo
+
 		echo "Deleting database PVC to clear existing data..."
-		${kubectl_cmd} delete pvc kruize-db-pvc -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc not found or already deleted"
+		${kubectl_cmd} delete pvc kruize-db-pv-claim -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc-claim not found or already deleted"
 		echo
 
 		# Wait for PVC to be fully deleted
 		echo "Waiting for PVC to be fully deleted..."
-		timeout=60
+		timeout=120
 		elapsed=0
 		while ${kubectl_cmd} get pvc kruize-db-pvc -n ${namespace} >/dev/null 2>&1; do
 			if [ $elapsed -ge $timeout ]; then
-				echo "Warning: Timeout waiting for PVC deletion, continuing anyway..."
+				echo "Warning: Timeout waiting for PVC deletion after ${timeout}s, continuing anyway..."
 				break
 			fi
-			sleep 2
-			elapsed=$((elapsed + 2))
+			echo -n "."
+			sleep 5
+			elapsed=$((elapsed + 5))
 		done
 		echo "Database PVC deleted successfully"
 		echo
@@ -906,37 +922,37 @@ function kruize_operator_cleanup() {
 		fi
 
 		echo "Deleting database PV to clear existing data..."
-		${kubectl_cmd} delete pv $db_pv_name -n ${namespace} 2>/dev/null || echo "PV $db_pv_name not found or already deleted"
-		echo
+		# Check if PV exists before attempting deletion
+		if ${kubectl_cmd} get pv $db_pv_name >/dev/null 2>&1; then
+			${kubectl_cmd} delete pv $db_pv_name --wait=false 2>/dev/null || echo "PV $db_pv_name deletion initiated"
+			echo
 
-		# Wait for PV to be fully deleted
-		echo "Waiting for PV to be fully deleted..."
-		timeout=60
-		elapsed=0
-		while ${kubectl_cmd} get pv $db_pv_name -n ${namespace} >/dev/null 2>&1; do
-			if [ $elapsed -ge $timeout ]; then
-				echo "Warning: Timeout waiting for PV deletion, continuing anyway..."
-				break
-			fi
-			sleep 2
-			elapsed=$((elapsed + 2))
-		done
-		echo "Database PV deleted successfully"
-		echo
-
-		# Delete cluster-level resources
-		echo "Deleting cluster roles..."
-		${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
-		echo
-
-		echo "Deleting cluster role bindings..."
-		${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
-		echo
-
-		# Delete ConfigMap
-		echo "Deleting kruize ConfigMap in namespace: ${namespace}..."
-		${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || echo "kruizeconfig ConfigMap not found"
-		echo
+			# Wait for PV to be fully deleted
+			echo "Waiting for PV to be fully deleted..."
+			timeout=60
+			elapsed=0
+			while ${kubectl_cmd} get pv $db_pv_name >/dev/null 2>&1; do
+				if [ $elapsed -ge $timeout ]; then
+					echo
+					echo "Warning: Timeout waiting for PV deletion after ${timeout}s"
+					echo "PV may be stuck in 'Terminating' state. Attempting to force delete..."
+					${kubectl_cmd} patch pv $db_pv_name -p '{"metadata":{"finalizers":null}}' 2>/dev/null || true
+					sleep 5
+					if ${kubectl_cmd} get pv $db_pv_name >/dev/null 2>&1; then
+						echo "Warning: PV still exists after force delete attempt, continuing anyway..."
+					fi
+					break
+				fi
+				echo -n "."
+				sleep 5
+				elapsed=$((elapsed + 5))
+			done
+			echo "Database PV deleted successfully"
+			echo
+		else
+			echo "PV $db_pv_name not found or already deleted"
+			echo
+		fi
 	else
 		echo "kruize-operator directory not found, skipping cleanup"
 	fi
