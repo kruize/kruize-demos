@@ -163,6 +163,12 @@ fi
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
+	if [ ${KRUIZE_OPERATOR} -eq 1 ]; then
+	  # Check Go prerequisite before proceeding
+	  check_go_prerequisite
+	  check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
+	fi
+
 	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo

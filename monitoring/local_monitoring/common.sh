@@ -961,3 +961,34 @@ function kruize_operator_cleanup() {
 	echo "#######################################"
 	echo
 }
+
+# Check if Go is installed and meets minimum version requirement
+check_go_prerequisite() {
+	echo -n "🔍 Checking Go pre-requisite for operator deployment..."
+
+	# Check if go is in PATH
+	if ! command -v go >/dev/null 2>&1; then
+		echo "❌ ERROR: Go is not installed or not in PATH"
+		echo "   Go (v1.21.0+) is REQUIRED to deploy the operator"
+		echo "   Please install Go from: https://go.dev/doc/install"
+		return 1
+	fi
+
+	# Get Go version
+	GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
+	echo "Found Go version: ${GO_VERSION}" >> ${LOG_FILE}
+
+	# Check if version meets minimum requirement (v1.21.0+)
+	REQUIRED_VERSION="1.21.0"
+
+	# Compare versions using sort -V
+	if printf '%s\n%s\n' "${REQUIRED_VERSION}" "${GO_VERSION}" | sort -V -C; then
+		echo "Go version ${GO_VERSION} meets minimum requirement (v${REQUIRED_VERSION}+)" >> ${LOG_FILE}
+		echo "Done!"
+		return 0
+	else
+		echo "❌ ERROR: Go version ${GO_VERSION} does not meet minimum requirement (v${REQUIRED_VERSION}+)"
+		echo " Please upgrade Go from: https://go.dev/doc/install"
+		return 1
+	fi
+}
