@@ -409,8 +409,10 @@ done
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
 	remote_monitoring_demo_start
+	echo "📌 View all experiment details in 'usage_data.json'."
+    echo "📌 View container and namespace recommendations in 'recommendations_data.json'."
 	echo "For detailed logs, look in kruize-demo.log"
-        echo
+    echo
 else
 	echo >> "${LOG_FILE}" 2>&1
 	remote_monitoring_demo_terminate
