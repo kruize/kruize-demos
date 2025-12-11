@@ -893,15 +893,26 @@ function kruize_operator_cleanup() {
 		echo "Done!"
 		echo
 
+		local db_pv_name
+		local db_pvc_name
+
+		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		  db_pv_name="kruize-db-pv-volume"
+		  db_pvc_name="kruize-db-pv-claim"
+		else
+		  db_pv_name="kruize-db-pv"
+		  db_pvc_name="kruize-db-pvc"
+		fi
+
 		echo "Deleting database PVC to clear existing data..."
-		${kubectl_cmd} delete pvc kruize-db-pv-claim -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc-claim not found or already deleted"
+		${kubectl_cmd} delete pvc $db_pvc_name -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc-claim not found or already deleted"
 		echo
 
 		# Wait for PVC to be fully deleted
 		echo "Waiting for PVC to be fully deleted..."
 		timeout=120
 		elapsed=0
-		while ${kubectl_cmd} get pvc kruize-db-pvc -n ${namespace} >/dev/null 2>&1; do
+		while ${kubectl_cmd} get pvc $db_pvc_name -n ${namespace} >/dev/null 2>&1; do
 			if [ $elapsed -ge $timeout ]; then
 				echo "Warning: Timeout waiting for PVC deletion after ${timeout}s, continuing anyway..."
 				break
@@ -912,14 +923,6 @@ function kruize_operator_cleanup() {
 		done
 		echo "Database PVC deleted successfully"
 		echo
-
-		local db_pv_name
-
-		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
-			db_pv_name="kruize-db-pv-volume"
-		else
-			db_pv_name="kruize-db-pv"
-		fi
 
 		echo "Deleting database PV to clear existing data..."
 		# Check if PV exists before attempting deletion
