@@ -23,7 +23,6 @@ source ${current_dir}/common.sh
 
 # Default operator docker image repo
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
-NAMESPACE="openshift-tuning"
 
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
@@ -60,8 +59,6 @@ function usage() {
 	exit 1
 }
 
-# Check system configs
-sys_cpu_mem_check ${CLUSTER_TYPE}
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
@@ -121,7 +118,7 @@ do
 		u)
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
-		o) 
+		o)
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
 	 	k)
@@ -135,7 +132,9 @@ done
 export demo="local"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
-   KRUIZE_OPERATOR=0
+    NAMESPACE="monitoring"
+else
+    NAMESPACE="openshift-tuning"
 fi
 
 if [ "${EXPERIMENT_TYPE}" == "container" ]; then
@@ -164,6 +163,12 @@ fi
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
+	if [ ${KRUIZE_OPERATOR} -eq 1 ]; then
+	  # Check Go prerequisite before proceeding
+	  check_go_prerequisite
+	  check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
+	fi
+
 	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo

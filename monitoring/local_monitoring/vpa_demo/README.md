@@ -32,7 +32,7 @@ cd kruize-demos/monitoring/local_monitoring/vpa_demo
 ```
 
 ```
-Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]
+Usage: ./vpa_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-k]
 c = supports minikube, kind and openshift cluster-type
 i = kruize image.
 p = expose prometheus port
