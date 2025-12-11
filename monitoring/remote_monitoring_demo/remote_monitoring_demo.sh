@@ -94,7 +94,11 @@ function kruize_install() {
 		# Checkout the tag related to the last published mvp_demo version
 		git checkout "${AUTOTUNE_VERSION}" >/dev/null 2>/dev/null >> "${LOG_FILE}" 2>&1
 		echo "Terminating existing installation of kruize with  ./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t" >> "${LOG_FILE}" 2>&1
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >/dev/null 2>/dev/null
+		# Temporary fix to run with kind
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			CLUSTER_TYPE_TEMP="minikube"
+		fi
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t >/dev/null 2>/dev/null
 		sleep 5
 		if [ -z "${AUTOTUNE_DOCKER_IMAGE}" ]; then
 			AUTOTUNE_DOCKER_IMAGE=${AUTOTUNE_DOCKER_REPO}:${AUTOTUNE_VERSION}
@@ -121,7 +125,12 @@ function kruize_install() {
 			fi
 		fi
 
-		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target} >> "${LOG_FILE}" 2>&1
+		# Temporary fix to run with kind
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			CLUSTER_TYPE_TEMP="minikube"
+		fi
+
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target} >> "${LOG_FILE}" 2>&1
 		check_err "ERROR: kruize failed to start, exiting"
 
 		echo -n "Waiting 40 seconds for Autotune to sync with Prometheus..." >> "${LOG_FILE}" 2>&1
