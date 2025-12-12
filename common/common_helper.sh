@@ -55,7 +55,10 @@ function check_err() {
 }
 
 function err_exit() {
-	echo "$*"
+	echo "❌ $*"
+	if [[ -f "${LOG_FILE}" ]]; then
+		echo "For detailed logs, look in ${LOG_FILE}"
+        fi
 	exit 1
 }
 

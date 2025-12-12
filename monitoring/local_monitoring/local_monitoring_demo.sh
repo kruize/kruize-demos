@@ -16,7 +16,7 @@
 #
 
 # include the common_utils.sh script to access methods
-current_dir="$(dirname "$0")"
+current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 common_dir="${current_dir}/../../common/"
 source ${common_dir}common_helper.sh
 source ${current_dir}/common.sh
