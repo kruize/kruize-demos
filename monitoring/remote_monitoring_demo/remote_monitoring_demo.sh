@@ -320,29 +320,32 @@ function remote_monitoring_demo_terminate() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 	pushd autotune >/dev/null
-		./deploy.sh -t -c ${CLUSTER_TYPE}  >> "${LOG_FILE}" 2>&1
+		if [ ${CLUSTER_TYPE} == "kind" ]; then
+			CLUSTER_TYPE_TEMP="minikube"
+		fi
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t >> "${LOG_FILE}" 2>&1
 		echo "ERROR: Failed to terminate kruize monitoring"  >> "${LOG_FILE}" 2>&1
 		echo  >> "${LOG_FILE}" 2>&1
 	popd >/dev/null
 }
 
 function pronosana_terminate() {
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "#          Pronosana Terminate        #" | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo | tee -a "${LOG_FILE}"
+	echo >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo "#          Pronosana Terminate        #" >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
 	pushd pronosana >/dev/null
 		./pronosana cleanup ${CLUSTER_TYPE}  >> "${LOG_FILE}" 2>&1
 	popd >/dev/null
 }
 
 function remote_monitoring_demo_cleanup() {
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "#    Monitoring Demo setup cleanup    #" | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo | tee -a "${LOG_FILE}"
+	echo >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo "#    Monitoring Demo setup cleanup    #" >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
 
 	delete_repos autotune >> "${LOG_FILE}" 2>&1
 
@@ -353,6 +356,9 @@ function remote_monitoring_demo_cleanup() {
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube_delete >> "${LOG_FILE}" 2>&1
 	fi
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+                kind_delete >> "${LOG_FILE}" 2>&1
+        fi
 
 	echo "🕒 Success! Remote Monitoring demo cleanup completed!"
 	echo
