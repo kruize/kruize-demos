@@ -602,12 +602,6 @@ function kruize_local_demo_setup() {
 operator_setup() {
       	clone_repos kruize-operator
 
-      	# Checkout mvp_demo branch
-      	pushd kruize-operator >/dev/null
-        	git checkout mvp_demo >/dev/null 2>/dev/null
-        	check_err "ERROR: Failed to checkout mvp_demo branch in kruize-operator"
-      	popd >/dev/null
-
 	echo "🔄 Checking for existence of kruize-operator namespace"
 
     	if oc get ns $NAMESPACE >/dev/null 2>&1; then

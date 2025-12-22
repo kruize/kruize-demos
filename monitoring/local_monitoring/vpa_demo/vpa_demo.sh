@@ -37,7 +37,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
-KRUIZE_OPERATOR=1
+KRUIZE_OPERATOR=0
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
@@ -115,6 +115,7 @@ do
 			;;
    		o)
       			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
+      			KRUIZE_OPERATOR=1
       			;;
     		k)
       			KRUIZE_OPERATOR=0
@@ -129,6 +130,7 @@ export vpa_install_required="1"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
   NAMESPACE="monitoring"
+  KRUIZE_OPERATOR=0
 else
   NAMESPACE="openshift-tuning"
 fi
