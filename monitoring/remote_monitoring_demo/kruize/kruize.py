@@ -34,20 +34,14 @@ def get_pod_name(label_selector, namespace):
         "-o jsonpath='{.items[0].metadata.name}'"
     )
     result = subprocess.run(
-        cmd,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
     )
     return result.stdout.decode().strip().strip("'")
 
 def kill_existing_port_forward(namespace):
     result = subprocess.run(
         [
-            "pgrep",
-            "-f",
-            f"kubectl.*{namespace}.*port-forward.*pod/kruize",
+            "pgrep", "-f", f"kubectl.*{namespace}.*port-forward.*(pod|svc)/.*kruize",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
@@ -108,14 +102,13 @@ def form_kruize_url(cluster_type):
         DEVNULL = open(os.devnull, "wb")
         kill_existing_port_forward("monitoring")
         time.sleep(60)
-        #wait_for_pod_ready("monitoring")
-        # Background port-forward for Kruize
+        # Background process to port-forward for Kruize
         subprocess.Popen([ "kubectl", "-n", "monitoring", "port-forward", f"pod/{KRUIZE_POD}", f"{AUTOTUNE_PORT}:8080"],
             stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
 
-        # Background port-forward for Kruize UI
         subprocess.Popen([ "kubectl", "-n", "monitoring", "port-forward", f"pod/{KRUIZE_UI_POD}", f"{KRUIZE_UI_PORT}:8080"],
             stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
+        time.sleep(60)
 
     URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
     KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
