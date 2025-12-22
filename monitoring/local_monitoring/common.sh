@@ -744,9 +744,12 @@ operator_setup() {
  	echo
 	echo "⏳ Waiting for Kruize service to be accessible..."
  	# Loops until the service has at least one backend IP assigned
- 	until kubectl get endpoints kruize -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; do
+ 	until { kubectl get endpoints kruize -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null; \
+        kubectl get endpoints kruize-service -n $NAMESPACE -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null; } \
+        | grep -q .; do
+   		echo "Waiting for kruize or kruize-service endpoints..."
    		sleep 5
- 	done
+  	done
  	echo "Service is wired to pods!"
 
   	echo
@@ -898,25 +901,31 @@ function kruize_operator_cleanup() {
 		  db_pvc_name="kruize-db-pvc"
 		fi
 
-		echo "Deleting database PVC to clear existing data..."
-		${kubectl_cmd} delete pvc $db_pvc_name -n ${namespace} 2>/dev/null || echo "PVC kruize-db-pvc-claim not found or already deleted"
-		echo
+		# Check if PVC exists before attempting deletion
+		if ${kubectl_cmd} get pvc $db_pvc_name -n ${namespace} >/dev/null 2>&1; then
+			echo "Deleting database PVC to clear existing data..."
+			${kubectl_cmd} delete pvc $db_pvc_name -n ${namespace} 2>/dev/null || echo "Failed to delete PVC $db_pvc_name"
+			echo
 
-		# Wait for PVC to be fully deleted
-		echo "Waiting for PVC to be fully deleted..."
-		timeout=120
-		elapsed=0
-		while ${kubectl_cmd} get pvc $db_pvc_name -n ${namespace} >/dev/null 2>&1; do
-			if [ $elapsed -ge $timeout ]; then
-				echo "Warning: Timeout waiting for PVC deletion after ${timeout}s, continuing anyway..."
-				break
-			fi
-			echo -n "."
-			sleep 5
-			elapsed=$((elapsed + 5))
-		done
-		echo "Database PVC deleted successfully"
-		echo
+			# Wait for PVC to be fully deleted
+			echo "Waiting for PVC to be fully deleted..."
+			timeout=120
+			elapsed=0
+			while ${kubectl_cmd} get pvc $db_pvc_name -n ${namespace} >/dev/null 2>&1; do
+				if [ $elapsed -ge $timeout ]; then
+					echo "Warning: Timeout waiting for PVC deletion after ${timeout}s, continuing anyway..."
+					break
+				fi
+				echo -n "."
+				sleep 5
+				elapsed=$((elapsed + 5))
+			done
+			echo "Database PVC deleted successfully"
+			echo
+		else
+			echo "PVC $db_pvc_name not found or already deleted"
+			echo
+		fi
 
 		echo "Deleting database PV to clear existing data..."
 		# Check if PV exists before attempting deletion

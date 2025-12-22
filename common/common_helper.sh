@@ -182,6 +182,7 @@ function kruize_install() {
 		echo
 		} >> "${LOG_FILE}" 2>&1
 		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target} >> "${LOG_FILE}" 2>&1
+		sleep 10
 		check_err "ERROR: kruize failed to start, exiting"
 
 		{
