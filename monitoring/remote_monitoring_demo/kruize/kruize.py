@@ -17,6 +17,9 @@ limitations under the License.
 import json
 import requests
 import subprocess
+import os
+import signal
+import time
 
 from .json_validate import validate_exp_input_json
 
@@ -24,6 +27,35 @@ from .json_validate import validate_exp_input_json
 URL = ""
 KRUIZE_UI_URL = ""
 
+def get_pod_name(label_selector, namespace):
+    cmd = (
+        f"kubectl -n {namespace} get pods "
+        f"-l {label_selector} "
+        "-o jsonpath='{.items[0].metadata.name}'"
+    )
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    return result.stdout.decode().strip().strip("'")
+
+def kill_existing_port_forward(namespace):
+    result = subprocess.run(
+        [
+            "pgrep",
+            "-f",
+            f"kubectl.*{namespace}.*port-forward.*pod/kruize",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+
+    for pid in result.stdout.split():
+        os.kill(int(pid), signal.SIGTERM)
 
 def form_kruize_url(cluster_type):
     global URL
@@ -64,6 +96,26 @@ def form_kruize_url(cluster_type):
                             shell=True, stdout=subprocess.PIPE)
         SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
         print("IP = ", SERVER_IP)
+
+    elif (cluster_type == "kind"):
+        SERVER_IP="127.0.0.1"
+        AUTOTUNE_PORT=8080
+        KRUIZE_UI_PORT=8081
+
+        KRUIZE_POD = get_pod_name("app=kruize", "monitoring")
+        KRUIZE_UI_POD = get_pod_name("app=kruize-ui-nginx", "monitoring")
+
+        DEVNULL = open(os.devnull, "wb")
+        kill_existing_port_forward("monitoring")
+        time.sleep(60)
+        #wait_for_pod_ready("monitoring")
+        # Background port-forward for Kruize
+        subprocess.Popen([ "kubectl", "-n", "monitoring", "port-forward", f"pod/{KRUIZE_POD}", f"{AUTOTUNE_PORT}:8080"],
+            stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
+
+        # Background port-forward for Kruize UI
+        subprocess.Popen([ "kubectl", "-n", "monitoring", "port-forward", f"pod/{KRUIZE_UI_POD}", f"{KRUIZE_UI_PORT}:8080"],
+            stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
 
     URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
     KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
