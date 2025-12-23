@@ -46,6 +46,8 @@ k = install kruize using deploy scripts.
 
 Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
+***Note***: Minikube and Kind clusters do not support operator deployment mode. Stay tuned for more updates.
+
 ## Create Experiment JSON
 
 The user can modify the create experiment JSON configuration to specify desired workloads.
