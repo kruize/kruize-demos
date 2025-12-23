@@ -373,51 +373,61 @@ function kruize_local_demo_setup() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
-	# Check if autotune is already cloned and deployment is running
-	autotune_exists=0
-	if [ -d "autotune" ]; then
-		autotune_exists=1
-		echo -n "🔍 Checking if Kruize deployment is running..."
-		
-		# Check if kruize deployment exists and is running
-		deployment_check=$(kubectl get deployment kruize -n ${NAMESPACE} 2>&1)
-		pod_check=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
-		
-		if [[ ! "$deployment_check" =~ "NotFound" ]] && [[ ! "$deployment_check" =~ "No resources" ]] || \
-		   [[ ! "$pod_check" =~ "NotFound" ]] && [[ ! "$pod_check" =~ "No resources" ]]; then
-			echo " found!"
-			echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
-			{
-			  	# Kill existing port-forwards before cleanup (only for kind cluster)
-        			if [ ${CLUSTER_TYPE} == "kind" ]; then
-          				kill_service_port_forward "kruize"
-          				kill_service_port_forward "kruize-ui-nginx-service"
-          				
-          				# Kill benchmark port-forwards if benchmark is tfb
-          				if [[ "${bench}" == "tfb" ]]; then
-           					kill_service_port_forward "tfb-qrh-service"
-          				fi
-        			fi
-
-				if [[ "${kruize_operator}" -eq 1 ]]; then
-					kruize_operator_cleanup $NAMESPACE
-				else
-					kruize_uninstall
+	# Check for both operator and kruize deployments
+	echo -n "🔍 Checking if Kruize deployment is running..."
+	
+	# Check for kruize deployment
+	kruize_deployment=$(kubectl get deployment kruize -n ${NAMESPACE} 2>&1)
+	kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+	
+	# Check for operator deployment
+	operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n kruize-operator-system 2>&1)
+	
+	kruize_exists=false
+	operator_exists=false
+	
+	if [[ ! "kruize_deployment" =~ "NotFound" ]] && [[ ! "kruize_deployment" =~ "No resources" ]] || \
+	   [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
+		kruize_exists=true
+	fi
+	
+	if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
+		operator_exists=true
+	fi
+	
+	if [ "$kruize_exists" = true ] || [ "$operator_exists" = true ]; then
+		echo " found!"
+		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
+		{
+		  	# Kill existing port-forwards before cleanup (only for kind cluster)
+	   		if [ ${CLUSTER_TYPE} == "kind" ]; then
+				kill_service_port_forward "kruize"
+				kill_service_port_forward "kruize-ui-nginx-service"
+				
+				# Kill benchmark port-forwards if benchmark is tfb
+	     			if [[ "${bench}" == "tfb" ]]; then
+					kill_service_port_forward "tfb-qrh-service"
 				fi
-			} >> "${LOG_FILE}" 2>&1
-			echo "✅ Cleanup complete!"
-			
-			# Wait for cleanup to complete and resources to be fully removed
-			echo -n "⏳ Waiting for resources to be fully removed..."
-			sleep 10
-			echo " done!"
-		else
-			echo " not running."
-		fi
+	   		fi
+
+			if [ "$operator_exists" = true ]; then
+				kruize_operator_cleanup $NAMESPACE
+			elif [ "$kruize_exists" = true ]; then
+				kruize_uninstall
+			fi
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Cleanup complete!"
+		
+		# Wait for cleanup to complete and resources to be fully removed
+		echo -n "⏳ Waiting for resources to be fully removed..."
+		sleep 10
+		echo " done!"
+	else
+		echo " not running."
 	fi
 
 	# Clone repos if not already present
-	if [ ${autotune_exists} -eq 0 ]; then
+	if [ ! -d "autotune" ]; then
 		echo -n "🔄 Pulling required repositories... "
 		{
 			clone_repos autotune
@@ -602,7 +612,7 @@ function kruize_local_demo_setup() {
 operator_setup() {
       	clone_repos kruize-operator
 
-	echo "🔄 Checking for existence of kruize-operator namespace"
+	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
     	if oc get ns $NAMESPACE >/dev/null 2>&1; then
           	echo "Namespace ${NAMESPACE} exists"
@@ -860,34 +870,82 @@ function kruize_operator_cleanup() {
 	echo "Cleaning up Kruize Operator resources"
 	echo "#######################################"
 
-	# Undeploy operator if kruize-operator directory exists
-	if [ -d "kruize-operator" ]; then
-		echo "Undeploying Kruize Operator..."
-		pushd kruize-operator >/dev/null
+	# Check if operator deployment exists in the cluster
+	if ${kubectl_cmd} get deployment kruize-operator-controller-manager -n kruize-operator-system >/dev/null 2>&1; then
+		echo "Kruize Operator deployment found. Undeploying..."
 
-		# Delete deployments
-		kubectl delete -f ./config/samples/v1alpha1_kruize.yaml -n $namespace
-
-		# Delete cluster-level resources
-		echo "Deleting cluster roles..."
-		${kubectl_cmd} delete clusterrole kruize-recommendation-updater 2>/dev/null || true
-		echo
-
-		echo "Deleting cluster role bindings..."
-		${kubectl_cmd} delete clusterrolebinding kruize-monitoring-view kruize-recommendation-updater-crb 2>/dev/null || true
-		echo
-
-		make undeploy 2>/dev/null || echo "Warning: make undeploy failed or already undeployed"
-		popd >/dev/null
-
-		echo "Deleting kruize-operator directory..."
-		rm -rf kruize-operator
-		echo
-
+		# Delete Kruize custom resources
+		echo "Deleting Kruize custom resources..."
+		${kubectl_cmd} delete kruize --all -n ${namespace} 2>/dev/null || true
+		
+		# Delete the operator deployment
+		echo "Deleting operator deployment..."
+		${kubectl_cmd} delete deployment kruize-operator-controller-manager -n kruize-operator-system 2>/dev/null || true
+		
+		# Wait for all kruize pods to terminate
 		echo -n "Waiting for all kruize pods to terminate..."
-		# Waits until the number of pods matching the label is 0
 		${kubectl_cmd} wait --for=delete pod -l app=kruize -n ${namespace} --timeout=60s 2>/dev/null || true
+		${kubectl_cmd} wait --for=delete pod -l app=kruize-db -n ${namespace} --timeout=60s 2>/dev/null || true
 		echo "Done!"
+		echo
+		
+		# Delete Kruize CRDs (after CRs and pods are deleted)
+		echo "Deleting Kruize CRD..."
+		${kubectl_cmd} delete crd kruizes.my.domain 2>/dev/null || true
+		sleep 10
+
+		# Delete ServiceAccounts in kruize-operator-system namespace
+		kruize_serviceaccounts=$(${kubectl_cmd} get serviceaccount -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		if [ -n "$kruize_serviceaccounts" ]; then
+			echo "$kruize_serviceaccounts" | xargs ${kubectl_cmd} delete serviceaccount -n kruize-operator-system 2>/dev/null || true
+		else
+			echo "No kruize-related ServiceAccounts found"
+		fi
+
+		# Delete Services in kruize-operator-system namespace
+		kruize_services=$(${kubectl_cmd} get service -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		if [ -n "$kruize_services" ]; then
+			echo "$kruize_services" | xargs ${kubectl_cmd} delete service -n kruize-operator-system 2>/dev/null || true
+		else
+			echo "No kruize-related Services found"
+		fi
+
+		# Delete RoleBindings before Roles
+		kruize_rolebindings=$(${kubectl_cmd} get rolebinding -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		if [ -n "$kruize_rolebindings" ]; then
+			echo "$kruize_rolebindings" | xargs ${kubectl_cmd} delete rolebinding -n kruize-operator-system 2>/dev/null || true
+		else
+			echo "No kruize-related RoleBindings found"
+		fi
+
+		# Delete Roles
+		kruize_roles=$(${kubectl_cmd} get role -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		if [ -n "$kruize_roles" ]; then
+			echo "$kruize_roles" | xargs ${kubectl_cmd} delete role -n kruize-operator-system 2>/dev/null || true
+		else
+			echo "No kruize-related Roles found"
+		fi
+
+		# Delete ClusterRoleBindings before ClusterRoles
+		kruize_clusterrolebindings=$(${kubectl_cmd} get clusterrolebinding 2>/dev/null | grep kruize | awk '{print $1}')
+		if [ -n "$kruize_clusterrolebindings" ]; then
+			echo "$kruize_clusterrolebindings" | xargs ${kubectl_cmd} delete clusterrolebinding 2>/dev/null || true
+		else
+			echo "No kruize-related ClusterRoleBindings found"
+		fi
+
+		# Delete ClusterRoles
+		kruize_clusterroles=$(${kubectl_cmd} get clusterrole 2>/dev/null | grep kruize | awk '{print $1}')
+		if [ -n "$kruize_clusterroles" ]; then
+			echo "$kruize_clusterroles" | xargs ${kubectl_cmd} delete clusterrole 2>/dev/null || true
+		else
+			echo "No kruize-related ClusterRoles found"
+		fi
+
+		# Clean up kruize-operator directory if it exists
+		if [ -d "kruize-operator" ]; then
+			rm -rf kruize-operator
+		fi
 		echo
 
 		local db_pv_name
@@ -960,7 +1018,7 @@ function kruize_operator_cleanup() {
 			echo
 		fi
 	else
-		echo "kruize-operator directory not found, skipping cleanup"
+		echo "kruize-operator deployment not found, skipping cleanup"
 	fi
 
 	echo "Kruize Operator cleanup complete!"
