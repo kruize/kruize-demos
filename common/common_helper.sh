@@ -182,6 +182,7 @@ function kruize_install() {
 		echo
 		} >> "${LOG_FILE}" 2>&1
 		./deploy.sh -c ${CLUSTER_TYPE_TEMP} ${DOCKER_IMAGES} -m ${target} >> "${LOG_FILE}" 2>&1
+		sleep 10
 		check_err "ERROR: kruize failed to start, exiting"
 
 		{
@@ -203,8 +204,15 @@ function kruize_uninstall() {
 	if [ ! -d autotune ]; then
 		return
 	fi
+
+	# assign cluster_type to a temp variable in order to apply the correct yaml
+	CLUSTER_TYPE_TEMP=${CLUSTER_TYPE}
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+	  CLUSTER_TYPE_TEMP="minikube"
+	fi
+  
 	pushd autotune >/dev/null
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t  >> "${LOG_FILE}" 2>&1
+		./deploy.sh -c ${CLUSTER_TYPE_TEMP} -m ${target} -t  >> "${LOG_FILE}" 2>&1
 		sleep 10
 		check_err "ERROR: Failed to terminate kruize" | tee -a "${LOG_FILE}"
 		echo

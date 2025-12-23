@@ -43,6 +43,8 @@ k = install kruize using deploy scripts
 
 Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
+***Note***: Minikube and Kind clusters do not support operator deployment mode. Stay tuned for more updates.
+
 Here’s a breakdown of what happens during the demo:
 
 - Deploys benchmarks in a namespace (if -e is passed)

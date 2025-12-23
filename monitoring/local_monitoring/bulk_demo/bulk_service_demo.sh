@@ -117,6 +117,7 @@ do
 			;;
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
+			KRUIZE_OPERATOR=1
 			;;
     		k)
       			KRUIZE_OPERATOR=0
@@ -130,6 +131,7 @@ export demo="bulk"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
   NAMESPACE="monitoring"
+  KRUIZE_OPERATOR=0
 else
   NAMESPACE="openshift-tuning"
 fi
