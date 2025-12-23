@@ -237,9 +237,9 @@ function kruize_local_demo_terminate() {
 
     	if [[ "${kruize_operator}" -eq 1 ]]; then
          	 kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
-    	else
-          	kruize_uninstall >> "${LOG_FILE}" 2>&1
     	fi
+
+      kruize_uninstall >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
 		if kubectl get pods -n "${APP_NAMESPACE}" | grep -q "tfb"; then
@@ -376,26 +376,24 @@ function kruize_local_demo_setup() {
 	# Check for both operator and kruize deployments
 	echo -n "🔍 Checking if Kruize deployment is running..."
 	
-	# Check for kruize deployment
-	kruize_deployment=$(kubectl get deployment kruize -n ${NAMESPACE} 2>&1)
-	kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
-	
 	# Check for operator deployment
 	operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n kruize-operator-system 2>&1)
 	
-	kruize_exists=false
-	operator_exists=false
+	# Check for kruize pods
+	kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
 	
-	if [[ ! "kruize_deployment" =~ "NotFound" ]] && [[ ! "kruize_deployment" =~ "No resources" ]] || \
-	   [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
-		kruize_exists=true
-	fi
+	operator_exists=false
+	kruize_exists=false
 	
 	if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
 		operator_exists=true
 	fi
 	
-	if [ "$kruize_exists" = true ] || [ "$operator_exists" = true ]; then
+	if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
+		kruize_exists=true
+	fi
+	
+	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
 		echo " found!"
 		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 		{
@@ -410,9 +408,14 @@ function kruize_local_demo_setup() {
 				fi
 	   		fi
 
+			# Run operator cleanup if operator exists
 			if [ "$operator_exists" = true ]; then
 				kruize_operator_cleanup $NAMESPACE
-			elif [ "$kruize_exists" = true ]; then
+			fi
+			
+			# Check if kruize pods still exist and call kruize_uninstall if needed
+			kruize_pods_after=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]]; then
 				kruize_uninstall
 			fi
 		} >> "${LOG_FILE}" 2>&1
@@ -881,6 +884,11 @@ function kruize_operator_cleanup() {
 		# Delete the operator deployment
 		echo "Deleting operator deployment..."
 		${kubectl_cmd} delete deployment kruize-operator-controller-manager -n kruize-operator-system 2>/dev/null || true
+		
+		# Delete any kruize deployments in the namespace
+		echo "Deleting kruize deployments in namespace ${namespace}..."
+		${kubectl_cmd} delete deployment -l app=kruize -n ${namespace} 2>/dev/null || true
+		${kubectl_cmd} delete deployment -l app=kruize-db -n ${namespace} 2>/dev/null || true
 		
 		# Wait for all kruize pods to terminate
 		echo -n "Waiting for all kruize pods to terminate..."
