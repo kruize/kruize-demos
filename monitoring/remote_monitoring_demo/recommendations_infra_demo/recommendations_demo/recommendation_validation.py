@@ -98,15 +98,17 @@ def validate_experiment_recommendations_boxplots(exp_name, exp_type, inputfile, 
                 val1 = row1[col]
                 val2 = row2[col]
 
-                # If both values are numeric (and not NaN), round them and compare
-                if isinstance(val1, (int, float)) and isinstance(val2, (int, float)):
-                    # Round both values
-                    val1_rounded = round_values(val1, precision)
-                    val2_rounded = round_values(val2, precision)
+                if pd.isna(val1) and pd.isna(val2):
+                    continue
 
-                    # Compare the rounded values, ignore NaN
-                    if not math.isnan(val1_rounded) and not math.isnan(val2_rounded) and val1_rounded != val2_rounded:
-                        differing_columns.append(col)
+                val1_rounded = round_values(val1, precision)
+                val2_rounded = round_values(val2, precision)
+                if val1_rounded == val2_rounded:
+                    continue
+                if math.isclose(val1, val2, rel_tol=1e-6, abs_tol=1e-8):
+                    continue
+
+                differing_columns.append(col)
 
             if differing_columns:
                 differences_found = True
