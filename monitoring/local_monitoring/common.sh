@@ -640,7 +640,11 @@ operator_setup() {
 
     	echo
     	echo "🔄 Deploying kruize operator image: $KRUIZE_OPERATOR_IMAGE"
-    	make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
+    	if [ "${CLUSTER_TYPE}" == "minikube" ] || [ "${CLUSTER_TYPE}" == "kind" ]; then
+    		make deploy IMG=${KRUIZE_OPERATOR_IMAGE} OVERLAY=local
+    	else
+    		make deploy IMG=${KRUIZE_OPERATOR_IMAGE}
+    	fi
     	popd  # Return to original directory
 
 	echo
