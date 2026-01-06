@@ -327,9 +327,7 @@ function validate_experiment_recommendations() {
                         boxplot_filepath="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
                         if [[ -f ${recommendation_filepath} ]]; then
                                 python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
-                                if [[ ${EXP_TYPE} != "namespace" ]]; then
-                                        python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
-                                fi
+                                python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
                                 exit_code=$?
                                 validate_status=$((validate_status + exit_code))
                                 echo "=================================="
