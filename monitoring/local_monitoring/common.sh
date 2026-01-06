@@ -377,7 +377,7 @@ function kruize_local_demo_setup() {
 	echo -n "🔍 Checking if Kruize deployment is running..."
 	
 	# Check for operator deployment
-	operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n kruize-operator-system 2>&1)
+	operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n ${NAMESPACE} 2>&1)
 	
 	# Check for kruize pods
 	kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
@@ -613,7 +613,9 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-      	clone_repos kruize-operator
+#      	clone_repos kruize-operator
+
+  git clone -b mvp_demo git@github.com:kruize/kruize-operator.git
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
@@ -643,7 +645,7 @@ operator_setup() {
 
 	echo
 	echo "🔄 Waiting for kruize operator to be ready"
-	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n kruize-operator-system --timeout=300s
+	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n $NAMESPACE --timeout=300s
 
 	if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
 		sed -i -E 's#^([[:space:]]*)autotune_image:.*#\1autotune_image: "'"${KRUIZE_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
@@ -874,7 +876,7 @@ function kruize_operator_cleanup() {
 	echo "#######################################"
 
 	# Check if operator deployment exists in the cluster
-	if ${kubectl_cmd} get deployment kruize-operator-controller-manager -n kruize-operator-system >/dev/null 2>&1; then
+	if ${kubectl_cmd} get deployment kruize-operator-controller-manager -n $namespace >/dev/null 2>&1; then
 		echo "Kruize Operator deployment found. Undeploying..."
 
 		# Delete Kruize custom resources
@@ -883,7 +885,7 @@ function kruize_operator_cleanup() {
 		
 		# Delete the operator deployment
 		echo "Deleting operator deployment..."
-		${kubectl_cmd} delete deployment kruize-operator-controller-manager -n kruize-operator-system 2>/dev/null || true
+		${kubectl_cmd} delete deployment kruize-operator-controller-manager -n $namespace 2>/dev/null || true
 		
 		# Delete any kruize deployments in the namespace
 		echo "Deleting kruize deployments in namespace ${namespace}..."
@@ -902,34 +904,34 @@ function kruize_operator_cleanup() {
 		${kubectl_cmd} delete crd kruizes.my.domain 2>/dev/null || true
 		sleep 10
 
-		# Delete ServiceAccounts in kruize-operator-system namespace
-		kruize_serviceaccounts=$(${kubectl_cmd} get serviceaccount -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		# Delete ServiceAccounts in kruize namespace
+		kruize_serviceaccounts=$(${kubectl_cmd} get serviceaccount -n $namespace 2>/dev/null | grep kruize | awk '{print $1}')
 		if [ -n "$kruize_serviceaccounts" ]; then
-			echo "$kruize_serviceaccounts" | xargs ${kubectl_cmd} delete serviceaccount -n kruize-operator-system 2>/dev/null || true
+			echo "$kruize_serviceaccounts" | xargs ${kubectl_cmd} delete serviceaccount -n $namespace 2>/dev/null || true
 		else
 			echo "No kruize-related ServiceAccounts found"
 		fi
 
-		# Delete Services in kruize-operator-system namespace
-		kruize_services=$(${kubectl_cmd} get service -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		# Delete Services in kruize namespace
+		kruize_services=$(${kubectl_cmd} get service -n $namespace 2>/dev/null | grep kruize | awk '{print $1}')
 		if [ -n "$kruize_services" ]; then
-			echo "$kruize_services" | xargs ${kubectl_cmd} delete service -n kruize-operator-system 2>/dev/null || true
+			echo "$kruize_services" | xargs ${kubectl_cmd} delete service -n $namespace 2>/dev/null || true
 		else
 			echo "No kruize-related Services found"
 		fi
 
 		# Delete RoleBindings before Roles
-		kruize_rolebindings=$(${kubectl_cmd} get rolebinding -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		kruize_rolebindings=$(${kubectl_cmd} get rolebinding -n $namespace 2>/dev/null | grep kruize | awk '{print $1}')
 		if [ -n "$kruize_rolebindings" ]; then
-			echo "$kruize_rolebindings" | xargs ${kubectl_cmd} delete rolebinding -n kruize-operator-system 2>/dev/null || true
+			echo "$kruize_rolebindings" | xargs ${kubectl_cmd} delete rolebinding -n $namespace 2>/dev/null || true
 		else
 			echo "No kruize-related RoleBindings found"
 		fi
 
 		# Delete Roles
-		kruize_roles=$(${kubectl_cmd} get role -n kruize-operator-system 2>/dev/null | grep kruize | awk '{print $1}')
+		kruize_roles=$(${kubectl_cmd} get role -n $namespace 2>/dev/null | grep kruize | awk '{print $1}')
 		if [ -n "$kruize_roles" ]; then
-			echo "$kruize_roles" | xargs ${kubectl_cmd} delete role -n kruize-operator-system 2>/dev/null || true
+			echo "$kruize_roles" | xargs ${kubectl_cmd} delete role -n $namespace 2>/dev/null || true
 		else
 			echo "No kruize-related Roles found"
 		fi
