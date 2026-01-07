@@ -134,7 +134,6 @@ export demo="local"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
     NAMESPACE="monitoring"
-    KRUIZE_OPERATOR=0
 else
     NAMESPACE="openshift-tuning"
 fi
