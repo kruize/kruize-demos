@@ -310,7 +310,7 @@ function remote_monitoring_demo_terminate() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 	pushd autotune >/dev/null
-		./deploy.sh -c ${CLUSTER_TYPE} -m ${target} -t >> "${LOG_FILE}" 2>&1
+		./deploy.sh -t -c ${CLUSTER_TYPE}  >> "${LOG_FILE}" 2>&1
 		echo "ERROR: Failed to terminate kruize monitoring"  >> "${LOG_FILE}" 2>&1
 		echo  >> "${LOG_FILE}" 2>&1
 	popd >/dev/null
