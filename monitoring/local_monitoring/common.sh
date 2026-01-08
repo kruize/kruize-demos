@@ -242,13 +242,16 @@ function kruize_local_demo_terminate() {
       kruize_uninstall >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
-		if kubectl get pods -n "${APP_NAMESPACE}" | grep -q "tfb"; then
-			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
-			kill_service_port_forward "tfb-qrh-service"
-		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "human-eval"; then
-			benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
-		elif kubectl get pods -n "${APP_NAMESPACE}" | grep -q "sysbench"; then
-			benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+		# Check if cluster is accessible before running kubectl commands
+		if kubectl cluster-info &>/dev/null; then
+			if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
+				benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+				kill_service_port_forward "tfb-qrh-service"
+			elif kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "human-eval"; then
+				benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
+			elif kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "sysbench"; then
+				benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+			fi
 		fi
 		if [[ ${APP_NAMESPACE} != "default" ]]; then
 			delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
@@ -376,21 +379,37 @@ function kruize_local_demo_setup() {
 	# Check for both operator and kruize deployments
 	echo -n "🔍 Checking if Kruize deployment is running..."
 	
-	# Check for operator deployment
-	operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n ${NAMESPACE} 2>&1)
+	# First check if cluster is accessible
+	cluster_accessible=false
+	if kubectl cluster-info &>/dev/null; then
+		cluster_accessible=true
+	fi
 	
-	# Check for kruize pods
-	kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+	# Only check deployments if cluster is accessible
+	if [ "$cluster_accessible" = true ]; then
+		# Check for operator deployment
+		operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n ${NAMESPACE} 2>&1)
+		
+		# Check for kruize pods
+		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+	else
+		# Cluster not accessible, set empty responses
+		operator_deployment="Error: cluster not accessible"
+		kruize_pods="Error: cluster not accessible"
+	fi
 	
 	operator_exists=false
 	kruize_exists=false
 	
-	if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
-		operator_exists=true
-	fi
-	
-	if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
-		kruize_exists=true
+	# Only check for existing deployments if cluster is accessible
+	if [ "$cluster_accessible" = true ]; then
+		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]] && [[ ! "$operator_deployment" =~ "Error" ]]; then
+			operator_exists=true
+		fi
+		
+		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]] && [[ ! "$kruize_pods" =~ "Error" ]]; then
+			kruize_exists=true
+		fi
 	fi
 	
 	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
@@ -413,9 +432,13 @@ function kruize_local_demo_setup() {
 				kruize_operator_cleanup $NAMESPACE
 			fi
 			
-			# Check if kruize pods still exist and call kruize_uninstall if needed
-			kruize_pods_after=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
-			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]]; then
+			# Check if kruize pods still exist and call kruize_uninstall if needed (only if cluster is accessible)
+			if [ "$cluster_accessible" = true ]; then
+				kruize_pods_after=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+			else
+				kruize_pods_after="Error: cluster not accessible"
+			fi
+			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
 				kruize_uninstall
 			fi
 		} >> "${LOG_FILE}" 2>&1
