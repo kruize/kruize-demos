@@ -25,44 +25,40 @@ git clone git@github.com:kruize/kruize-demos.git
 ```sh
 cd kruize-demos/monitoring/local_monitoring
 ```
-***Note*** : We support `Kind`, `Minikube` and `OpenShift` clusters.
-By default, it runs on the `Kind` cluster.
+***Note***: We support `Kind`, `Minikube` and `OpenShift` clusters. By default, it runs on the `Kind` cluster.
 
-##### Execute the demo script with a fresh Kind setup (recommended):
+### For Kind / Minikube Clusters
+
+#### Option 1: Fresh Setup with `-f` flag (Recommended)
 ```sh
 ./local_monitoring_demo.sh -c kind -f
 ```
-**Note**: The `-f` flag is supported for **Kind and Minikube clusters only** (not OpenShift). Using `-f` creates a fresh environment setup, which means:
-- Installs a clean Kind cluster with no existing monitoring resources
-- Automatically installs Prometheus in the monitoring namespace
+Automatically installs a clean Kind/Minikube cluster, Prometheus, and monitoring namespace.
 
-This is the recommended approach when starting from scratch or to ensure a clean testing environment.
-
-##### Execute the demo script on Kind (without -f):
+#### Option 2: Existing Setup without `-f` flag
 ```sh
 ./local_monitoring_demo.sh
 ```
-**Prerequisites**: Without the `-f` flag, the script expects the following to be already installed and configured:
-- Kind cluster running
+**Prerequisites**:
+- Kind/Minikube cluster running
 - Prometheus installed
 - Monitoring namespace created
+- Workloads must run for ~30 minutes to collect 2 datapoints before generating recommendations
 
-**Important**: When using this option, workloads/containers should be running for approximately **30 minutes** (to collect 2 datapoints) before recommendations can be generated.
+### For OpenShift Cluster
 
-Use this option when you already have a Kind cluster with Prometheus monitoring set up.
-
-OR
-
-##### Execute the demo script in OpenShift as:
 ```sh
 ./local_monitoring_demo.sh -c openshift
 ```
+**Note**: The `-f` flag is not supported for OpenShift as Prometheus is already pre-installed.
 
+### Usage
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f]
-c = supports minikube, kind and openshift cluster-type
-s = start (default), t = terminate
-f = create fresh environment setup if cluster-type is minikube or kind
+./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f]
+  -c: Cluster type (kind, minikube, openshift)
+  -s: Start demo (default)
+  -t: Terminate demo
+  -f: Fresh setup (kind/minikube only)
 ```
 
 ## Understanding the Demo
