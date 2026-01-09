@@ -279,9 +279,10 @@ function monitoring_recommendations_demo_with_data() {
                 python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
                 if [[ ${EXP_TYPE} == "namespace" ]]; then
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getNamespaceExperimentMetrics("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json", "namespace")'
                 else
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
-                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json", "container")'
                 fi
 	done
 
@@ -314,9 +315,10 @@ function validate_experiment_recommendations() {
                 python3 -c "import recommendations_demo.recommendation_experiment; recommendations_demo.recommendation_experiment.getMetricsWithRecommendations('${CLUSTER_TYPE}','${exp_name}')"
                 if [[ ${EXP_TYPE} == "namespace" ]]; then
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getNamespaceExperimentMetrics("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json", "namespace")'
                 else
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
-                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json")'
+                        python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json","container")'
                 fi
                 if [[ ${VALIDATE} == "true" ]]; then
                         IFS="|" read -ra parts <<< "${exp_name}"
@@ -325,9 +327,7 @@ function validate_experiment_recommendations() {
                         boxplot_filepath="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
                         if [[ -f ${recommendation_filepath} ]]; then
                                 python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
-                                if [[ ${EXP_TYPE} != "namespace" ]]; then
-                                        python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
-                                fi
+                                python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentPlotData_sorted.csv\", '${boxplot_filepath}',\"BOX PLOTS\")"
                                 exit_code=$?
                                 validate_status=$((validate_status + exit_code))
                                 echo "=================================="
