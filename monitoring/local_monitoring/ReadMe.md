@@ -28,21 +28,32 @@ cd kruize-demos/monitoring/local_monitoring
 ***Note*** : We support `Kind`, `Minikube` and `Openshift` clusters.
 By default, it runs on the `Kind` cluster.
 
-##### Execute the demo script with fresh kind setup (recommended):
+##### Execute the demo script with fresh Kind setup (recommended):
 ```sh
 ./local_monitoring_demo.sh -c kind -f
 ```
-**Note**: Using the `-f` flag with kind is recommended as it creates a fresh environment setup that installs both kind cluster and prometheus by default, ensuring all monitoring components are properly configured.
+**Note**: The `-f` flag is supported for **Kind and Minikube clusters only** (not OpenShift). Using `-f` creates a fresh environment setup, which means:
+- Installs a clean Kind cluster with no existing monitoring resources
+- Automatically installs Prometheus in the monitoring namespace
 
-OR
+This is the recommended approach when starting from scratch or to ensure a clean testing environment.
 
-##### Execute the demo script on kind (without -f):
+##### Execute the demo script on Kind (without -f):
 ```sh
 ./local_monitoring_demo.sh
 ```
-**Prerequisites**: Without the `-f` flag, the script expects kind cluster, prometheus, and monitoring namespace to be already installed and configured.
+**Prerequisites**: Without the `-f` flag, the script expects the following to be already installed and configured:
+- Kind cluster running
+- Prometheus installed
+- Monitoring namespace created
 
-##### Execute the demo script in openshift as: 
+**Important**: When using this option, workloads/containers should be running for approximately **30 minutes** (to collect 2 datapoints) before recommendations can be generated.
+
+Use this option when you already have a Kind cluster with Prometheus monitoring set up.
+
+OR
+
+##### Execute the demo script in OpenShift as:
 ```sh
 ./local_monitoring_demo.sh -c openshift
 ```
