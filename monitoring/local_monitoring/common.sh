@@ -921,7 +921,7 @@ function kruize_operator_cleanup() {
 		
 		# Delete Kruize CRDs (after CRs and pods are deleted)
 		echo "Deleting Kruize CRD..."
-		${kubectl_cmd} delete crd kruizes.my.domain 2>/dev/null || true
+		${kubectl_cmd} delete crd kruizes.kruize.io 2>/dev/null || true
 		sleep 10
 
 		# Delete ServiceAccounts in kruize namespace
