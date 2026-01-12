@@ -219,7 +219,7 @@ function kruize_local_experiments() {
 		for experiment in "${EXPERIMENTS[@]}"; do
 			echo -n "${experiment}_recommendation.json " | tee -a "${LOG_FILE}"
 		done
-		echo -n "or kruize UI for recommendations." | tee -a "${LOG_FILE}"
+		echo -n "or Kruize UI for recommendations." | tee -a "${LOG_FILE}"
 		echo ""
 	fi
 
@@ -406,7 +406,7 @@ function kruize_local_demo_setup() {
 	fi
 	
 	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
-		echo " found!"
+		echo " Found!"
 		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 		{
 		  	# Kill existing port-forwards before cleanup (only for kind cluster)
@@ -440,9 +440,9 @@ function kruize_local_demo_setup() {
 		# Wait for cleanup to complete and resources to be fully removed
 		echo -n "⏳ Waiting for resources to be fully removed..."
 		sleep 10
-		echo " done!"
+		echo " Done!"
 	else
-		echo " not running."
+		echo " Not running."
 	fi
 
 	# Clone repos if not already present
@@ -516,7 +516,7 @@ function kruize_local_demo_setup() {
         	kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
 	fi
 
-	echo -n "🔄 Installing kruize! Please wait..."
+	echo -n "🔄 Installing Kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
 		operator_setup >> "${LOG_FILE}" 2>&1
@@ -548,9 +548,9 @@ function kruize_local_demo_setup() {
   	echo
   	echo -n "⏳ Waiting for Kruize service to fully initialize..."
   	sleep 20
-  	echo " done!"
+  	echo " Done!"
 
-	echo "✅ Installation of kruize complete!"
+	echo "✅ Installation of Kruize complete!"
 
 	if [ "${vpa_install_required:-}" == "1" ]; then
 	{
@@ -1058,7 +1058,7 @@ function kruize_operator_cleanup() {
 
 # Check if Go is installed and meets minimum version requirement
 check_go_prerequisite() {
-	echo -n "🔍 Checking Go pre-requisite for operator deployment..."
+	echo -n "🔍 Pre-req check: Verifying Go for operator deployment..."
 
 	# Check if go is in PATH
 	if ! command -v go >/dev/null 2>&1; then
@@ -1078,7 +1078,7 @@ check_go_prerequisite() {
 	# Compare versions using sort -V
 	if printf '%s\n%s\n' "${REQUIRED_VERSION}" "${GO_VERSION}" | sort -V -C; then
 		echo "Go version ${GO_VERSION} meets minimum requirement (v${REQUIRED_VERSION}+)" >> ${LOG_FILE}
-		echo "Done!"
+		echo " Done!"
 		return 0
 	else
 		echo "❌ ERROR: Go version ${GO_VERSION} does not meet minimum requirement (v${REQUIRED_VERSION}+)"

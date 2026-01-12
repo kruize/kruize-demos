@@ -165,6 +165,7 @@ fi
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
 	if [ ${KRUIZE_OPERATOR} -eq 1 ]; then
+	  echo
 	  # Check Go prerequisite before proceeding
 	  check_go_prerequisite
 	  check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
