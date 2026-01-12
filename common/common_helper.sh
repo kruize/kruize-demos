@@ -835,9 +835,9 @@ function show_urls() {
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
 	echo "#             Access Kruize           #" >> "${LOG_FILE}" 2>&1
 	echo "#######################################" >> "${LOG_FILE}" 2>&1
-	echo "ℹ️  Access kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
-	echo "🔖 To explore further, access kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
-	echo "ℹ️  For kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
+	echo "ℹ️  Access Kruize UI at http://${KRUIZE_UI_URL}" | tee -a "${LOG_FILE}"
+	echo "🔖 To explore further, access Kruize UI to list and create experiments, and to view or generate recommendations!" | tee -a "${LOG_FILE}"
+	echo "ℹ️  For Kruize CLI commands, refer to the end of ${LOG_FILE}" | tee -a "${LOG_FILE}"
 	echo | tee -a "${LOG_FILE}"
 	echo "-------------------------------------------" >> "${LOG_FILE}" 2>&1
 	echo "          Access Kruize Interface          " >> "${LOG_FILE}" 2>&1
