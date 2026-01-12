@@ -242,8 +242,8 @@ function kruize_local_demo_terminate() {
       kruize_uninstall >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
-		# Check if cluster is accessible before running kubectl commands
-		if kubectl cluster-info &>/dev/null; then
+		# Check if cluster is accessible before running kubectl commands with timeout
+		if timeout 5 kubectl cluster-info &>/dev/null; then
 			if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
 				benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
 				kill_service_port_forward "tfb-qrh-service"
@@ -379,35 +379,28 @@ function kruize_local_demo_setup() {
 	# Check for both operator and kruize deployments
 	echo -n "🔍 Checking if Kruize deployment is running..."
 	
-	# First check if cluster is accessible
+	# First check if cluster is accessible with timeout
 	cluster_accessible=false
-	if kubectl cluster-info &>/dev/null; then
+	if timeout 5 kubectl cluster-info &>/dev/null; then
 		cluster_accessible=true
 	fi
+
+	operator_exists=false
+	kruize_exists=false
 	
-	# Only check deployments if cluster is accessible
+	# Only check for existing deployments if cluster is accessible
 	if [ "$cluster_accessible" = true ]; then
 		# Check for operator deployment
 		operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n ${NAMESPACE} 2>&1)
 		
 		# Check for kruize pods
 		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
-	else
-		# Cluster not accessible, set empty responses
-		operator_deployment="Error: cluster not accessible"
-		kruize_pods="Error: cluster not accessible"
-	fi
-	
-	operator_exists=false
-	kruize_exists=false
-	
-	# Only check for existing deployments if cluster is accessible
-	if [ "$cluster_accessible" = true ]; then
-		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]] && [[ ! "$operator_deployment" =~ "Error" ]]; then
+		
+		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
 			operator_exists=true
 		fi
 		
-		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]] && [[ ! "$kruize_pods" =~ "Error" ]]; then
+		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
 			kruize_exists=true
 		fi
 	fi
