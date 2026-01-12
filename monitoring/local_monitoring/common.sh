@@ -629,9 +629,7 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-#      	clone_repos kruize-operator
-
-  git clone -b mvp_demo git@github.com:kruize/kruize-operator.git
+      	clone_repos kruize-operator
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
