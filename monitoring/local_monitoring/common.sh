@@ -964,12 +964,27 @@ function kruize_operator_cleanup() {
 			echo "No kruize-related ClusterRoleBindings found"
 		fi
 
+		# Delete specific ClusterRoleBindings
+		${kubectl_cmd} delete clusterrolebinding instaslices-access-binding 2>/dev/null || true
+		${kubectl_cmd} delete clusterrolebinding autotune-scc-crb 2>/dev/null || true
+
 		# Delete ClusterRoles
 		kruize_clusterroles=$(${kubectl_cmd} get clusterrole 2>/dev/null | grep kruize | awk '{print $1}')
 		if [ -n "$kruize_clusterroles" ]; then
 			echo "$kruize_clusterroles" | xargs ${kubectl_cmd} delete clusterrole 2>/dev/null || true
 		else
 			echo "No kruize-related ClusterRoles found"
+		fi
+
+		# Delete specific ClusterRoles
+		${kubectl_cmd} delete clusterrole instaslices-access 2>/dev/null || true
+
+		# Delete ConfigMaps in kruize namespace
+		${kubectl_cmd} delete configmap kruizeconfig -n ${namespace} 2>/dev/null || true
+
+		# Delete StorageClass (only for OpenShift)
+		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		  	${kubectl_cmd} delete storageclass manual 2>/dev/null || true
 		fi
 
 		# Clean up kruize-operator directory if it exists
