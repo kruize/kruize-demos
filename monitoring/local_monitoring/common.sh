@@ -449,7 +449,9 @@ function kruize_local_demo_setup() {
 	if [ ! -d "autotune" ]; then
 		echo -n "🔄 Pulling required repositories... "
 		{
-			clone_repos autotune
+#			clone_repos autotune
+      # Temp cloning to verify the network policy changes, will be reverted, once the PR is approved
+			git clone -b add_minikube_network_policy git@github.com:shreyabiradar07/autotune.git
 			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
 				clone_repos benchmarks
 			fi

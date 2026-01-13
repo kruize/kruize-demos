@@ -24,7 +24,7 @@ DRIVER="podman"
 CRUNTIME="cri-o"
 # Comment this for development
 unset DRIVER
-unset CRUNTIME
+
 
 # get date in format
 function get_date() {
@@ -240,7 +240,7 @@ function minikube_start() {
 	if [ -n "${DRIVER}" ]; then
 		minikube start --cpus=${MIN_CPU} --memory=${MIN_MEM}M --driver=${DRIVER} --container-runtime=${CRUNTIME}
 	else
-		minikube start --cpus=${MIN_CPU} --memory=${MIN_MEM}M
+		minikube start --cpus=${MIN_CPU} --memory=${MIN_MEM}M --container-runtime=${CRUNTIME}
 	fi
 	} >> "${LOG_FILE}" 2>&1
 	check_err "ERROR: minikube failed to start, exiting"
