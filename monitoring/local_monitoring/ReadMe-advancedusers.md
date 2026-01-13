@@ -37,15 +37,45 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
-o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+o = Kruize operator image.
 k = install kruize using deploy scripts
 ```
 
-Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
+## Operator Mode Deployment
 
-***Note***: Minikube and Kind clusters do not support operator deployment mode. Stay tuned for more updates.
+Kruize supports operator mode deployment for all cluster types (kind, minikube, and openshift) using the `-o` flag.
 
-Here’s a breakdown of what happens during the demo:
+**Deployment Modes**:
+- **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation, updates, and configuration management.
+- **CRC Mode** (default, without `-o` flag): Uses direct deployment scripts to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
+
+**Examples**:
+
+For Kind cluster with operator mode:
+```sh
+./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
+```
+
+For Minikube cluster with operator mode:
+```sh
+./local_monitoring_demo.sh -c minikube -f -o quay.io/kruize/kruize-operator:latest
+```
+
+For OpenShift cluster with operator mode:
+```sh
+./local_monitoring_demo.sh -c openshift -o quay.io/kruize/kruize-operator:latest
+```
+
+For OpenShift with custom experiment type and operator mode:
+```sh
+./local_monitoring_demo.sh -c openshift -e container -o quay.io/kruize/kruize-operator:latest
+```
+
+Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
+
+## Demo Workflow
+
+Here's a breakdown of what happens during the demo:
 
 - Deploys benchmarks in a namespace (if -e is passed)
     - If -e is container/namespace

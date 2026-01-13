@@ -52,14 +52,47 @@ Automatically installs a clean Kind/Minikube cluster, Prometheus, and monitoring
 ```
 **Note**: The `-f` flag is not supported for OpenShift as Prometheus is already pre-installed.
 
+### Operator Mode Deployment
+
+Kruize can be deployed in operator mode for all cluster types (kind, minikube, and openshift) using the `-o` flag:
+
+```sh
+./local_monitoring_demo.sh -c <cluster-type> -o <kruize-operator-image>
+```
+
+**Examples**:
+
+For Kind cluster with operator mode:
+```sh
+./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
+```
+
+For Minikube cluster with operator mode:
+```sh
+./local_monitoring_demo.sh -c minikube -f -o quay.io/kruize/kruize-operator:latest
+```
+
+For OpenShift cluster with operator mode:
+```sh
+./local_monitoring_demo.sh -c openshift -o quay.io/kruize/kruize-operator:latest
+```
+
+**Deployment Modes**:
+- **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize.
+- **CRC Mode** (default, without `-o` flag): Uses direct deployment scripts to install Kruize components.
+
+
 ### Usage
 ```
-./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f]
+./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image]
   -c: Cluster type (kind, minikube, openshift)
   -s: Start demo (default)
   -t: Terminate demo
   -f: Fresh setup (kind/minikube only)
+  -o: Deploy Kruize in operator mode with specified operator image
 ```
+
+Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 ## Understanding the Demo
 
