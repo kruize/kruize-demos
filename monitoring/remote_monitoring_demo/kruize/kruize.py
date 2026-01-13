@@ -28,15 +28,17 @@ URL = ""
 KRUIZE_UI_URL = ""
 
 def get_pod_name(label_selector, namespace):
-    cmd = (
-        f"kubectl -n {namespace} get pods "
-        f"-l {label_selector} "
-        "-o jsonpath='{.items[0].metadata.name}'"
-    )
+    cmd = [
+        "kubectl",
+        "-n", namespace,
+        "get", "pods",
+        "-l", label_selector,
+        "-o", "jsonpath={.items[0].metadata.name}",
+    ]
     result = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True
     )
-    return result.stdout.decode().strip().strip("'")
+    return result.stdout.strip()
 
 def kill_existing_port_forward(namespace):
     result = subprocess.run(
