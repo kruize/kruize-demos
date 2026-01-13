@@ -40,23 +40,24 @@ r = restart kruize only
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
-o = Use Kruize operator. Optionally specify custom image: -o [image]. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
-k = install kruize using deploy scripts.
+o = Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+k = Disable operator and use deploy scripts instead
 ```
 
-### Operator Mode
+### Deployment Modes
 
-To use Kruize operator mode, add the `-o` flag:
+**Operator Mode (Default)**: Kruize is deployed using the Kruize Operator, which manages Kruize components via Kubernetes Custom Resources (CRDs). This is the recommended deployment method.
 
 ```sh
-# Use latest operator image
-./vpa_demo.sh -c <openshift/kind/minikube> -o
+# Default operator deployment (uses default operator image)
+./vpa_demo.sh -c <openshift/kind/minikube>
 
-# Use custom operator image
+# Specify custom operator image
 ./vpa_demo.sh -c <openshift/kind/minikube> -o quay.io/custom/kruize-operator:v1.0
-```
 
-When using operator mode (`-o` flag), Kruize will be deployed using the operator instead of deploy scripts.
+# Use deploy scripts instead of operator
+./vpa_demo.sh -c <openshift/kind/minikube> -k
+```
 
 Refer to the Kruize operator documentation [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 

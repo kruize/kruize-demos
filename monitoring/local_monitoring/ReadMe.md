@@ -52,29 +52,33 @@ Automatically installs a clean Kind/Minikube cluster, Prometheus, and monitoring
 ```
 **Note**: The `-f` flag is not supported for OpenShift as Prometheus is already pre-installed.
 
-### Operator Mode Deployment
+### Deployment Modes
 
-Kruize can be deployed in operator mode using the `-o` flag. The operator manages Kruize components via Kubernetes Custom Resources (CRDs).
+**Operator Mode (Default)**: Kruize is deployed using the Kruize Operator, which manages Kruize components via Kubernetes Custom Resources (CRDs). This is the recommended deployment method.
 
-**Quick Example**:
+**Quick Examples**:
 ```sh
-# Use default operator image (version from Makefile)
-./local_monitoring_demo.sh -c kind -f -o
+# Default operator deployment (uses default operator image)
+./local_monitoring_demo.sh -c kind -f
 
-# Use custom operator image
+# Specify custom operator image
 ./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
+
+# Use deploy scripts instead of operator
+./local_monitoring_demo.sh -c kind -f -k
 ```
 
-For detailed operator mode examples and advanced usage, see the [Advanced Users Guide](./ReadMe-advancedusers.md#operator-mode-deployment).
+For detailed deployment options and advanced usage, see the [Advanced Users Guide](./ReadMe-advancedusers.md#deployment-modes).
 
 ### Usage
 ```
-./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image]
+./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image] [-k]
   -c: Cluster type (kind, minikube, openshift)
   -s: Start demo (default)
   -t: Terminate demo
   -f: Fresh setup (kind/minikube only)
-  -o: Deploy Kruize in operator mode. Optionally specify custom image: -o [image]. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+  -o: Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+  -k: Disable operator and use deploy scripts instead
 ```
 
 Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.

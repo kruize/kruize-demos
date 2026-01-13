@@ -24,7 +24,7 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-o kruize-operator-image]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-o kruize-operator-image] [-k]
 c = supports minikube, kind and openshift cluster-type
 e = supports container, namespace and gpu. Default - none.
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
@@ -37,56 +37,68 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
-o = Deploy Kruize in operator mode. Optionally specify custom image: -o [image]. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
-k = install kruize using deploy scripts
+o = Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+k = Disable operator and use deploy scripts instead
 ```
 
-## Operator Mode Deployment
+## Deployment Modes
 
-Kruize supports operator mode deployment for all cluster types (kind, minikube, and openshift) using the `-o` flag.
+Kruize supports two deployment modes for all cluster types (kind, minikube, and openshift):
 
 **Deployment Modes**:
-- **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation and configuration management.
-- **Standard Mode** (default, without `-o` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
+- **Operator Mode** (Default): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation and configuration management. This is the recommended deployment method.
+- **Deploy Scripts Mode** (with `-k` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
 
-**Note**: If no operator image is specified with the `-o` flag (i.e., just `-o`), it automatically picks the latest image and version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`.
+**Note**: By default, Kruize uses operator mode with the image version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`. You can optionally specify a custom operator image using the `-o` flag.
 
 **Examples**:
 
-For Kind cluster with operator mode:
+For Kind cluster (default operator mode):
 ```sh
-# Latest image
-./local_monitoring_demo.sh -c kind -f -o
+# Default operator image
+./local_monitoring_demo.sh -c kind -f
 
-# Custom image
+# Custom operator image
 ./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
+
+# Use deploy scripts instead
+./local_monitoring_demo.sh -c kind -f -k
 ```
 
-For Minikube cluster with operator mode:
+For Minikube cluster (default operator mode):
 ```sh
-# Latest image
-./local_monitoring_demo.sh -c minikube -f -o
+# Default operator image
+./local_monitoring_demo.sh -c minikube -f
 
-# Custom image
+# Custom operator image
 ./local_monitoring_demo.sh -c minikube -f -o quay.io/kruize/kruize-operator:latest
+
+# Use deploy scripts instead
+./local_monitoring_demo.sh -c minikube -f -k
 ```
 
-For OpenShift cluster with operator mode:
+For OpenShift cluster (default operator mode):
 ```sh
-# Latest image
-./local_monitoring_demo.sh -c openshift -o
+# Default operator image
+./local_monitoring_demo.sh -c openshift
 
-# Custom image
+# Custom operator image
 ./local_monitoring_demo.sh -c openshift -o quay.io/kruize/kruize-operator:latest
+
+# Use deploy scripts instead
+./local_monitoring_demo.sh -c openshift -k
 ```
 
-For OpenShift with custom experiment type and operator mode:
+For OpenShift with custom experiment type (default operator mode):
 ```sh
-# Latest image
-./local_monitoring_demo.sh -c openshift -e container -o
+# Default operator image
+./local_monitoring_demo.sh -c openshift -e container
 
-# Custom image
+# Custom operator image
 ./local_monitoring_demo.sh -c openshift -e container -o quay.io/kruize/kruize-operator:latest
+
+# Use deploy scripts instead
+./local_monitoring_demo.sh -c openshift -e container -k
 ```
 
 Refer to the Kruize operator documentation [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
