@@ -50,10 +50,10 @@ To use Kruize operator mode, add the `-o` flag:
 
 ```sh
 # Use latest operator image
-./vpa_demo.sh -c openshift -o
+./vpa_demo.sh -c <openshift/kind/minikube> -o
 
 # Use custom operator image
-./vpa_demo.sh -c openshift -o quay.io/custom/kruize-operator:v1.0
+./vpa_demo.sh -c <openshift/kind/minikube> -o quay.io/custom/kruize-operator:v1.0
 ```
 
 When using operator mode (`-o` flag), Kruize will be deployed using the operator instead of deploy scripts.

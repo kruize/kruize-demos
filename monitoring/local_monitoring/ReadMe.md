@@ -54,24 +54,18 @@ Automatically installs a clean Kind/Minikube cluster, Prometheus, and monitoring
 
 ### Operator Mode Deployment
 
-Kruize can be deployed in operator mode for all cluster types (kind, minikube, and openshift) using the `-o` flag.
+Kruize can be deployed in operator mode using the `-o` flag. The operator manages Kruize components via Kubernetes Custom Resources (CRDs).
 
 **Quick Example**:
 ```sh
-# Use latest operator image
+# Use default operator image (version from Makefile)
 ./local_monitoring_demo.sh -c kind -f -o
 
-# Use specific operator image
+# Use custom operator image
 ./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
 ```
 
-**Deployment Modes**:
-- **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize.
-- **Standard Mode** (default, without `-o` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method.
-
-**Note**: If no operator image is specified with the `-o` flag (i.e., just `-o`), it automatically picks the latest image and version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`.
-
-For more examples and advanced operator mode usage, see the [Advanced Users Guide](./ReadMe-advancedusers.md#operator-mode-deployment).
+For detailed operator mode examples and advanced usage, see the [Advanced Users Guide](./ReadMe-advancedusers.md#operator-mode-deployment).
 
 ### Usage
 ```
