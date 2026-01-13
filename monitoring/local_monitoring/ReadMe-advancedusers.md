@@ -37,7 +37,7 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
-o = Deploy Kruize in operator mode with specified operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+o = Deploy Kruize in operator mode. Optionally specify custom image: -o [image]. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = install kruize using deploy scripts
 ```
 
@@ -49,25 +49,43 @@ Kruize supports operator mode deployment for all cluster types (kind, minikube, 
 - **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation, updates, and configuration management.
 - **Standard Mode** (default, without `-o` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
 
+**Note**: If no operator image is specified with the `-o` flag (i.e., just `-o`), it automatically picks the latest image and version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`.
+
 **Examples**:
 
 For Kind cluster with operator mode:
 ```sh
+# Latest image
+./local_monitoring_demo.sh -c kind -f -o
+
+# Custom image
 ./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
 ```
 
 For Minikube cluster with operator mode:
 ```sh
+# Lates image
+./local_monitoring_demo.sh -c minikube -f -o
+
+# Custom image
 ./local_monitoring_demo.sh -c minikube -f -o quay.io/kruize/kruize-operator:latest
 ```
 
 For OpenShift cluster with operator mode:
 ```sh
+# Latest image
+./local_monitoring_demo.sh -c openshift -o
+
+# Custom image
 ./local_monitoring_demo.sh -c openshift -o quay.io/kruize/kruize-operator:latest
 ```
 
 For OpenShift with custom experiment type and operator mode:
 ```sh
+# Latest image
+./local_monitoring_demo.sh -c openshift -e container -o
+
+# Custom image
 ./local_monitoring_demo.sh -c openshift -e container -o quay.io/kruize/kruize-operator:latest
 ```
 

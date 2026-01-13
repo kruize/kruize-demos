@@ -58,6 +58,10 @@ Kruize can be deployed in operator mode for all cluster types (kind, minikube, a
 
 **Quick Example**:
 ```sh
+# Use latest operator image
+./local_monitoring_demo.sh -c kind -f -o
+
+# Use specific operator image
 ./local_monitoring_demo.sh -c kind -f -o quay.io/kruize/kruize-operator:latest
 ```
 
@@ -65,7 +69,7 @@ Kruize can be deployed in operator mode for all cluster types (kind, minikube, a
 - **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize.
 - **Standard Mode** (default, without `-o` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method.
 
-**Note**: If no operator image is specified with the `-o` flag, it uses the latest version `quay.io/kruize/kruize-operator:<version>`.
+**Note**: If no operator image is specified with the `-o` flag (i.e., just `-o`), it automatically picks the latest image and version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`.
 
 For more examples and advanced operator mode usage, see the [Advanced Users Guide](./ReadMe-advancedusers.md#operator-mode-deployment).
 
@@ -76,7 +80,7 @@ For more examples and advanced operator mode usage, see the [Advanced Users Guid
   -s: Start demo (default)
   -t: Terminate demo
   -f: Fresh setup (kind/minikube only)
-  -o: Deploy Kruize in operator mode with specified operator image
+  -o: Deploy Kruize in operator mode. Optionally specify custom image: -o [image]. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 ```
 
 Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
