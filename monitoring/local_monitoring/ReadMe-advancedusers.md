@@ -46,7 +46,7 @@ k = install kruize using deploy scripts
 Kruize supports operator mode deployment for all cluster types (kind, minikube, and openshift) using the `-o` flag.
 
 **Deployment Modes**:
-- **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation, and configuration management.
+- **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation and configuration management.
 - **Standard Mode** (default, without `-o` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
 
 **Note**: If no operator image is specified with the `-o` flag (i.e., just `-o`), it automatically picks the latest image and version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`.
@@ -89,7 +89,7 @@ For OpenShift with custom experiment type and operator mode:
 ./local_monitoring_demo.sh -c openshift -e container -o quay.io/kruize/kruize-operator:latest
 ```
 
-Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
+Refer to the Kruize operator documentation [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 ## Demo Workflow
 

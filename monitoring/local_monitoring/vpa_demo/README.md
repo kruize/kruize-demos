@@ -58,7 +58,7 @@ To use Kruize operator mode, add the `-o` flag:
 
 When using operator mode (`-o` flag), Kruize will be deployed using the operator instead of deploy scripts.
 
-Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
+Refer to the Kruize operator documentation [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 ## Create Experiment JSON
 
