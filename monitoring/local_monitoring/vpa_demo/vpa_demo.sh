@@ -72,7 +72,7 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 # Iterate through the commandline options
-while getopts bc:d:e:kfi:lm:n:pstu:o: gopts
+while getopts bc:d:e:kfi:lm:n:opstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -114,9 +114,12 @@ do
 			KRUIZE_UI_DOCKER_IMAGE="${OPTARG}"
 			;;
    		o)
-      			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
-      			KRUIZE_OPERATOR=1
-      			;;
+			KRUIZE_OPERATOR=1
+			# If value provided after -o, use it as operator image
+			if [[ ${!OPTIND} != -* ]]; then
+				KRUIZE_OPERATOR_IMAGE="${!OPTIND}"
+			fi
+			;;
     		k)
       			KRUIZE_OPERATOR=0
       			;;
@@ -141,6 +144,14 @@ BENCHMARK="sysbench"
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}"
+
+	if [ ${KRUIZE_OPERATOR} -eq 1 ]; then
+	  echo
+	  # Check Go prerequisite before proceeding
+	  check_go_prerequisite
+	  check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
+	fi
+
 	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo

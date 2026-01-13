@@ -32,7 +32,7 @@ cd kruize-demos/monitoring/local_monitoring/vpa_demo
 ```
 
 ```
-Usage: ./vpa_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-k]
+Usage: ./vpa_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-o [kruize-operator-image]] [-k]
 c = supports minikube, kind and openshift cluster-type
 i = kruize image.
 p = expose prometheus port
@@ -40,13 +40,25 @@ r = restart kruize only
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
-o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+o = Use Kruize operator. Optionally specify custom image: -o [image]. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = install kruize using deploy scripts.
 ```
 
-Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
+### Operator Mode
 
-***Note***: Minikube and Kind clusters do not support operator deployment mode. Stay tuned for more updates.
+To use Kruize operator mode, add the `-o` flag:
+
+```sh
+# Use default operator image
+./vpa_demo.sh -c openshift -o
+
+# Use custom operator image
+./vpa_demo.sh -c openshift -o quay.io/custom/kruize-operator:v1.0
+```
+
+When using operator mode (`-o` flag), Kruize will be deployed using the operator instead of deploy scripts.
+
+Refer the documentation of Kruize operator [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
 
 ## Create Experiment JSON
 

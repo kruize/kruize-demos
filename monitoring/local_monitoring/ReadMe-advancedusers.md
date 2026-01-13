@@ -37,7 +37,7 @@ b = deploy the benchmark.
 n = namespace where benchmark is deployed. Default - default
 d = duration to run the benchmark load
 m = manifests of the benchmark
-o = Kruize operator image.
+o = Deploy Kruize in operator mode with specified operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = install kruize using deploy scripts
 ```
 
@@ -47,7 +47,7 @@ Kruize supports operator mode deployment for all cluster types (kind, minikube, 
 
 **Deployment Modes**:
 - **Operator Mode** (with `-o` flag): Uses the Kruize Operator to deploy and manage Kruize components via Kubernetes Custom Resources (CRDs). The operator handles the lifecycle management of Kruize, including installation, updates, and configuration management.
-- **CRC Mode** (default, without `-o` flag): Uses direct deployment scripts to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
+- **Standard Mode** (default, without `-o` flag): Uses direct deployment manifests to install Kruize components. This is the traditional deployment method where components are deployed directly using kubectl/oc commands.
 
 **Examples**:
 
