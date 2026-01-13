@@ -37,7 +37,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
-KRUIZE_OPERATOR=0
+KRUIZE_OPERATOR=1
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
@@ -46,7 +46,7 @@ function usage() {
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
-	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+	echo "o = Specify custom Kruize operator image: -o <image>. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
 	echo "e = supports container, namespace and gpu"
 	echo "b = deploy the benchmark."
 	echo "m = manifests of the benchmark"
@@ -54,7 +54,7 @@ function usage() {
 	echo "l = Run a load against the benchmark"
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
-	echo "k = install kruize using deploy scripts."
+	echo "k = Disable operator and install kruize using deploy scripts instead."
 
 	exit 1
 }
@@ -120,7 +120,6 @@ do
 			;;
 		o)
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
-			KRUIZE_OPERATOR=1
 			;;
 	 	k)
       			KRUIZE_OPERATOR=0
