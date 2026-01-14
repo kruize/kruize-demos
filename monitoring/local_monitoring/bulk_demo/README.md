@@ -38,7 +38,7 @@ cd kruize-demos/monitoring/local_monitoring/bulk_demo
 ```
 
 ```
-Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image] [-k]
+Usage: ./bulk_service_demo.sh [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-w wait-time] [-i kruize-image] [-u kruize-ui-image] [-k]
 c = supports minikube, kind and openshift cluster-type
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 p = expose prometheus port
@@ -46,6 +46,7 @@ r = restart kruize only
 l = deploy TFB app wih load
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
+w = Wait for the specified seconds for metrics to be available before generating recommendations on a new cluster. Default - 0>
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
 k = install kruize using deploy scripts

@@ -44,7 +44,7 @@ PYTHON_CMD=python3
 export LOG_FILE="${current_dir}/kruize-bulk-demo.log"
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-i kruize-image] [-u kruize-ui-image]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-w wait-time] [-i kruize-image] [-u kruize-ui-image]"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "p = expose prometheus port"
@@ -52,6 +52,7 @@ function usage() {
 	echo "r = restart kruize only"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
+	echo "w = Wait for the specified seconds for metrics to be available. Default - 0>"
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
@@ -62,15 +63,19 @@ function usage() {
 }
 
 function kruize_bulk() {
-  echo "Running bulk_demo.py..." >> "${LOG_FILE}" 2>&1
-  "${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}"
-  {
-  echo
-  echo "######################################################"
-  echo
-  } >> "${LOG_FILE}" 2>&1
+	if [[ "${wait_time}" -ne 0 ]]; then
+		echo -n "🔄 Waiting for ${wait_time} seconds for metrics to be available..."
+		sleep "${wait_time}"
+		echo "✅ done! "
+	fi
+	echo "Running bulk_demo.py..." >> "${LOG_FILE}" 2>&1
+	"${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}"
+	{
+		echo
+		echo "######################################################"
+		echo
+	} >> "${LOG_FILE}" 2>&1
 }
-
 
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
@@ -80,13 +85,17 @@ export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
+export wait_time=0
 
 # Iterate through the commandline options
-while getopts c:i:n:d:klfprstu:o: gopts
+while getopts c:i:n:d:w:klfprstu:o: gopts
 do
 	case "${gopts}" in
 		c)
 			CLUSTER_TYPE="${OPTARG}"
+			;;
+		w)
+			wait_time="${OPTARG}"
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
