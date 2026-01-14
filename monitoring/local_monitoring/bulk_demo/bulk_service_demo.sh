@@ -52,7 +52,7 @@ function usage() {
 	echo "r = restart kruize only"
 	echo "s = start (default), t = terminate"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
-	echo "w = Wait for the specified seconds for metrics to be available. Default - 0>"
+	echo "w = Wait for the specified seconds for metrics to be available. Default - 0"
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
@@ -63,9 +63,9 @@ function usage() {
 }
 
 function kruize_bulk() {
-	if [[ "${wait_time}" -ne 0 ]]; then
-		echo -n "🔄 Waiting for ${wait_time} seconds for metrics to be available..."
-		sleep "${wait_time}"
+	if [[ "${WAIT_TIME}" -ne 0 ]]; then
+		echo -n "🔄 Waiting for ${WAIT_TIME} seconds for metrics to be available..."
+		sleep "${WAIT_TIME}"
 		echo "✅ done! "
 	fi
 	echo "Running bulk_demo.py..." >> "${LOG_FILE}" 2>&1
@@ -85,7 +85,7 @@ export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
-export wait_time=0
+export WAIT_TIME=0
 
 # Iterate through the commandline options
 while getopts c:i:n:d:w:klfprstu:o: gopts
@@ -95,7 +95,7 @@ do
 			CLUSTER_TYPE="${OPTARG}"
 			;;
 		w)
-			wait_time="${OPTARG}"
+			WAIT_TIME="${OPTARG}"
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
@@ -137,6 +137,12 @@ do
 done
 
 export demo="bulk"
+
+if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
+    echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
+    usage
+    exit 1
+fi
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
   NAMESPACE="monitoring"

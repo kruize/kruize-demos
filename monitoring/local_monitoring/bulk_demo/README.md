@@ -43,10 +43,10 @@ c = supports minikube, kind and openshift cluster-type
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 p = expose prometheus port
 r = restart kruize only
-l = deploy TFB app wih load
+l = deploy TFB app with load
 s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
-w = Wait for the specified seconds for metrics to be available before generating recommendations on a new cluster. Default - 0>
+w = Wait for the specified seconds for metrics to be available before generating recommendations on a new cluster. Default - 0
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
 k = install kruize using deploy scripts
