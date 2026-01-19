@@ -19,11 +19,22 @@
 MIN_CPU=8
 MIN_MEM=16384
 KIND_KUBERNETES_VERSION=v1.28.0
-# Change both of these to docker if you are using docker
+# By default, it is recommended to use containerd for the docker driver and crio for the podman driver as the container runtime.
+# When DRIVER is not set, containerd is used as the default container runtime (minikube typically defaults to docker driver).
+# Change DRIVER to "docker" or "podman" as needed.
 DRIVER="podman"
-CRUNTIME="containerd"
 # Comment this for development
 unset DRIVER
+
+# Set container runtime based on driver
+if [ "${DRIVER}" = "docker" ]; then
+    CRUNTIME="containerd"
+elif [ "${DRIVER}" = "podman" ]; then
+    CRUNTIME="crio"
+else
+    # Default to containerd when DRIVER is not set
+    CRUNTIME="containerd"
+fi
 
 
 # get date in format
@@ -228,8 +239,10 @@ function minikube_start() {
 	minikube config set memory ${MIN_MEM}M >/dev/null 2>/dev/null
 	if [ -n "${DRIVER}" ]; then
 		minikube config set driver ${DRIVER} >/dev/null 2>/dev/null
-		minikube config set container-runtime ${CRUNTIME} >/dev/null 2>/dev/null
 	fi
+
+	minikube config set container-runtime ${CRUNTIME} >/dev/null 2>/dev/null
+
 	echo
 	echo "#######################################"
 	echo "2. Deleting minikube cluster, if any"
