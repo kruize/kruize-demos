@@ -449,9 +449,7 @@ function kruize_local_demo_setup() {
 	if [ ! -d "autotune" ]; then
 		echo -n "🔄 Pulling required repositories... "
 		{
-#			clone_repos autotune
-      # Temp cloning to verify the network policy changes, will be reverted, once the PR is approved
-			git clone -b mvp_demo https://github.com/kruize/autotune.git
+			clone_repos autotune
 			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
 				clone_repos benchmarks
 			fi
