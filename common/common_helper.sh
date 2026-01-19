@@ -21,7 +21,7 @@ MIN_MEM=16384
 KIND_KUBERNETES_VERSION=v1.28.0
 # Change both of these to docker if you are using docker
 DRIVER="podman"
-CRUNTIME="cri-o"
+CRUNTIME="containerd"
 # Comment this for development
 unset DRIVER
 
