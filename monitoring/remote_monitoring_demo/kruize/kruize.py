@@ -89,24 +89,22 @@ def form_kruize_url(cluster_type):
     elif (cluster_type == "openshift"):
 
         subprocess.run(["oc", "expose", "svc/kruize", "-n", "openshift-tuning"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
-        ip = subprocess.run(
-            [
-                'oc status -n openshift-tuning | grep "kruize" | grep -v "kruize-ui" | grep -v "kruize-db" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
-            shell=True,
-            stdout=subprocess.PIPE)
-        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
-        print("IP = ", SERVER_IP)
-        URL = "http://" + str(SERVER_IP)
+        cmd = [ "oc",
+                "get", "route", "kruize",
+                "-n", "openshift-tuning",
+                "-o", "jsonpath={.spec.host}",
+                ]
+        host = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True,).stdout.strip()
+        URL = f"http://{host}"
 
         subprocess.run(["oc", "expose", "svc/kruize-ui-nginx-service", "-n", "openshift-tuning"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
-        ip = subprocess.run(
-            [
-                'oc status -n openshift-tuning | grep "kruize-ui-nginx-service" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
-            shell=True,
-            stdout=subprocess.PIPE)
-        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
-        print("IP = ", SERVER_IP)
-        KRUIZE_UI_URL = "http://" + str(SERVER_IP)
+        cmd = [ "oc",
+                "get", "route", "kruize-ui-nginx-service",
+                "-n", "openshift-tuning",
+                "-o", "jsonpath={.spec.host}",
+                ]
+        host = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True,).stdout.strip()
+        KRUIZE_UI_URL = f"http://{host}"
 
     elif (cluster_type == "kind"):
         SERVER_IP="127.0.0.1"
@@ -127,11 +125,10 @@ def form_kruize_url(cluster_type):
             stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
         time.sleep(60)
 
-    URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
-    KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
-    print("\nKRUIZE AUTOTUNE URL = ", URL)
-    print("\nKRUIZE UI URL = ", KRUIZE_UI_URL)
-
+        URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
+        KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
+        print("\nKRUIZE AUTOTUNE URL = ", URL)
+        print("\nKRUIZE UI URL = ", KRUIZE_UI_URL)
 
 # Description: This function validates the input json and posts the experiment using createExperiment API to Kruize
 # Input Parameters: experiment input json
