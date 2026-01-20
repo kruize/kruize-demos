@@ -71,9 +71,7 @@ function validate_wait_time() {
 }
 
 function kruize_bulk() {
-	validate_wait_time
-	
-	if [[ "${WAIT_TIME}" -ne 0 ]]; then
+	if [[ ! "${WAIT_TIME}" =~ ^[1-9]+$ ]]; then
 		echo -n "⏳ Waiting for ${WAIT_TIME} seconds for metrics to be available..."
 		sleep "${WAIT_TIME}"
 		echo "✅ Done!"
