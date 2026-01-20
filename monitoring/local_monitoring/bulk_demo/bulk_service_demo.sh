@@ -69,9 +69,9 @@ function kruize_bulk() {
 		exit 1
 	fi
 	if [[ "${WAIT_TIME}" -ne 0 ]]; then
-		echo -n "🔄 Waiting for ${WAIT_TIME} seconds for metrics to be available..."
+		echo -n "⏳ Waiting for ${WAIT_TIME} seconds for metrics to be available..."
 		sleep "${WAIT_TIME}"
-		echo "✅ done! "
+		echo "✅ Done!"
 	fi
 	echo "Running bulk_demo.py..." >> "${LOG_FILE}" 2>&1
 	"${PYTHON_CMD}" -u bulk_demo.py -c "${CLUSTER_TYPE}"
@@ -148,6 +148,12 @@ if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; t
   KRUIZE_OPERATOR=0
 else
   NAMESPACE="openshift-tuning"
+fi
+
+if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
+	echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
+	usage
+	exit 1
 fi
 
 if [ ${start_demo} -eq 1 ]; then
