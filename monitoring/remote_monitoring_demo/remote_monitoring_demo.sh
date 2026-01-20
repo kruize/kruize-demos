@@ -40,7 +40,7 @@ function usage() {
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
-	echo "c = supports minikube and openshift cluster-type"
+	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
