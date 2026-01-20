@@ -28,15 +28,15 @@ URL = ""
 KRUIZE_UI_URL = ""
 
 def get_pod_name(label_selector, namespace):
-    cmd = [
+    result = subprocess.run(
+        [
         "kubectl",
         "-n", namespace,
         "get", "pods",
         "-l", label_selector,
         "-o", "jsonpath={.items[0].metadata.name}",
-    ]
-    result = subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True
     )
     return result.stdout.strip()
 
