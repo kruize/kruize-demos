@@ -62,12 +62,17 @@ function usage() {
 	exit 1
 }
 
-function kruize_bulk() {
+function validate_wait_time() {
 	if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
-		echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
-		usage
-		exit 1
-	fi
+                echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
+                usage
+                exit 1
+        fi
+}
+
+function kruize_bulk() {
+	validate_wait_time
+	
 	if [[ "${WAIT_TIME}" -ne 0 ]]; then
 		echo -n "⏳ Waiting for ${WAIT_TIME} seconds for metrics to be available..."
 		sleep "${WAIT_TIME}"
@@ -150,11 +155,7 @@ else
   NAMESPACE="openshift-tuning"
 fi
 
-if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
-	echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
-	usage
-	exit 1
-fi
+validate_wait_time
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
