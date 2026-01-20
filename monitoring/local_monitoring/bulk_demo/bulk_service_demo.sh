@@ -63,6 +63,11 @@ function usage() {
 }
 
 function kruize_bulk() {
+	if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
+		echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
+		usage
+		exit 1
+	fi
 	if [[ "${WAIT_TIME}" -ne 0 ]]; then
 		echo -n "🔄 Waiting for ${WAIT_TIME} seconds for metrics to be available..."
 		sleep "${WAIT_TIME}"
@@ -137,12 +142,6 @@ do
 done
 
 export demo="bulk"
-
-if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
-    echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
-    usage
-    exit 1
-fi
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
   NAMESPACE="monitoring"
