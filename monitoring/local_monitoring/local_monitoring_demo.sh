@@ -40,7 +40,7 @@ TECHEMPOWER_PORT=8082
 KRUIZE_OPERATOR=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p] [-k] [-O]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind, aks and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
@@ -55,6 +55,7 @@ function usage() {
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
+	echo "O = Enable optimizer. Default - disabled"
 
 	exit 1
 }
@@ -73,8 +74,9 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
+export OPTIMIZER=0
 # Iterate through the commandline options
-while getopts bc:d:e:fi:klm:no:pstu: gopts
+while getopts bc:d:e:fi:klm:no:pstu:O gopts
 do
 	case "${gopts}" in
 		b)
@@ -124,6 +126,9 @@ do
 	 	k)
       			KRUIZE_OPERATOR=0
       			;;
+        O)
+                export OPTIMIZER=1
+                ;;
 		*)
 			usage
 	esac
