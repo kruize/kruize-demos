@@ -40,7 +40,7 @@ function usage() {
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
-	echo "c = supports minikube and openshift cluster-type"
+	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "d = duration of benchmark warmup/measurement cycles"
 	echo "p = expose prometheus port"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
@@ -120,7 +120,6 @@ function kruize_install() {
 				eval $(minikube podman-env) >> "${LOG_FILE}" 2>&1
 			fi
 		fi
-
 		./deploy.sh -c ${CLUSTER_TYPE} ${DOCKER_IMAGES} -m ${target} >> "${LOG_FILE}" 2>&1
 		check_err "ERROR: kruize failed to start, exiting"
 
@@ -318,22 +317,22 @@ function remote_monitoring_demo_terminate() {
 }
 
 function pronosana_terminate() {
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "#          Pronosana Terminate        #" | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo | tee -a "${LOG_FILE}"
+	echo >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo "#          Pronosana Terminate        #" >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
 	pushd pronosana >/dev/null
 		./pronosana cleanup ${CLUSTER_TYPE}  >> "${LOG_FILE}" 2>&1
 	popd >/dev/null
 }
 
 function remote_monitoring_demo_cleanup() {
-	echo | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo "#    Monitoring Demo setup cleanup    #" | tee -a "${LOG_FILE}"
-	echo "#######################################" | tee -a "${LOG_FILE}"
-	echo | tee -a "${LOG_FILE}"
+	echo >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo "#    Monitoring Demo setup cleanup    #" >> "${LOG_FILE}" 2>&1
+	echo "#######################################" >> "${LOG_FILE}" 2>&1
+	echo >> "${LOG_FILE}" 2>&1
 
 	delete_repos autotune >> "${LOG_FILE}" 2>&1
 
@@ -344,6 +343,9 @@ function remote_monitoring_demo_cleanup() {
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		minikube_delete >> "${LOG_FILE}" 2>&1
 	fi
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+                kind_delete >> "${LOG_FILE}" 2>&1
+        fi
 
 	echo "🕒 Success! Remote Monitoring demo cleanup completed!"
 	echo

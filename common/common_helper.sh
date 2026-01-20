@@ -904,7 +904,7 @@ function setup_workload() {
 }
 
 function kruize_local_disable() {
-	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+	if [[ ${CLUSTER_TYPE} == "minikube" || ${CLUSTER_TYPE} == "kind" ]]; then
 		sed -i 's/"isROSEnabled": "false"/"isROSEnabled": "true"/' manifests/crc/default-db-included-installation/minikube/kruize-crc-minikube.yaml
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 	  sed -i 's/"isROSEnabled": "false"/"isROSEnabled": "true"/' manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml

@@ -17,6 +17,9 @@ limitations under the License.
 import json
 import requests
 import subprocess
+import os
+import signal
+import time
 
 from .json_validate import validate_exp_input_json
 
@@ -24,53 +27,110 @@ from .json_validate import validate_exp_input_json
 URL = ""
 KRUIZE_UI_URL = ""
 
+def get_pod_name(label_selector, namespace):
+    result = subprocess.run(
+        [
+        "kubectl",
+        "-n", namespace,
+        "get", "pods",
+        "-l", label_selector,
+        "-o", "jsonpath={.items[0].metadata.name}",
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True
+    )
+    return result.stdout.strip()
+
+def kill_existing_port_forward(namespace):
+    result = subprocess.run(
+        [
+            "pgrep", "-f", f"kubectl.*{namespace}.*port-forward.*(pod|svc)/.*kruize",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+
+    for pid in result.stdout.split():
+        os.kill(int(pid), signal.SIGTERM)
 
 def form_kruize_url(cluster_type):
     global URL
     global KRUIZE_UI_URL
     if (cluster_type == "minikube"):
         port = subprocess.run(
-            ['kubectl -n monitoring get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
-            shell=True, stdout=subprocess.PIPE)
+            [
+                "kubectl",
+                "-n", "monitoring",
+                "get", "svc", "kruize",
+                "--no-headers",
+                "-o=custom-columns=PORT:.spec.ports[*].nodePort"
+            ],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
 
-        AUTOTUNE_PORT = port.stdout.decode('utf-8').strip('\n')
+        AUTOTUNE_PORT = port.stdout.strip()
 
-        ui_port = subprocess.run([
-                                     'kubectl -n monitoring get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort'],
-                                 shell=True, stdout=subprocess.PIPE)
+        ui_port = subprocess.run(
+                [
+                    "kubectl",
+                    "-n", "monitoring",
+                    "get", "svc", "kruize-ui-nginx-service",
+                    "--no-headers",
+                    "-o=custom-columns=PORT:.spec.ports[*].nodePort"
+                ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
 
-        KRUIZE_UI_PORT = ui_port.stdout.decode('utf-8').strip('\n')
+        KRUIZE_UI_PORT = ui_port.stdout.strip()
 
-        ip = subprocess.run(['minikube ip'], shell=True, stdout=subprocess.PIPE)
-        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
+        ip = subprocess.run(["minikube", "ip"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        SERVER_IP = ip.stdout.strip()
         URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
         KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
 
     elif (cluster_type == "openshift"):
 
-        subprocess.run(['oc expose svc/kruize -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
-        ip = subprocess.run(
-            [
-                'oc status -n openshift-tuning | grep "kruize" | grep -v "kruize-ui" | grep -v "kruize-db" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
-            shell=True,
-            stdout=subprocess.PIPE)
-        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
-        print("IP = ", SERVER_IP)
-        URL = "http://" + str(SERVER_IP)
+        subprocess.run(["oc", "expose", "svc/kruize", "-n", "openshift-tuning"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        host = subprocess.run(
+                [ "oc",
+                "get", "route", "kruize",
+                "-n", "openshift-tuning",
+                "-o", "jsonpath={.spec.host}",
+                ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True,).stdout.strip()
+        URL = f"http://{host}"
 
-        subprocess.run(['oc expose svc/kruize-ui-nginx-service -n openshift-tuning'], shell=True, stdout=subprocess.PIPE)
-        ip = subprocess.run(
-            [
-                'oc status -n openshift-tuning | grep "kruize-ui-nginx-service" | grep port | cut -d " " -f1 | cut -d "/" -f3'],
-            shell=True,
-            stdout=subprocess.PIPE)
-        SERVER_IP = ip.stdout.decode('utf-8').strip('\n')
-        print("IP = ", SERVER_IP)
-        KRUIZE_UI_URL = "http://" + str(SERVER_IP)
+        subprocess.run(["oc", "expose", "svc/kruize-ui-nginx-service", "-n", "openshift-tuning"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        host = subprocess.run(
+                [ "oc",
+                "get", "route", "kruize-ui-nginx-service",
+                "-n", "openshift-tuning",
+                "-o", "jsonpath={.spec.host}",
+                ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True,).stdout.strip()
+        KRUIZE_UI_URL = f"http://{host}"
 
+    elif (cluster_type == "kind"):
+        SERVER_IP="127.0.0.1"
+        AUTOTUNE_PORT=8080
+        KRUIZE_UI_PORT=8081
+
+        KRUIZE_POD = get_pod_name("app=kruize", "monitoring")
+        KRUIZE_UI_POD = get_pod_name("app=kruize-ui-nginx", "monitoring")
+
+        DEVNULL = open(os.devnull, "wb")
+        kill_existing_port_forward("monitoring")
+        time.sleep(60)
+        # Background process to port-forward for Kruize
+        subprocess.Popen([ "kubectl", "-n", "monitoring", "port-forward", f"pod/{KRUIZE_POD}", f"{AUTOTUNE_PORT}:8080"],
+            stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
+
+        subprocess.Popen([ "kubectl", "-n", "monitoring", "port-forward", f"pod/{KRUIZE_UI_POD}", f"{KRUIZE_UI_PORT}:8080"],
+            stdout=DEVNULL, stderr=DEVNULL, start_new_session=True)
+        time.sleep(60)
+
+        URL = "http://" + str(SERVER_IP) + ":" + str(AUTOTUNE_PORT)
+        KRUIZE_UI_URL = "http://" + str(SERVER_IP) + ":" + str(KRUIZE_UI_PORT)
     print("\nKRUIZE AUTOTUNE URL = ", URL)
     print("\nKRUIZE UI URL = ", KRUIZE_UI_URL)
-
 
 # Description: This function validates the input json and posts the experiment using createExperiment API to Kruize
 # Input Parameters: experiment input json
