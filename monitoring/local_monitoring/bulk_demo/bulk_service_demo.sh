@@ -57,7 +57,7 @@ function usage() {
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
       	echo "k = install kruize using deploy scripts."
-  echo "f = create environment setup if cluster-type is minikube, kind"
+	echo "f = create environment setup if cluster-type is minikube, kind"
 
 	exit 1
 }
@@ -66,7 +66,6 @@ function validate_wait_time() {
 	if [[ ! "${WAIT_TIME}" =~ ^[0-9]+$ ]]; then
                 echo "❌ Error: WAIT_TIME ('${WAIT_TIME}') is not a valid number."
                 usage
-                exit 1
         fi
 }
 
