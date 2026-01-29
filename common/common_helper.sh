@@ -168,9 +168,7 @@ function kruize_install() {
 	pushd autotune >/dev/null
 		{
 		# Chekout mvp_demo
-		# Commenting for testing runtimes-hackathon branch
-		#git checkout mvp_demo >/dev/null 2>/dev/null
-		git checkout runtimes-hackathon >/dev/null 2>/dev/null
+		git checkout mvp_demo >/dev/null 2>/dev/null
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
