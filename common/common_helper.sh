@@ -738,9 +738,7 @@ function kruize_local_patch() {
 
 	pushd autotune >/dev/null
 		# Checkout mvp_demo to get the latest mvp_demo release version
-		# Commenting the below line to test runtimes-hackathon branch
-		#git checkout mvp_demo >/dev/null 2>/dev/null
-		git checkout runtimes-hackathon >/dev/null 2>/dev/null
+		git checkout mvp_demo >/dev/null 2>/dev/null
 
 		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}

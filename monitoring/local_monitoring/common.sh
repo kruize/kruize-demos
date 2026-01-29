@@ -127,7 +127,7 @@ function kruize_local_metadata() {
 }
 
 function create_layers() {
-	layers_dir="./autotune/design/sample-jsons/layers"
+	layers_dir="./autotune/manifests/autotune/layers"
 	LAYERS=()
 	for file in "${layers_dir}"/*.json; do
 		if [ -e "$file" ]; then
