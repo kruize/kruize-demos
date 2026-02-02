@@ -511,9 +511,12 @@ function apply_benchmark_load() {
 			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 				PETCLINIC_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
 			fi
-			pushd benchmarks/spring-petclinic >/dev/null
-				./scripts/petclinic-load.sh -c ${CLUSTER_TYPE} -a ${PETCLINIC_ROUTE} -i 2 --iter=2 &
-			popd > /dev/null
+			# Petclinic load doesn't run, uncomment below once it is fixed
+			#pushd benchmarks/spring-petclinic >/dev/null
+				#oc expose svc/petclinic-service -n ${APP_NAMESPACE}
+				#echo "./scripts/petclinic-load.sh -c ${CLUSTER_TYPE} -a ${PETCLINIC_ROUTE} -n ${APP_NAMESPACE} -i 2 --iter=2 &"
+				#./scripts/petclinic-load.sh -c ${CLUSTER_TYPE} -a ${PETCLINIC_ROUTE} -n ${APP_NAMESPACE} -i 2 --iter=2 &
+			#popd > /dev/null
 		fi
 	fi
 	if [ ${BENCHMARK} == "llm-rag" ]; then
@@ -772,12 +775,12 @@ function get_urls() {
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
 
-		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 			TECHEMPOWER_PORT=$(${kubectl_app_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			TECHEMPOWER_IP=$(${kubectl_app_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 			export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
 		fi
-		if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench2} == "petclinic" ]]; then
 			PETCLINIC_PORT=$(${kubectl_app_cmd} get svc petclinic-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			PETCLINIC_IP=$(${kubectl_app_cmd} get pods -l=app=petclinic-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 			export PETCLINIC_URL="${MINIKUBE_IP}:${PETCLINIC_PORT}"
@@ -794,7 +797,7 @@ function get_urls() {
 		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
 
 
-		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 			unset TECHEMPOWER_IP
 			export TECHEMPOWER_IP=$(kubectl -n ${APP_NAMESPACE} get svc tfb-qrh-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
 			export TECHEMPOWER_URL="${TECHEMPOWER_IP}:8080"
@@ -804,10 +807,10 @@ function get_urls() {
 		export KRUIZE_URL="${KIND_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${KIND_IP}:${KRUIZE_UI_PORT}"
 
-		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 			export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 		fi
-		if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench2} == "petclinic" ]]; then
 			export PETCLINIC_URL="${KIND_IP}:${PETCLINIC_PORT}"
 		fi
 
@@ -824,11 +827,11 @@ function get_urls() {
 
 		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
-		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 			${kubectl_app_cmd} expose service tfb-qrh-service
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
-		if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench2} == "petclinic" ]]; then
 			${kubectl_app_cmd} expose service petclinic-service
 			export PETCLINIC_URL=$(${kubectl_app_cmd} get route petclinic-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
