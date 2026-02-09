@@ -1,21 +1,21 @@
 # Kruize Runtimes Recommendations
 
-Kruize provides recommendations for other layers in your application such as the Java Runtime, Quarkus or Springboot frameworks along with the resource usage recommendations for the container. You can explore how runtimes recommendations are generated for your Java and Quarkus workloads using this demo.
+Kruize provides recommendations for other layers in your application such as the Java Runtime, Quarkus or Spring Boot frameworks along with the resource usage recommendations for the container. You can explore how runtimes recommendations are generated for your Java and Quarkus workloads using this demo.
 
 ## Demo workflow
 
-- Deploys a Quarkus Hotspot JVM workload and a Springboot OpenJ9 JVM workload
+- Deploys a Quarkus Hotspot JVM workload and a Spring Boot OpenJ9 JVM workload
 - Deploys Kruize instance
 - Creates the metric and metadata profiles
 - Creates layers with tunables (container, hotspot, openj9 and quarkus layers)
 - Creates experiments for these workloads and generates recommendations
 
 ## Prerequisites
-Ensure you have one of the clusters: kind, minikube, or openShift.
+Ensure you have one of the clusters: kind, minikube, or OpenShift.
 
 You also require make and a go version > 1.21. 
 
-On Openshift cluster, enable user workload monitoring to monitoring user defined workloads by following the below steps:
+On an Openshift cluster, enable user workload monitoring to monitor user defined workloads by following the steps below:
 
 Edit the `cluster-monitoring-config` ConfigMap if present and add/update enableUserWorkload to true:
 
@@ -82,7 +82,7 @@ Automatically installs a clean Kind/Minikube cluster, Prometheus, and monitoring
 - Kind/Minikube cluster running
 - Prometheus installed
 - Monitoring namespace created
-- Workloads must run for ~30 minutes to collect 2 datapoints before generating recommendations
+- Workloads must run for ~30 minutes to collect 2 data points before generating recommendations
 
 ### For OpenShift Cluster
 

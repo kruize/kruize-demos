@@ -716,11 +716,14 @@ function port_forward() {
 		fi
 	fi
 	# Start port forwarding for petclinic-service in the background
-	if is_port_in_use ${PETCLINIC_PORT}; then
-		echo "Error: Port ${PETCLINIC_PORT} is already in use. Port forwarding for petclinic-service cannot be established."
-		port_flag="true"
-	else
-		kubectl port-forward svc/petclinic-service ${PETCLINIC_PORT}:8080 > /dev/null 2>&1 &
+	# but only when a petclinic service is deployed and PETCLINIC_PORT is set.
+	if [ -n "${PETCLINIC_PORT}" ] && kubectl get svc petclinic-service -n "${APP_NAMESPACE}" >/dev/null 2>&1; then
+		if is_port_in_use ${PETCLINIC_PORT}; then
+			echo "Error: Port ${PETCLINIC_PORT} is already in use. Port forwarding for petclinic-service cannot be established."
+			port_flag="true"
+		else
+			kubectl port-forward svc/petclinic-service ${PETCLINIC_PORT}:8080 > /dev/null 2>&1 &
+		fi
 	fi
 	} >> "${LOG_FILE}" 2>&1
 
@@ -855,7 +858,7 @@ function show_urls() {
 	bench=$1
 	bench2=$2
 
-	if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
+	if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 	{
 		echo
 		echo "#######################################"
@@ -865,7 +868,7 @@ function show_urls() {
 		echo "Info: Access techempower app metrics at http://${TECHEMPOWER_URL}/q/metrics"
 	} >> "${LOG_FILE}" 2>&1
 	fi
-	if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+	if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench2} == "petclinic" ]]; then
 	{
 		echo
 		echo "#######################################"

@@ -127,8 +127,9 @@ function kruize_local_metadata() {
 }
 
 function create_layers() {
-	layers_dir="./autotune/manifests/autotune/layers"
+	layers_dir="${current_dir}/autotune/manifests/autotune/layers"
 	LAYERS=()
+
 	for file in "${layers_dir}"/*.json; do
 		if [ -e "$file" ]; then
 			LAYERS+=("$file")
@@ -136,14 +137,19 @@ function create_layers() {
 	done
 	{
 		echo
-		echo "######################################################"
-		echo "#     Create Layers "			
-		echo "######################################################"
-		echo
-		for layer in "${LAYERS[@]}"; do
-			echo "curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}"
-			curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}
-	    	done
+		if [ ${#LAYERS[@]} -eq 0 ]; then
+			echo "No layer JSON files found in ${layers_dir}; skipping createLayer calls."
+		else
+
+			echo "######################################################"
+			echo "#     Create Layers "			
+			echo "######################################################"
+			echo
+			for layer in "${LAYERS[@]}"; do
+				echo "curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}"
+				curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}
+	    		done
+		fi
 	} >> "${LOG_FILE}" 2>&1
 }
 
