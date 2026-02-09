@@ -22,6 +22,9 @@
 # Gets the absolute path to the directory
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# Kruize operator deployment name constant
+OPERATOR_DEPLOYMENT_NAME="kruize-operator"
+
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -387,11 +390,11 @@ function kruize_local_demo_setup() {
 
 	operator_exists=false
 	kruize_exists=false
-	
+
 	# Only check for existing deployments if cluster is accessible
 	if [ "$cluster_accessible" = true ]; then
 		# Check for operator deployment
-		operator_deployment=$(kubectl get deployment kruize-operator-controller-manager -n ${NAMESPACE} 2>&1)
+		operator_deployment=$(kubectl get deployment $OPERATOR_DEPLOYMENT_NAME -n ${NAMESPACE} 2>&1)
 		
 		# Check for kruize pods
 		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
@@ -663,7 +666,7 @@ operator_setup() {
 
 	echo
 	echo "🔄 Waiting for kruize operator to be ready"
-	kubectl wait --for=condition=Available deployment/kruize-operator-controller-manager -n $NAMESPACE --timeout=300s
+	kubectl wait --for=condition=Available deployment/$OPERATOR_DEPLOYMENT_NAME -n $NAMESPACE --timeout=300s
 
 	if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
 		sed -i -E 's#^([[:space:]]*)autotune_image:.*#\1autotune_image: "'"${KRUIZE_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
@@ -787,7 +790,7 @@ operator_setup() {
 
   	echo
  	echo "🔍 To view operator logs:"
- 	echo "kubectl logs -l control-plane=controller-manager -n $NAMESPACE -f"
+ 	echo "kubectl logs deployment/$OPERATOR_DEPLOYMENT_NAME -n $NAMESPACE -f"
 }
 
 # Gnerate experiment with the container which is long running
@@ -894,7 +897,7 @@ function kruize_operator_cleanup() {
 	echo "#######################################"
 
 	# Check if operator deployment exists in the cluster
-	if ${kubectl_cmd} get deployment kruize-operator-controller-manager -n $namespace >/dev/null 2>&1; then
+	if ${kubectl_cmd} get deployment $OPERATOR_DEPLOYMENT_NAME -n $namespace >/dev/null 2>&1; then
 		echo "Kruize Operator deployment found. Undeploying..."
 
 		# Delete Kruize custom resources
@@ -903,7 +906,7 @@ function kruize_operator_cleanup() {
 		
 		# Delete the operator deployment
 		echo "Deleting operator deployment..."
-		${kubectl_cmd} delete deployment kruize-operator-controller-manager -n $namespace 2>/dev/null || true
+		${kubectl_cmd} delete deployment $OPERATOR_DEPLOYMENT_NAME -n $namespace 2>/dev/null || true
 		
 		# Delete any kruize deployments in the namespace
 		echo "Deleting kruize deployments in namespace ${namespace}..."
@@ -1061,7 +1064,7 @@ function kruize_operator_cleanup() {
 			echo
 		fi
 	else
-		echo "kruize-operator deployment not found, skipping cleanup"
+		echo "$OPERATOR_DEPLOYMENT_NAME deployment not found, skipping cleanup"
 	fi
 
 	echo "Kruize Operator cleanup complete!"
