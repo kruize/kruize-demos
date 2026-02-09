@@ -555,73 +555,82 @@ function kruize_local_demo_setup() {
 
 	echo "✅ Installation of Kruize complete!"
 
-	if [ "${vpa_install_required:-}" == "1" ]; then
+	if [ "${OPTIMIZER:-}" == "0" ]; then
 	{
-		echo -n "🔄 Updating cluser-roles for VPA..."
-		update_vpa_roles >> "${LOG_FILE}" 2>&1
-		echo "✅ Done!"
-	}
-	fi
+		if [ "${vpa_install_required:-}" == "1" ]; then
+		{
+			echo -n "🔄 Updating cluser-roles for VPA..."
+			update_vpa_roles >> "${LOG_FILE}" 2>&1
+			echo "✅ Done!"
+		}
+		fi
 
-       if [ ${demo} != "bulk" ]; then
-         echo -n "🔄 Installing metric profile..."
-         kruize_local_metric_profile
-         echo "✅ Installation of metric profile complete!"
+		if [ ${demo} != "bulk" ]; then
+			echo -n "🔄 Installing metric profile..."
+			kruize_local_metric_profile
+			echo "✅ Installation of metric profile complete!"
 
-         echo -n "🔄 Installing metadata profile..."
-         kruize_local_metadata_profile
-         echo "✅ Installation of metadata profile complete!"
-       fi
+			echo -n "🔄 Installing metadata profile..."
+			kruize_local_metadata_profile
+			echo "✅ Installation of metadata profile complete!"
+		fi
 
-	if [ ${demo} == "local" ]; then
-		echo -n "🔄 Collecting metadata..."
-		kruize_local_metadata
-		echo "✅ Collection of metadata complete!"
-		#kruize_local
+		if [ ${demo} == "local" ]; then
+			echo -n "🔄 Collecting metadata..."
+			kruize_local_metadata
+			echo "✅ Collection of metadata complete!"
+			#kruize_local
 
-		# Generate experiment json on local with long running container
-		for experiment in "${EXPERIMENTS[@]}"; do
-			if [ $experiment == "container_experiment_local" ]; then
-				if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-					# Check if prometheus port-forward already exists (kubectl or oc)
-					if ! ps aux | grep -E "kubectl|oc" | grep "port-forward" | grep -q "prometheus"; then
-						expose_prometheus >> "${LOG_FILE}" 2>&1 &
-						sleep 5  # Give prometheus port-forward time to establish
+			# Generate experiment json on local with long running container
+			for experiment in "${EXPERIMENTS[@]}"; do
+				if [ $experiment == "container_experiment_local" ]; then
+					if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+						# Check if prometheus port-forward already exists (kubectl or oc)
+						if ! ps aux | grep -E "kubectl|oc" | grep "port-forward" | grep -q "prometheus"; then
+							expose_prometheus >> "${LOG_FILE}" 2>&1 &
+							sleep 5  # Give prometheus port-forward time to establish
+						fi
 					fi
+					echo -n "🔄 Finding a long running container to create Kruize experiment..."
+					generate_experiment_from_prometheus
+					echo "✅ Complete!"
 				fi
-				echo -n "🔄 Finding a long running container to create Kruize experiment..."
-				generate_experiment_from_prometheus
-				echo "✅ Complete!"
+			done
+			if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+				recomm_start_time=$(get_date)
+				kruize_local_experiments
+				recomm_end_time=$(get_date)
 			fi
-		done
-		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+		elif [ ${demo} == "bulk" ]; then
 			recomm_start_time=$(get_date)
-			kruize_local_experiments
+			kruize_bulk
 			recomm_end_time=$(get_date)
 		fi
-	elif [ ${demo} == "bulk" ]; then
-		recomm_start_time=$(get_date)
-		kruize_bulk
-		recomm_end_time=$(get_date)
-	fi
 	
-	if [ "${vpa_install_required:-}" == "1" ]; then
-	{
-		echo "✅ Experiment has been successfully created in recreate or auto mode. No further action required."
-		echo "📌 Recommendations will be generated and applied to the workloads automatically."
-		echo "📌 To view the latest recommendations, run: kubectl describe vpa"
-		echo "📌 To check the workload current requests and limits, run: kubectl describe pods -l app=sysbench"
+		if [ "${vpa_install_required:-}" == "1" ]; then
+		{
+			echo "✅ Experiment has been successfully created in recreate or auto mode. No further action required."
+			echo "📌 Recommendations will be generated and applied to the workloads automatically."
+			echo "📌 To view the latest recommendations, run: kubectl describe vpa"
+			echo "📌 To check the workload current requests and limits, run: kubectl describe pods -l app=sysbench"
+		}
+	    fi
+
+		show_urls $bench
+
+		end_time=$(get_date)
+		kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
+		recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
+		elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	}
 	fi
 
-	show_urls $bench
-
-	end_time=$(get_date)
-	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
-	recomm_elapsed_time=$(time_diff "${recomm_start_time}" "${recomm_end_time}")
-	elapsed_time=$(time_diff "${start_time}" "${end_time}")
 	echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
-	echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
+	if [ "${OPTIMIZER:-}" == "0" ]; then
+	{
+		echo "🚀 Kruize experiment creation and recommendations generation took ${recomm_elapsed_time} seconds"
+	}
+	fi
 	echo "🕒 Success! Kruize demo setup took ${elapsed_time} seconds"
 	echo
 
@@ -632,7 +641,8 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 operator_setup() {
-      	clone_repos kruize-operator
+      	# clone_repos kruize-operator
+		git clone -b optimizer-changed --single-branch https://github.com/shekhar316/kruize-operator/
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
