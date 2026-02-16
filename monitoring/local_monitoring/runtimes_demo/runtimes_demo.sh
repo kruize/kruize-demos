@@ -127,13 +127,15 @@ do
 	esac
 done
 
+export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp" "create_petclinic_openj9_exp")
+
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
 	NAMESPACE="monitoring"
 else
 	NAMESPACE="openshift-tuning"
+	export EXPERIMENTS=("create_tfb-db_exp_ocp" "create_tfb_exp_ocp" "create_petclinic_openj9_exp_ocp")
 fi
 
-export EXPERIMENTS=("create_tfb-db_exp" "create_tfb_exp" "create_petclinic_openj9_exp")
 BENCHMARK="tfb"
 BENCHMARK2="petclinic"
 
