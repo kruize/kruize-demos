@@ -1,21 +1,21 @@
 [{
   "version": "v2.0",
-  "experiment_name": "monitor_tfb_benchmark",
+  "experiment_name": "monitor_tfb-db_benchmark",
   "cluster_name": "default",
   "performance_profile": "resource-optimization-local-monitoring",
   "metadata_profile": "cluster-metadata-local-monitoring",
   "mode": "monitor",
   "target_cluster": "local",
-  "datasource": "prometheus-1",
+  "datasource": "thanos-querier",
   "kubernetes_objects": [
     {
       "type": "deployment",
-      "name": "tfb-qrh-sample",
+      "name": "tfb-database",
       "namespace": "default",
       "containers": [
         {
-          "container_image_name": "kruize/tfb-qrh:1.13.2.F_et17",
-          "container_name": "tfb-server"
+          "container_image_name": "kruize/tfb-postgres-openshift:latest",
+          "container_name": "tfb-database"
         }
       ]
     }
@@ -24,9 +24,6 @@
     "measurement_duration": "15min"
   },
   "recommendation_settings": {
-    "threshold": "0.1",
-    "required_recommendations": {
-       "layers": ["container", "openjdk", "quarkus"]
-    }
+    "threshold": "0.1"
   }
 }]

@@ -648,6 +648,16 @@ function kruize_local_demo_setup() {
 		kruize_bulk
 		recomm_end_time=$(get_date)
 	elif [ ${demo} == "runtimes" ]; then
+		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+			echo -n "🔄 Enabling kube state metrics labels..."
+	                ./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
+	        else
+			echo -n "🔄 Enabling user workload monitoring..."
+			./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
+        	fi
+
 		echo -n "🔄 Collecting metadata..."
 		kruize_local_metadata
 		echo "✅ Collection of metadata complete!"
