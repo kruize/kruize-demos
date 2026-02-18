@@ -379,6 +379,18 @@ function kruize_local_demo_setup() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
+	# Clone repos first if not already present (needed for cleanup functions)
+	if [ ! -d "autotune" ]; then
+		echo -n "🔄 Pulling required repositories... "
+		{
+			clone_repos autotune
+			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+				clone_repos benchmarks
+			fi
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	fi
+
 	# Check for both operator and kruize deployments
 	echo -n "🔍 Checking if Kruize deployment is running..."
 	
@@ -446,18 +458,6 @@ function kruize_local_demo_setup() {
 		echo " Done!"
 	else
 		echo " Not running."
-	fi
-
-	# Clone repos if not already present
-	if [ ! -d "autotune" ]; then
-		echo -n "🔄 Pulling required repositories... "
-		{
-			clone_repos autotune
-			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
-				clone_repos benchmarks
-			fi
-		} >> "${LOG_FILE}" 2>&1
-		echo "✅ Done!"
 	fi
 
 	if [[ ${env_setup} -eq 1 ]]; then
