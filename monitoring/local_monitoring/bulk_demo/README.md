@@ -50,9 +50,10 @@ w = Wait for the specified seconds for metrics to be available before generating
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
 k = install kruize using deploy scripts
+o = specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 ```
 
-Note: Kruize Operator doesn't support Bulk API yet, currently only non-operator deployment of Kruize `[-k]` is supported by Bulk demo. Stay tuned for more updates.
+**Note**: By default, Bulk demo uses operator mode with the image version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`. You can optionally specify a custom operator image using the `-o` flag.
 
 ## Bulk API configuration
 
