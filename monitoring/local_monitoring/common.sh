@@ -395,14 +395,14 @@ function kruize_local_demo_setup() {
 	if [ "$cluster_accessible" = true ]; then
 		# Check for operator deployment
 		operator_deployment=$(kubectl get deployment $OPERATOR_DEPLOYMENT_NAME -n ${NAMESPACE} 2>&1)
-		
+
 		# Check for kruize pods
 		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
-		
+
 		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
 			operator_exists=true
 		fi
-		
+
 		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
 			kruize_exists=true
 		fi
@@ -515,10 +515,6 @@ function kruize_local_demo_setup() {
 
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
-	if [ ${demo} == "bulk" ]; then
-        	kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
-	fi
-
 	echo -n "🔄 Installing Kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
@@ -563,15 +559,13 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-       if [ ${demo} != "bulk" ]; then
-         echo -n "🔄 Installing metric profile..."
-         kruize_local_metric_profile
-         echo "✅ Installation of metric profile complete!"
+	echo -n "🔄 Installing metric profile..."
+	kruize_local_metric_profile
+	echo "✅ Installation of metric profile complete!"
 
-         echo -n "🔄 Installing metadata profile..."
-         kruize_local_metadata_profile
-         echo "✅ Installation of metadata profile complete!"
-       fi
+	echo -n "🔄 Installing metadata profile..."
+	kruize_local_metadata_profile
+	echo "✅ Installation of metadata profile complete!"
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
@@ -636,11 +630,11 @@ operator_setup() {
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
-    	if oc get ns $NAMESPACE >/dev/null 2>&1; then
+    	if kubectl get ns $NAMESPACE >/dev/null 2>&1; then
           	echo "Namespace ${NAMESPACE} exists"
     	else
       		echo "Namespace ${NAMESPACE} does not exist"
-      		oc create ns $NAMESPACE
+      		kubectl create ns $NAMESPACE
       		check_err "ERROR: Failed to create $NAMESPACE namespace"
     	fi
 

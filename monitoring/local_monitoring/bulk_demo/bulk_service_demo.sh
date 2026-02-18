@@ -37,7 +37,7 @@ KIND_IP=127.0.0.1
 KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
-KRUIZE_OPERATOR=0
+KRUIZE_OPERATOR=1
 BENCHMARK=""
 
 PYTHON_CMD=python3
@@ -133,7 +133,6 @@ do
 			;;
 		o) 
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
-			KRUIZE_OPERATOR=1
 			;;
     		k)
       			KRUIZE_OPERATOR=0
@@ -147,7 +146,6 @@ export demo="bulk"
 
 if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
   NAMESPACE="monitoring"
-  KRUIZE_OPERATOR=0
 else
   NAMESPACE="openshift-tuning"
 fi
@@ -156,14 +154,21 @@ validate_wait_time
 
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
-	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
+
+	if [ ${KRUIZE_OPERATOR} -eq 1 ]; then
+	  # Check Go prerequisite before proceeding
+	  check_go_prerequisite
+	  check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
+	fi
+
+	kruize_local_demo_setup "${BENCHMARK}" "${KRUIZE_OPERATOR}"
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update
 else
 	echo >> "${LOG_FILE}" 2>&1
-	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
+	kruize_local_demo_terminate "${KRUIZE_OPERATOR}"
 	echo "For detailed logs, look in kruize-bulk-demo.log"
 	echo
 fi
