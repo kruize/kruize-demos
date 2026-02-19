@@ -515,6 +515,11 @@ function kruize_local_demo_setup() {
 
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
+	if [[ ${demo} == "bulk" ]] && [[ ${kruize_operator} -eq 0 ]]; then
+	     kruize_local_bulk_demo_patch | tee -a "${LOG_FILE}"
+	 fi
+
+
 	echo -n "🔄 Installing Kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
@@ -742,7 +747,7 @@ operator_setup() {
 	timeout=180
 	elapsed=0
 	while [ $elapsed -lt $timeout ]; do
-		if kubectl get pod -l app=kruize-ui-nginx -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-ui-nginx; then
+		if kubectl get pod -l app=kruize-ui-nginx -n $NAMESPACE --no-headers 2>/dev/null | grep -q .; then
 			break
 		fi
 		echo -n "."
