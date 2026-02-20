@@ -516,7 +516,7 @@ function kruize_local_demo_setup() {
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
 	if [[ ${demo} == "bulk" ]] && [[ ${kruize_operator} -eq 0 ]]; then
-	     kruize_local_bulk_demo_patch | tee -a "${LOG_FILE}"
+	     kruize_local_bulk_demo_patch >> "${LOG_FILE}" 2>&1
 	 fi
 
 

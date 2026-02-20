@@ -892,25 +892,9 @@ function kruize_local_bulk_demo_patch() {
 	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
 
   if [ ${CLUSTER_TYPE} == "openshift" ]; then
-    
     # Apply the updates
     sed -i 's/\([[:space:]]*\)\(storage:\)[[:space:]]*[0-9]\+Mi/\1\2 1Gi/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
     sed -i 's/\([[:space:]]*\)\(memory:\)[[:space:]]*".*"/\1\2 "2Gi"/; s/\([[:space:]]*\)\(cpu:\)[[:space:]]*".*"/\1\2 "2"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-    
-    # Print updated resource values in table format
-    echo
-    echo "📄 Kruize Resources (Bulk Demo - OpenShift)"
-    echo "┌─────────────┬──────────────┬──────────────┐"
-    echo "│ Component   │ CPU (Req/Lim)│ Mem (Req/Lim)│"
-    echo "├─────────────┼──────────────┼──────────────┤"
-    echo "│ Kruize      │ 2 / 2        │ 2Gi / 2Gi    │"
-    echo "│ Kruize DB   │ 2 / 2        │ 2Gi / 2Gi    │"
-    echo "└─────────────┴──────────────┴──────────────┘"
-    echo "DB Storage: PV/PVC = 1Gi"
-    echo
-    echo "ℹ️  Note: For clusters with more containers, consider increasing"
-    echo "   Kruize resources in ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}"
-    echo
   fi
 }
 

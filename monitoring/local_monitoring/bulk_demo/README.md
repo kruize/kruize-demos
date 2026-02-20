@@ -55,6 +55,17 @@ o = specify custom operator image (optional). Default - quay.io/kruize/kruize-op
 
 **Note**: By default, Bulk demo uses operator mode with the image version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`. You can optionally specify a custom operator image using the `-o` flag.
 
+### Kruize Resource Configuration
+
+The bulk demo automatically configures Kruize with the following resources for OpenShift deployments:
+
+| Component   | CPU (Req/Lim) | Memory (Req/Lim) | Storage     |
+|-------------|---------------|------------------|-------------|
+| Kruize      | 2 / 2         | 2Gi / 2Gi        | -           |
+| Kruize DB   | 2 / 2         | 2Gi / 2Gi        | 1Gi (PV/PVC)|
+
+**Note**: For clusters with a large number of containers, consider increasing Kruize resources by modifying the manifest file at `bulk_demo/autotune/manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml` before running the demo.
+
 ## Bulk API configuration
 
 The user can modify the bulk API JSON configuration to specify or omit certain namespaces, workloads, or containers for which recommendations need to be generated.
