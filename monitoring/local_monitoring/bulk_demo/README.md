@@ -50,9 +50,21 @@ w = Wait for the specified seconds for metrics to be available before generating
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
 k = install kruize using deploy scripts
+o = specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 ```
 
-Note: Kruize Operator doesn't support Bulk API yet, currently only non-operator deployment of Kruize `[-k]` is supported by Bulk demo. Stay tuned for more updates.
+**Note**: By default, Bulk demo uses operator mode with the image version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`. You can optionally specify a custom operator image using the `-o` flag.
+
+### Kruize Resource Configuration
+
+The bulk demo automatically configures Kruize with the following resources for OpenShift deployments:
+
+| Component   | CPU (Req/Lim) | Memory (Req/Lim) | Storage     |
+|-------------|---------------|------------------|-------------|
+| Kruize      | 2 / 2         | 2Gi / 2Gi        | -           |
+| Kruize DB   | 2 / 2         | 2Gi / 2Gi        | 1Gi (PV/PVC)|
+
+**Note**: For clusters with a large number of containers, consider increasing Kruize resources by modifying the manifest file at `bulk_demo/autotune/manifests/crc/default-db-included-installation/openshift/kruize-crc-openshift.yaml` before running the demo.
 
 ## Bulk API configuration
 

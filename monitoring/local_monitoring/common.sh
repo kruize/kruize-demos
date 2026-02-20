@@ -379,6 +379,18 @@ function kruize_local_demo_setup() {
 	echo "#######################################" | tee -a "${LOG_FILE}"
 	echo
 
+	# Clone repos first if not already present (needed for cleanup functions)
+	if [ ! -d "autotune" ]; then
+		echo -n "🔄 Pulling required repositories... "
+		{
+			clone_repos autotune
+			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
+				clone_repos benchmarks
+			fi
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	fi
+
 	# Check for both operator and kruize deployments
 	echo -n "🔍 Checking if Kruize deployment is running..."
 	
@@ -395,14 +407,14 @@ function kruize_local_demo_setup() {
 	if [ "$cluster_accessible" = true ]; then
 		# Check for operator deployment
 		operator_deployment=$(kubectl get deployment $OPERATOR_DEPLOYMENT_NAME -n ${NAMESPACE} 2>&1)
-		
+
 		# Check for kruize pods
 		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
-		
+
 		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
 			operator_exists=true
 		fi
-		
+
 		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
 			kruize_exists=true
 		fi
@@ -446,18 +458,6 @@ function kruize_local_demo_setup() {
 		echo " Done!"
 	else
 		echo " Not running."
-	fi
-
-	# Clone repos if not already present
-	if [ ! -d "autotune" ]; then
-		echo -n "🔄 Pulling required repositories... "
-		{
-			clone_repos autotune
-			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
-				clone_repos benchmarks
-			fi
-		} >> "${LOG_FILE}" 2>&1
-		echo "✅ Done!"
 	fi
 
 	if [[ ${env_setup} -eq 1 ]]; then
@@ -515,9 +515,10 @@ function kruize_local_demo_setup() {
 
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
-	if [ ${demo} == "bulk" ]; then
-        	kruize_local_ros_patch >> "${LOG_FILE}" 2>&1
-	fi
+	if [[ ${demo} == "bulk" ]] && [[ ${kruize_operator} -eq 0 ]]; then
+	     kruize_local_bulk_demo_patch >> "${LOG_FILE}" 2>&1
+	 fi
+
 
 	echo -n "🔄 Installing Kruize! Please wait..."
 	kruize_start_time=$(get_date)
@@ -563,15 +564,13 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-       if [ ${demo} != "bulk" ]; then
-         echo -n "🔄 Installing metric profile..."
-         kruize_local_metric_profile
-         echo "✅ Installation of metric profile complete!"
+	echo -n "🔄 Installing metric profile..."
+	kruize_local_metric_profile
+	echo "✅ Installation of metric profile complete!"
 
-         echo -n "🔄 Installing metadata profile..."
-         kruize_local_metadata_profile
-         echo "✅ Installation of metadata profile complete!"
-       fi
+	echo -n "🔄 Installing metadata profile..."
+	kruize_local_metadata_profile
+	echo "✅ Installation of metadata profile complete!"
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
@@ -636,11 +635,11 @@ operator_setup() {
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
-    	if oc get ns $NAMESPACE >/dev/null 2>&1; then
+    	if kubectl get ns $NAMESPACE >/dev/null 2>&1; then
           	echo "Namespace ${NAMESPACE} exists"
     	else
       		echo "Namespace ${NAMESPACE} does not exist"
-      		oc create ns $NAMESPACE
+      		kubectl create ns $NAMESPACE
       		check_err "ERROR: Failed to create $NAMESPACE namespace"
     	fi
 
@@ -748,7 +747,7 @@ operator_setup() {
 	timeout=180
 	elapsed=0
 	while [ $elapsed -lt $timeout ]; do
-		if kubectl get pod -l app=kruize-ui-nginx -n $NAMESPACE --no-headers 2>/dev/null | grep -q kruize-ui-nginx; then
+		if kubectl get pod -l app=kruize-ui-nginx -n $NAMESPACE --no-headers 2>/dev/null | grep -q .; then
 			break
 		fi
 		echo -n "."

@@ -705,55 +705,13 @@ function kruize_local_patch() {
 	popd >/dev/null
 }
 
-function kruize_local_ros_patch() {
- CRC_DIR="./autotune/manifests/crc/default-db-included-installation"
-	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
-	KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE="${CRC_DIR}/minikube/kruize-crc-minikube.yaml"
-
-	if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-      		if grep -q '"isROSEnabled": "false"' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}; then
-      		  	echo "Setting flag 'isROSEnabled' to 'true'"
-        		sed -i 's/"isROSEnabled": "false"/"isROSEnabled": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
-
-        		# Use awk to find the 'kruizeconfigjson' block and insert 'metricProfileFilePath' and 'metadataProfileFilePath' before "hibernate"
-        		awk '
-        		/kruizeconfigjson: \|/ {in_config=1}
-        		in_config && /"hibernate":/ {
-            			print "      \"metricProfileFilePath\": \"/home/autotune/app/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json\",";
-            			print "      \"metadataProfileFilePath\": \"/home/autotune/app/manifests/autotune/metadata-profiles/bulk_cluster_metadata_local_monitoring.json\",";
-            			print
-            			next
-        		}
-        		{print}
-        		' "${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}" > temp.yaml && mv temp.yaml "${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}"
-      		fi
-  	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-  	      if grep -q '"isROSEnabled": "false"' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}; then
-  	        	echo "Setting flag 'isROSEnabled' to 'true'"
-            		sed -i 's/"isROSEnabled": "false"/"isROSEnabled": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
-
-            		# Use awk to find the 'kruizeconfigjson' block and insert 'metricProfileFilePath' and 'metadataProfileFilePath' before "hibernate"
-            		awk '
-            		/kruizeconfigjson: \|/ {in_config=1}
-            		in_config && /"hibernate":/ {
-                		print "      \"metricProfileFilePath\": \"/home/autotune/app/manifests/autotune/performance-profiles/resource_optimization_local_monitoring.json\",";
-                		print "      \"metadataProfileFilePath\": \"/home/autotune/app/manifests/autotune/metadata-profiles/bulk_cluster_metadata_local_monitoring.json\",";
-                		print
-                		next
-            		}
-            		{print}
-            		' "${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}" > temp.yaml && mv temp.yaml "${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}"
-          	fi
-  	fi
-}
-
 
 ###########################################
 #  Get URLs
 ###########################################
 function get_urls() {
-	bench=$1
-	kruize_operator=$2
+	local bench=$1
+	local kruize_operator=$2
 	echo ${kruize_operator}
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		kubectl_cmd="kubectl -n monitoring"
@@ -920,6 +878,21 @@ function kruize_remote_demo_patch() {
 
 
   if [ ${CLUSTER_TYPE} == "openshift" ]; then
+    sed -i 's/\([[:space:]]*\)\(storage:\)[[:space:]]*[0-9]\+Mi/\1\2 1Gi/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+    sed -i 's/\([[:space:]]*\)\(memory:\)[[:space:]]*".*"/\1\2 "2Gi"/; s/\([[:space:]]*\)\(cpu:\)[[:space:]]*".*"/\1\2 "2"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
+  fi
+}
+
+#
+# Updates kruize default cpu/memory resources, PV storage for openshift only for Bulk demo
+#
+function kruize_local_bulk_demo_patch() {
+  echo "Updating bulk demo resources"
+	CRC_DIR="./autotune/manifests/crc/default-db-included-installation"
+	KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT="${CRC_DIR}/openshift/kruize-crc-openshift.yaml"
+
+  if [ ${CLUSTER_TYPE} == "openshift" ]; then
+    # Apply the updates
     sed -i 's/\([[:space:]]*\)\(storage:\)[[:space:]]*[0-9]\+Mi/\1\2 1Gi/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
     sed -i 's/\([[:space:]]*\)\(memory:\)[[:space:]]*".*"/\1\2 "2Gi"/; s/\([[:space:]]*\)\(cpu:\)[[:space:]]*".*"/\1\2 "2"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_OPENSHIFT}
   fi
