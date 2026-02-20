@@ -6,7 +6,7 @@
   "metadata_profile": "cluster-metadata-local-monitoring",
   "mode": "monitor",
   "target_cluster": "local",
-  "datasource": "thanos-querier",
+  "datasource": "thanos-1",
   "kubernetes_objects": [
     {
       "type": "deployment",

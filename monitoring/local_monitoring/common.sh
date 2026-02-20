@@ -647,11 +647,16 @@ function kruize_local_demo_setup() {
 		kruize_bulk
 		recomm_end_time=$(get_date)
 	elif [ ${demo} == "runtimes" ]; then
+		quarkus_label="com.redhat.component-name=Quarkus"
 		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+			quarkus_pod_name=$(kubectl get pod | grep tfb-qrh | cut -d " " -f1)
+			kubectl label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
 			echo -n "🔄 Enabling kube state metrics labels..."
 	                ./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
 			echo "✅ Complete!"
 	        else
+			quarkus_pod_name=$(oc get pod | grep tfb-qrh | cut -d " " -f1)
+			oc label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
 			echo -n "🔄 Enabling user workload monitoring..."
 			./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
 			echo "✅ Complete!"
