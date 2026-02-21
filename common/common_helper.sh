@@ -16,8 +16,11 @@
 #
 
 # Minimum resources required to run the demo
-MIN_CPU=8
-MIN_MEM=16384
+# These can be overridden by setting environment variables:
+# export MIN_CPU=4
+# export MIN_MEM=8192
+MIN_CPU=${MIN_CPU:-8}
+MIN_MEM=${MIN_MEM:-16384}
 KIND_KUBERNETES_VERSION=v1.28.0
 # By default, it is recommended to use containerd for the docker driver and crio for the podman driver as the container runtime.
 # When DRIVER is not set, containerd is used as the default container runtime (minikube typically defaults to docker driver).
@@ -77,7 +80,7 @@ function err_exit() {
 function print_min_resources() {
 	cluster_name=$1
 	echo "       ${cluster_name} resource config needed for demo:"
-	echo "       CPUs=8, Memory=16384MB"
+	echo "       CPUs=${MIN_CPU}, Memory=${MIN_MEM}MB"
 }
 
 # Checks if the system which tries to run kruize is having minimum resources required
