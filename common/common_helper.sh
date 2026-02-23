@@ -168,7 +168,9 @@ function kruize_install() {
 	pushd autotune >/dev/null
 		{
 		# Chekout mvp_demo
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Commenting for testing runtimes-hackathon branch
+		#git checkout mvp_demo >/dev/null 2>/dev/null
+		git checkout runtimes-hackathon >/dev/null 2>/dev/null
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
@@ -349,6 +351,7 @@ function benchmarks_install() {
 	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
+	BENCHMARK2="${4:-petclinic}"
 
 	echo
 	echo "#######################################"
@@ -363,6 +366,14 @@ function benchmarks_install() {
 			sed -i '/requests:/ {n; n; s/\(memory: \)\"[^\"]*\"/\1\"512Mi\"/}' ./manifests/${MANIFESTS}/quarkus-resteasy-hibernate.yaml
 			kubectl apply -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
 			check_err "ERROR: TechEmpower app failed to start, exiting"
+			popd >/dev/null
+		fi
+		if [ ${BENCHMARK2} == "petclinic" ]; then
+			echo "5. Installing spring petclinic benchmark into cluster"
+			pushd spring-petclinic >/dev/null
+
+			kubectl apply -f manifests -n ${APP_NAMESPACE}
+			check_err "ERROR: spring petclinic failed to start, exiting"
 			popd >/dev/null
 		fi
 		if [ ${BENCHMARK} == "human-eval" ]; then
@@ -427,6 +438,13 @@ function benchmarks_uninstall() {
 				#check_err "ERROR: TechEmpower app failed to delete, exiting"
 			popd >/dev/null
 		fi
+		if [ ${BENCHMARK} == "petclinic" ]; then
+			echo "Uninstalling spring petclinic benchmark in cluster"
+			pushd spring-petclinic >/dev/null
+				kubectl delete -f manifests -n ${APP_NAMESPACE}
+				#check_err "ERROR: spring petclinic benchmark failed to delete, exiting"
+			popd >/dev/null
+		fi
 		if [ ${BENCHMARK} == "human-eval" ]; then
 			echo "Uninstalling humanEval benchmark job in cluster"
 			pushd human-eval-benchmark >/dev/null
@@ -461,6 +479,7 @@ function apply_benchmark_load() {
 	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	LOAD_DURATION="${3:-1200}"
+	BENCHMARK2="${4:-petclinic}"
 
 	if [ ${BENCHMARK} == "tfb" ]; then
 		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "tfb"; then
@@ -480,7 +499,25 @@ function apply_benchmark_load() {
 			docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 		fi
 	fi
-
+	if [ ${BENCHMARK2} == "petclinic" ]; then
+		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "petclinic"; then
+			echo
+			echo "################################################################################################################"
+			echo " Starting background load against the petclinic benchmark in ${APP_NAMESPACE} namespace "
+			echo "################################################################################################################"
+			echo
+			if [ ${CLUSTER_TYPE} == "kind" ] || [ ${CLUSTER_TYPE} == "minikube" ]; then
+				PETCLINIC_ROUTE=${PETCLINIC_URL}
+			elif [ ${CLUSTER_TYPE} == "aks" ]; then
+				PETCLINIC_ROUTE=${PETCLINIC_URL}
+			elif [ ${CLUSTER_TYPE} == "openshift" ]; then
+				PETCLINIC_ROUTE=$(oc get route -n ${APP_NAMESPACE} --template='{{range .items}}{{.spec.host}}{{"\n"}}{{end}}')
+			fi
+			pushd benchmarks/spring-petclinic >/dev/null
+				./scripts/petclinic-load.sh -c ${CLUSTER_TYPE} -a ${PETCLINIC_ROUTE} -i 2 --iter=2 &
+			popd > /dev/null
+		fi
+	fi
 	if [ ${BENCHMARK} == "llm-rag" ]; then
 		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "llm"; then
 			pushd benchmarks/AI-MLbenchmarks/llm-rag >/dev/null
@@ -677,9 +714,16 @@ function port_forward() {
 			kubectl port-forward svc/tfb-qrh-service ${TECHEMPOWER_PORT}:8080 > /dev/null 2>&1 &
 		fi
 	fi
+	# Start port forwarding for petclinic-service in the background
+	if is_port_in_use ${PETCLINIC_PORT}; then
+		echo "Error: Port ${PETCLINIC_PORT} is already in use. Port forwarding for petclinic-service cannot be established."
+		port_flag="true"
+	else
+		kubectl port-forward svc/petclinic-service ${PETCLINIC_PORT}:8080 > /dev/null 2>&1 &
+	fi
 	} >> "${LOG_FILE}" 2>&1
 
-	if ${port_flag} = "true"; then
+	if [ ${port_flag} = "true" ]; then
 		false
 		check_err "Error. Issues with port-forwarding. Exiting!"
 	fi
@@ -696,7 +740,9 @@ function kruize_local_patch() {
 
 	pushd autotune >/dev/null
 		# Checkout mvp_demo to get the latest mvp_demo release version
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Commenting the below line to test runtimes-hackathon branch
+		#git checkout mvp_demo >/dev/null 2>/dev/null
+		git checkout runtimes-hackathon >/dev/null 2>/dev/null
 
 		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}
@@ -715,6 +761,8 @@ function kruize_local_patch() {
 function get_urls() {
 	local bench=$1
 	local kruize_operator=$2
+	local bench2=$3
+
 	echo ${kruize_operator}
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		kubectl_cmd="kubectl -n monitoring"
@@ -732,6 +780,11 @@ function get_urls() {
 			TECHEMPOWER_PORT=$(${kubectl_app_cmd} get svc tfb-qrh-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			TECHEMPOWER_IP=$(${kubectl_app_cmd} get pods -l=app=tfb-qrh-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
 			export TECHEMPOWER_URL="${MINIKUBE_IP}:${TECHEMPOWER_PORT}"
+		fi
+		if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+			PETCLINIC_PORT=$(${kubectl_app_cmd} get svc petclinic-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			PETCLINIC_IP=$(${kubectl_app_cmd} get pods -l=app=petclinic-deployment -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+			export PETCLINIC_URL="${MINIKUBE_IP}:${PETCLINIC_PORT}"
 		fi
 
 	elif [ "${CLUSTER_TYPE}" == "aks" ]; then
@@ -758,10 +811,13 @@ function get_urls() {
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			export TECHEMPOWER_URL="${KIND_IP}:${TECHEMPOWER_PORT}"
 		fi
+		if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+			export PETCLINIC_URL="${KIND_IP}:${PETCLINIC_PORT}"
+		fi
 
-  elif [ ${CLUSTER_TYPE} == "local" ]; then
-    export KRUIZE_URL="127.0.0.1:8080"
-    export KRUIZE_UI_URL="127.0.0.1:8080"
+	elif [ ${CLUSTER_TYPE} == "local" ]; then
+		export KRUIZE_URL="127.0.0.1:8080"
+		export KRUIZE_UI_URL="127.0.0.1:8080"
 
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
 		kubectl_cmd="oc -n openshift-tuning"
@@ -775,6 +831,10 @@ function get_urls() {
 		if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 			${kubectl_app_cmd} expose service tfb-qrh-service
 			export TECHEMPOWER_URL=$(${kubectl_app_cmd} get route tfb-qrh-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
+		fi
+		if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+			${kubectl_app_cmd} expose service petclinic-service
+			export PETCLINIC_URL=$(${kubectl_app_cmd} get route petclinic-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		fi
 
     		if [[ "${kruize_operator}" -eq 1 ]]; then
@@ -794,6 +854,8 @@ function get_urls() {
 ###########################################
 function show_urls() {
 	bench=$1
+	bench2=$2
+
 	if [[ ${demo} == "local" ]] && [[ ${bench} == "tfb" ]]; then
 	{
 		echo
@@ -802,6 +864,16 @@ function show_urls() {
 		echo "#######################################"
 		echo "Info: Access techempower app at http://${TECHEMPOWER_URL}/db"
 		echo "Info: Access techempower app metrics at http://${TECHEMPOWER_URL}/q/metrics"
+	} >> "${LOG_FILE}" 2>&1
+	fi
+	if [[ ${demo} == "local" ]] && [[ ${bench2} == "petclinic" ]]; then
+	{
+		echo
+		echo "#######################################"
+		echo "#         Access Petclinic App        #"
+		echo "#######################################"
+		echo "Info: Access petclinic app at http://${PETCLINIC_URL}/db"
+		echo "Info: Access petclinic app metrics at http://${PETCLINIC_URL}/q/metrics"
 	} >> "${LOG_FILE}" 2>&1
 	fi
 
