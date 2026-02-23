@@ -30,6 +30,8 @@ export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 # Default cluster
 export CLUSTER_TYPE="kind"
 
+export NAMESPACE="monitoring"
+
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
 export LOG_FILE="${current_dir}/kruize-demo.log"
@@ -38,6 +40,7 @@ KRUIZE_PORT=8080
 KRUIZE_UI_PORT=8081
 TECHEMPOWER_PORT=8082
 KRUIZE_OPERATOR=1
+KRUIZE_HELM=0
 
 function usage() {
 	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
@@ -55,6 +58,7 @@ function usage() {
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
+	echo "g = Disable operator and install kruize using helm instead."
 
 	exit 1
 }
@@ -73,8 +77,12 @@ export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
+
+# Default helm release name
+export release="kruize"
+
 # Iterate through the commandline options
-while getopts bc:d:e:fi:klm:no:pstu: gopts
+while getopts bc:r:x:d:e:fi:kglm:no:pstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -83,6 +91,12 @@ do
 			;;
 		c)
 			CLUSTER_TYPE="${OPTARG}"
+			;;
+		r)
+			release="${OPTARG}"
+			;;
+		x)
+			NAMESPACE="${OPTARG}"
 			;;
 		d)
 			LOAD_DURATION="${OPTARG}"
@@ -124,6 +138,10 @@ do
 	 	k)
       			KRUIZE_OPERATOR=0
       			;;
+	 	g)
+      			KRUIZE_OPERATOR=0
+			KRUIZE_HELM=1
+      			;;
 		*)
 			usage
 	esac
@@ -131,10 +149,12 @@ done
 
 export demo="local"
 
-if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
-    NAMESPACE="monitoring"
-else
-    NAMESPACE="openshift-tuning"
+if [ ${KRUIZE_HELM} -eq 0 ]; then
+	if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
+		NAMESPACE="monitoring"
+	else
+		NAMESPACE="openshift-tuning"
+	fi
 fi
 
 if [ "${EXPERIMENT_TYPE}" == "container" ]; then
@@ -170,14 +190,14 @@ if [ ${start_demo} -eq 1 ]; then
 	  check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
 	fi
 
-	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
+	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} "" ${KRUIZE_HELM}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 elif [ ${start_demo} -eq 2 ]; then
 	kruize_local_demo_update ${BENCHMARK}
 else
 	echo >> "${LOG_FILE}" 2>&1
-	kruize_local_demo_terminate ${KRUIZE_OPERATOR}
+	kruize_local_demo_terminate ${KRUIZE_OPERATOR} ${KRUIZE_HELM}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
 fi

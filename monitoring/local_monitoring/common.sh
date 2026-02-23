@@ -40,6 +40,7 @@ function kruize_local_metric_profile() {
 		echo "#     Install default metric profile"
 		echo "#####################################################"
 		echo
+		echo "curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring"
 		output=$(curl -X POST http://${KRUIZE_URL}/createMetricProfile -d @$resource_optimization_local_monitoring)
 		echo
 	} >> "${LOG_FILE}" 2>&1
@@ -269,7 +270,8 @@ function kruize_local_experiments() {
 }
 
 function kruize_local_demo_terminate() {
-  kruize_operator=$1
+	kruize_operator=$1
+  	kruize_helm=$2
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
@@ -280,6 +282,10 @@ function kruize_local_demo_terminate() {
 
     	if [[ "${kruize_operator}" -eq 1 ]]; then
          	 kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
+    	fi
+
+    	if [[ "${kruize_helm}" -eq 1 ]]; then
+         	 kruize_helm_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
     	fi
 
       kruize_uninstall >> "${LOG_FILE}" 2>&1
@@ -415,6 +421,8 @@ function kruize_local_demo_setup() {
 	kruize_operator=$2
 	bench2=$3
 	
+	kruize_helm=$4
+	
 	# Start all the installs
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
@@ -464,6 +472,16 @@ function kruize_local_demo_setup() {
 		fi
 	fi
 	
+	if [ "${kruize_helm}" == "1" ]; then
+		# Check for kruize pods
+		kruize_pods=$(kubectl get pod -l app=${release} -n ${NAMESPACE} 2>&1)
+
+		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
+			kruize_exists=true
+		fi
+	fi
+
+	
 	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
 		echo " Found!"
 		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
@@ -482,6 +500,11 @@ function kruize_local_demo_setup() {
 			# Run operator cleanup if operator exists
 			if [ "$operator_exists" = true ]; then
 				kruize_operator_cleanup $NAMESPACE
+			fi
+			
+			if [ "${kruize_helm}" == "1" ]; then
+				echo "***** Invoking kruize helm cleanup..."
+				kruize_helm_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
 			fi
 			
 			# Check if kruize pods still exist and call kruize_uninstall if needed (only if cluster is accessible)
@@ -568,9 +591,12 @@ function kruize_local_demo_setup() {
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
 		operator_setup >> "${LOG_FILE}" 2>&1
+	elif [[ "${kruize_helm}" -eq 1 ]]; then
+		kruize_helm_setup >> "${LOG_FILE}" 2>&1
 	else
 		kruize_install >> "${LOG_FILE}" 2>&1
 	fi
+
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
   	do
@@ -707,6 +733,104 @@ function kruize_local_demo_setup() {
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
+}
+
+# Setup Kruize using helm
+kruize_helm_setup() {
+	echo "Cloning kruize helm..."
+	git clone -b helm_charts_minikube https://github.com/chandrams/kruize-helm.git
+	echo "Cloning kruize helm...Done"
+
+	pushd kruize-helm
+		# Parse Kruize image and tag from KRUIZE_DOCKER_IMAGE (-i option)
+		helm_set_options=""
+		if [ -n "${KRUIZE_DOCKER_IMAGE}" ]; then
+			# Extract image repository and tag from full image string
+			kruize_image="${KRUIZE_DOCKER_IMAGE%:*}"
+			kruize_tag="${KRUIZE_DOCKER_IMAGE##*:}"
+			
+			# If no tag specified (no ':' in the string), use the whole string as image
+			if [ "${kruize_image}" == "${kruize_tag}" ]; then
+				kruize_image="${KRUIZE_DOCKER_IMAGE}"
+				kruize_tag=""
+			fi
+			
+			helm_set_options="${helm_set_options} --set kruize.image.repository=${kruize_image}"
+			if [ -n "${kruize_tag}" ]; then
+				helm_set_options="${helm_set_options} --set kruize.image.tag=${kruize_tag}"
+			fi
+		fi
+		
+		# Parse Kruize UI image and tag from KRUIZE_UI_DOCKER_IMAGE
+		if [ -n "${KRUIZE_UI_DOCKER_IMAGE}" ]; then
+			# Extract image repository and tag from full image string
+			kruize_ui_image="${KRUIZE_UI_DOCKER_IMAGE%:*}"
+			kruize_ui_tag="${KRUIZE_UI_DOCKER_IMAGE##*:}"
+			
+			# If no tag specified (no ':' in the string), use the whole string as image
+			if [ "${kruize_ui_image}" == "${kruize_ui_tag}" ]; then
+				kruize_ui_image="${KRUIZE_UI_DOCKER_IMAGE}"
+				kruize_ui_tag=""
+			fi
+			
+			helm_set_options="${helm_set_options} --set kruizeUI.image.repository=${kruize_ui_image}"
+			if [ -n "${kruize_ui_tag}" ]; then
+				helm_set_options="${helm_set_options} --set kruizeUI.image.tag=${kruize_ui_tag}"
+			fi
+		fi
+
+		# Note: --set options override values from -f (values file)
+		# This allows custom images specified via -i and -u to take precedence
+		if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
+			helm install "${release}" charts/kruize -f charts/kruize/values-minikube.yaml -n "${NAMESPACE}" --create-namespace ${helm_set_options}
+		else
+			helm install "${release}" charts/kruize -n "${NAMESPACE}" --create-namespace ${helm_set_options}
+		fi
+	popd  # Return to original directory
+
+	echo "⏳ Waiting for all kruize pods to be ready..." 
+
+	pods=("${release}-db" "${release}" "${release}-ui-nginx")
+	labels=("${release}-db" "${release}" "${release}-ui-nginx")
+	#labels=("kruize-db" "kruize" "kruize-ui-nginx")
+	
+	# Iterate over both arrays using indices
+	for i in "${!pods[@]}"; do
+		pod="${pods[$i]}"
+		label="${labels[$i]}"
+		
+		# First wait for pod to exist
+      		timeout=180
+	      	elapsed=0
+
+		echo "pod = ${pod} label = ${label}"
+		while [ $elapsed -lt $timeout ]; do
+			if kubectl get pod -l app=${label} -n $NAMESPACE --no-headers 2>/dev/null | grep -q ${pod}; then
+				break
+			fi
+			echo -n "."
+			sleep 2
+			elapsed=$((elapsed + 2))
+		done
+
+		if [ $elapsed -ge $timeout ]; then
+			echo "❌ Timeout waiting for ${pod} pod to be created"
+			kubectl get pods -n $NAMESPACE
+			exit 1
+		fi
+		echo "⏳ Waiting for ${pod} pod to be ready..."
+		kubectl wait --for=condition=Ready pod -l app=${label} -n $NAMESPACE --timeout=600s
+		if [ $? -ne 0 ]; then
+			echo "❌ ${pod} pod failed to become ready"
+			kubectl get pods -n $NAMESPACE
+			kubectl describe pod -l app=${label} -n $NAMESPACE
+			exit 1
+		fi
+		done
+    	echo "✅ All Kruize application pods are ready!"
+
+ 	echo "✅ Deployment complete! Checking status..."
+ 	kubectl get pods -n $NAMESPACE
 }
 
 #setup the operator and deploy it
@@ -958,6 +1082,24 @@ sed -i \
         -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
         "$namespace_json"
 
+}
+
+
+#  Kruize Helm Cleanup
+function kruize_helm_cleanup() {
+	local namespace="${1:-openshift-tuning}"
+
+	if [ "${CLUSTER_TYPE}" == "minikube" ]; then
+		minikube ssh "sudo rm -rf /data/postgres/*"
+	fi
+	
+	echo
+	echo "#######################################"
+	echo "Cleaning up Kruize helm chart"
+	echo "#######################################"
+	pushd ${current_dir}/kruize-helm
+		helm uninstall "${release}" -n ${NAMESPACE}
+	popd
 }
 
 #  Kruize Operator Cleanup
