@@ -126,6 +126,46 @@ function kruize_local_metadata() {
 	} >> "${LOG_FILE}" 2>&1
 }
 
+function create_layers() {
+	layers_dir="${current_dir}/autotune/manifests/autotune/layers"
+	LAYERS=()
+
+	for file in "${layers_dir}"/*.json; do
+		if [ -e "$file" ]; then
+			LAYERS+=("$file")
+		fi
+	done
+	{
+		echo
+		if [ ${#LAYERS[@]} -eq 0 ]; then
+			echo "No layer JSON files found in ${layers_dir}; skipping createLayer calls."
+		else
+
+			echo "######################################################"
+			echo "#     Create Layers "			
+			echo "######################################################"
+			echo
+			for layer in "${LAYERS[@]}"; do
+				echo "curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}"
+				curl -s -X POST http://${KRUIZE_URL}/createLayer -d @${layer}
+	    		done
+		fi
+	} >> "${LOG_FILE}" 2>&1
+}
+
+function list_layers() {
+	{
+		echo
+		echo "######################################################"
+		echo "#     List Layers "			
+		echo "######################################################"
+		echo
+		echo "curl -s http://${KRUIZE_URL}/listLayers"
+		curl -s http://${KRUIZE_URL}/listLayers
+
+	} >> "${LOG_FILE}" 2>&1
+}
+
 function kruize_local_experiments() {
 	{
 	echo
@@ -250,6 +290,9 @@ function kruize_local_demo_terminate() {
 			if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
 				benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
 				kill_service_port_forward "tfb-qrh-service"
+			elif kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "petclinic"; then
+				benchmarks_uninstall ${APP_NAMESPACE} "petclinic" >> "${LOG_FILE}" 2>&1
+				kill_service_port_forward "petclinic-service"
 			elif kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "human-eval"; then
 				benchmarks_uninstall ${APP_NAMESPACE} "human-eval" >> "${LOG_FILE}" 2>&1
 			elif kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "sysbench"; then
@@ -370,6 +413,7 @@ function update_vpa_roles() {
 function kruize_local_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	bench2=$3
 	
 	# Start all the installs
 	start_time=$(get_date)
@@ -493,12 +537,12 @@ function kruize_local_demo_setup() {
 			echo "✅ kind exists!"
 		fi
 	fi
-	if [ ${demo} == "local" ]; then
+	if [[ ${demo} == "local" || ${demo} == "runtimes" ]]; then
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
-			benchmarks_install ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
-			apply_benchmark_load ${APP_NAMESPACE} ${bench} >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
+			apply_benchmark_load ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
 		fi
 		echo "" >> "${LOG_FILE}" 2>&1
@@ -545,16 +589,16 @@ function kruize_local_demo_setup() {
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		port_forward "${bench}"
 	fi
-
-	get_urls $bench $kruize_operator >> "${LOG_FILE}" 2>&1
+	{
+		get_urls $bench $kruize_operator $bench2
+	} >> "${LOG_FILE}" 2>&1
 
   	# Give Kruize application time to fully initialize after pod is ready
   	echo
   	echo -n "⏳ Waiting for Kruize service to fully initialize..."
   	sleep 20
   	echo " Done!"
-
-	echo "✅ Installation of Kruize complete!"
+	echo "✅ Installation of kruize complete!"
 
 	if [ "${vpa_install_required:-}" == "1" ]; then
 	{
@@ -602,6 +646,42 @@ function kruize_local_demo_setup() {
 		recomm_start_time=$(get_date)
 		kruize_bulk
 		recomm_end_time=$(get_date)
+	elif [ ${demo} == "runtimes" ]; then
+		quarkus_label="com.redhat.component-name=Quarkus"
+		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+			quarkus_pod_name=$(kubectl get pod | grep tfb-qrh | cut -d " " -f1)
+			kubectl label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Enabling kube state metrics labels..."
+	                ./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
+	        else
+			quarkus_pod_name=$(oc get pod | grep tfb-qrh | cut -d " " -f1)
+			oc label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Enabling user workload monitoring..."
+			./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
+        	fi
+
+		echo -n "🔄 Collecting metadata..."
+		kruize_local_metadata
+		echo "✅ Collection of metadata complete!"
+
+		# Create Layers
+		echo -n "🔄 Creating Layers..."
+		create_layers
+		echo "✅ Creating Layers complete!"
+
+		# List Layers
+		echo -n "🔄 List Layers..."
+		list_layers
+		echo "✅ Listing Layers complete!"
+
+		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
+			recomm_start_time=$(get_date)
+			kruize_local_experiments
+			recomm_end_time=$(get_date)
+		fi
+
 	fi
 	
 	if [ "${vpa_install_required:-}" == "1" ]; then
@@ -613,7 +693,7 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	show_urls $bench
+	show_urls $bench $bench2
 
 	end_time=$(get_date)
 	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
