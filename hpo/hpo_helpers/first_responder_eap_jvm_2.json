@@ -1,0 +1,264 @@
+{
+    "experiment_name": "first_responder_eap_jvm_test_1",
+    "experiment_id": "first_responder_eap_jvm_test_1",
+    "total_trials": 100,
+    "parallel_trials": 1,
+    "objective_function": "1000 * (Throughput **1) / (Redfish_Avg_Watts **2)",
+    "value_type": "float",
+    "hpo_algo_impl": "optuna_tpe",
+    "direction": "maximize",
+    "function_variables": [
+        {
+            "name": "Throughput",
+            "value_type": "float"
+        },
+        {
+            "name": "Redfish_Avg_Watts",
+            "value_type": "float"
+        }
+    ],
+    "tunables": [
+        {
+            "name": "SUBSYSTEM_EJB3_STRICT_MAX_BEAN_INSTANCE_POOL_SLSB_STRICT_MAX_POOL__MAX_POOL_SIZE",
+            "value_type": "integer",
+            "upper_bound": 1000,
+            "lower_bound": 1,
+            "step": 10
+        },
+        {
+            "name": "SUBSYSTEM_EJB3__DEFAULT_STATEFUL_BEAN_SESSION_TIMEOUT",
+            "value_type": "integer",
+            "upper_bound": 10000,
+            "lower_bound": -1,
+            "step": 100
+        },
+        {
+            "name": "SUBSYSTEM_DATASOURCES_DATA_SOURCE_FRDemoDS__MIN_POOL_SIZE",
+            "value_type": "integer",
+            "upper_bound": 10,
+            "lower_bound": 1,
+            "step": 1
+        },
+        {
+            "name": "SUBSYSTEM_DATASOURCES_DATA_SOURCE_FRDemoDS__MAX_POOL_SIZE",
+            "value_type": "integer",
+            "upper_bound": 1000,
+            "lower_bound": 10,
+            "step": 10
+        },
+        {
+            "name": "SUBSYSTEM_IO_WORKER_DEFAULT__TASK_MAX_THREADS",
+            "value_type": "integer",
+            "upper_bound": 500,
+            "lower_bound": 1,
+            "step": 4
+        },
+        {
+            "name": "SUBSYSTEM_UNDERTOW_BYTE_BUFFER_POOL_DEFAULT__BUFFER_SIZE",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "SUBSYSTEM_UNDERTOW_BYTE_BUFFER_POOL_DEFAULT__DIRECT",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "SUBSYSTEM_TRANSACTIONS__USE_JOURNAL_STORE",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "gc",
+            "value_type": "categorical",
+            "choices": ["G1GC", "ParallelGC", "SerialGC", "ShenandoahGC", "ZGC"]
+        },
+        {
+            "name": "FreqInlineSize",
+            "value_type": "integer",
+            "upper_bound": 500,
+            "lower_bound": 325,
+            "step": 1
+        },
+        {
+            "name": "MaxInlineLevel",
+            "value_type": "integer",
+            "upper_bound": 50,
+            "lower_bound": 9,
+            "step": 1
+        },
+        {
+            "name": "MinInliningThreshold",
+            "value_type": "integer",
+            "upper_bound": 200,
+            "lower_bound": 0,
+            "step": 1
+        },
+        {
+            "name": "CompileThreshold",
+            "value_type": "integer",
+            "upper_bound": 10000,
+            "lower_bound": 1000,
+            "step": 10
+        },
+        {
+            "name": "CompileThresholdScaling",
+            "value_type": "double",
+            "upper_bound": 15,
+            "lower_bound": 1,
+            "step": 0.1
+        },
+        {
+            "name": "ConcGCThreads",
+            "value_type": "integer",
+            "upper_bound": 32,
+            "lower_bound": 1,
+            "step": 1
+        },
+        {
+            "name": "InlineSmallCode",
+            "value_type": "integer",
+            "upper_bound": 5000,
+            "lower_bound": 500,
+            "step": 5
+        }, 
+        {
+            "name": "LoopUnrollLimit",
+            "value_type": "integer",
+            "upper_bound": 250,
+            "lower_bound": 20,
+            "step": 1
+        },
+        {
+            "name": "LoopUnrollMin",
+            "value_type": "integer",
+            "upper_bound": 20,
+            "lower_bound": 0,
+            "step": 1
+        },
+        {
+            "name": "MinSurvivorRatio",
+            "value_type": "integer",
+            "upper_bound": 48,
+            "lower_bound": 3,
+            "step": 1
+        }, 
+        {
+            "name": "NewRatio",
+            "value_type": "integer",
+            "upper_bound": 10,
+            "lower_bound": 1,
+            "step": 1
+        },
+        {
+            "name": "TieredStopAtLevel",
+            "value_type": "integer",
+            "upper_bound": 4,
+            "lower_bound": 0,
+            "step": 1
+        },
+        {
+            "name": "MinHeapFreeRatio",
+            "value_type": "integer",
+            "upper_bound": 70,
+            "lower_bound": 5,
+            "step": 1
+        },
+        {
+            "name": "MaxHeapFreeRatio",
+            "value_type": "integer",
+            "upper_bound": 100,
+            "lower_bound": 71,
+            "step": 1
+        },
+        {
+            "name": "GCTimeRatio",
+            "value_type": "integer",
+            "upper_bound": 100,
+            "lower_bound": 1,
+            "step": 1
+        },
+        {
+            "name": "AdaptiveSizePolicyWeight",
+            "value_type": "integer",
+            "upper_bound": 100,
+            "lower_bound": 1,
+            "step": 1
+        },
+        {
+            "name": "TieredCompilation",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "AllowParallelDefineClass",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "AllowVectorizeOnDemand",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "AlwaysCompileLoopMethods",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "AlwaysPreTouch",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "AlwaysTenure",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "BackgroundCompilation",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "DoEscapeAnalysis",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "UseInlineCaches",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "UseLoopPredicate",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "UseStringDeduplication",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "UseSuperWord",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "UseTypeSpeculation",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        },
+        {
+            "name": "StackTraceInThrowable",
+            "value_type": "categorical",
+            "choices": ["true", "true"]
+        },
+        {
+            "name": "nettyBufferCheck",
+            "value_type": "categorical",
+            "choices": ["true", "false"]
+        }
+    ]
+}
