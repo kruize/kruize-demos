@@ -4,11 +4,9 @@ Kruize provides recommendations for other layers in your application such as the
 
 ## Demo workflow
 
-- Deploys Quarkus Techempower framework benchmark & Spring Petclinic benchmark from [here](https://github.com/kruize/benchmarks/blob/master/README.md)
+- Deploys Quarkus TechEmpower framework benchmark & Spring PetClinic benchmark from [here](https://github.com/kruize/benchmarks/blob/master/README.md)
 - Deploys Kruize instance
 - Creates the metric and metadata profiles
-- Enables user workload monitoring in Openshift cluster
-- Enables kube state metrics in Minikube / Kind cluster
 - Creates layers with tunables (container, hotspot, openj9 and quarkus layers)
 - Creates experiments for these workloads and generates recommendations
 
