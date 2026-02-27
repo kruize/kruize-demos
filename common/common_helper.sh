@@ -477,7 +477,6 @@ function apply_benchmark_load() {
 	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	LOAD_DURATION="${3:-1200}"
-	BENCHMARK2="${4:-petclinic}"
 
 	if [ ${BENCHMARK} == "tfb" ]; then
 		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "tfb"; then
@@ -497,7 +496,7 @@ function apply_benchmark_load() {
 			docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 		fi
 	fi
-	if [ ${BENCHMARK2} == "petclinic" ]; then
+	if [ ${BENCHMARK} == "petclinic" ]; then
 		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "petclinic"; then
 			echo
 			echo "################################################################################################################"
