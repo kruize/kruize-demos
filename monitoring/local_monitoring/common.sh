@@ -541,8 +541,8 @@ function kruize_local_demo_setup() {
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
-			benchmarks_install ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
-			apply_benchmark_load ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench} "kruize-runtimes" ${bench2} >> "${LOG_FILE}" 2>&1
+			apply_benchmark_load ${APP_NAMESPACE} ${bench2} >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
 		fi
 		echo "" >> "${LOG_FILE}" 2>&1
