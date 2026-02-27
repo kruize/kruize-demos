@@ -1,54 +1,20 @@
 # Kruize Runtimes Recommendations
 
-Kruize provides recommendations for other layers in your application such as the Java Runtime, Quarkus or Spring Boot frameworks along with the resource usage recommendations for the container. You can explore how runtimes recommendations are generated for your Java and Quarkus workloads using this demo.
+Kruize provides recommendations for other layers in your application such as the Java Runtime, Quarkus or Spring Boot frameworks along with the resource usage recommendations for the container. You can explore how [runtimes recommendations](https://github.com/kruize/autotune/blob/master/docs/runtimes_recommendations.md) are generated for your Java and Quarkus workloads using this demo.
 
 ## Demo workflow
 
-- Deploys a Quarkus Hotspot JVM workload and a Spring Boot OpenJ9 JVM workload
+- Deploys Quarkus TechEmpower framework benchmark & Spring PetClinic benchmark from [here](https://github.com/kruize/benchmarks/blob/master/README.md)
 - Deploys Kruize instance
 - Creates the metric and metadata profiles
 - Creates layers with tunables (container, hotspot, openj9 and quarkus layers)
 - Creates experiments for these workloads and generates recommendations
 
 ## Prerequisites
-Ensure you have one of the clusters: kind, minikube, or OpenShift.
+
+Ensure you have one of the clusters: Kind, Minikube, or OpenShift.
 
 You also require make and a go version > 1.21. 
-
-On an Openshift cluster, enable user workload monitoring to monitor user defined workloads by following the steps below:
-
-Edit the `cluster-monitoring-config` ConfigMap if present and add/update enableUserWorkload to true:
-
-```
-oc -n openshift-monitoring edit configmap cluster-monitoring-config
-```
-
-Add or update:
-```
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cluster-monitoring-config
-  namespace: openshift-monitoring
-data:
-  config.yaml: |
-    enableUserWorkload: true
-```
-Save and exit.
-If cluster-monitoring-config is not present, create the config map by saving the above in a yaml and applying it.
-
-Monitoring for user workloads will be enabled automatically. Verify
-```
-oc -n openshift-user-workload-monitoring get pods
-```
-Ensure the following pods are running:
-```
-prometheus-operator
-prometheus-user-workload
-thanos-ruler-user-workload
-```
-Note: It may take a few minutes for these pods to start.
-
 
 ## Getting Started with the Demo
 
