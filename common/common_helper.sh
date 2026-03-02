@@ -349,7 +349,6 @@ function benchmarks_install() {
 	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
-	BENCHMARK2="${4:-petclinic}"
 
 	echo
 	echo "#######################################"
@@ -366,11 +365,11 @@ function benchmarks_install() {
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 			popd >/dev/null
 		fi
-		if [ ${BENCHMARK2} == "petclinic" ]; then
+		if [ ${BENCHMARK} == "petclinic" ]; then
 			echo "5. Installing spring petclinic benchmark into cluster"
 			pushd spring-petclinic >/dev/null
 
-			kubectl apply -f manifests -n ${APP_NAMESPACE}
+			kubectl apply -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
 			check_err "ERROR: spring petclinic failed to start, exiting"
 			popd >/dev/null
 		fi
