@@ -145,9 +145,6 @@ def aggregateWorkloads(filename, outputResults):
     columns_to_check = ['owner_kind', 'owner_name', 'workload', 'workload_type']
     df = df.dropna(subset=columns_to_check, how='any')
 
-    # Ignore rows with 'workload_type' value of 'job'
-    df = df[df['workload_type'] != 'job']
-
     # Create a column with k8_object_type
     # Based on the data observed, these are the assumptions:
     # If owner_kind is 'ReplicaSet' and workload is '<none>', actual workload_type is ReplicaSet
