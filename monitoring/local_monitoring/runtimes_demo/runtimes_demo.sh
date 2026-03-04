@@ -63,13 +63,10 @@ function usage() {
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
-export benchmark_load=0
-export benchmark=0
 export prometheus=0
 export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
-export LOAD_DURATION="1200"
 export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
@@ -78,25 +75,14 @@ export KRUIZE_OPERATOR_IMAGE=""
 while getopts bc:d:kfi:lm:no:pstu: gopts
 do
 	case "${gopts}" in
-		b)
-			start_demo=2
-			benchmark=1
-			;;
 		c)
 			CLUSTER_TYPE="${OPTARG}"
-			;;
-		d)
-			LOAD_DURATION="${OPTARG}"
 			;;
 		f)
 			env_setup=1
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
-			;;
-		l)
-			start_demo=2
-			benchmark_load=1
 			;;
 		m)
 			BENCHMARK_MANIFESTS="${OPTARG}"
@@ -152,8 +138,6 @@ if [ ${start_demo} -eq 1 ]; then
 	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} ${BENCHMARK2}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
-elif [ ${start_demo} -eq 2 ]; then
-	kruize_local_demo_update ${BENCHMARK}
 else
 	echo >> "${LOG_FILE}" 2>&1
 	kruize_local_demo_terminate
