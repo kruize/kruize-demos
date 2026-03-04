@@ -546,7 +546,7 @@ function kruize_local_demo_setup() {
 			kubectl delete job petclinic-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 			kubectl delete job tfb-qrh-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 
-			benchmarks_install ${APP_NAMESPACE} ${bench} "kruize-demos" ${bench2} >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench} "kruize-demos" >> "${LOG_FILE}" 2>&1
 			benchmarks_install ${APP_NAMESPACE} ${bench2} "kruize-demos" >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
 		fi

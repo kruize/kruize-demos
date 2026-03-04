@@ -368,8 +368,11 @@ function benchmarks_install() {
 		if [ ${BENCHMARK} == "petclinic" ]; then
 			echo "5. Installing spring petclinic benchmark into cluster"
 			pushd spring-petclinic >/dev/null
-
-			kubectl apply -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
+			if [ "${MANIFESTS}" != "default_manifests" ]; then
+				kubectl apply -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
+		    	else
+				kubectl apply -f manifests/*.yaml -n ${APP_NAMESPACE}
+		    	fi
 			check_err "ERROR: spring petclinic failed to start, exiting"
 			popd >/dev/null
 		fi
