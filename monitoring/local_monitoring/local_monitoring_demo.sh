@@ -30,7 +30,7 @@ export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 # Default cluster
 export CLUSTER_TYPE="kind"
 
-export NAMESPACE="monitoring"
+export NAMESPACE=""
 
 # Target mode, default "crc"; "autotune" is currently broken
 export target="crc"
@@ -149,7 +149,7 @@ done
 
 export demo="local"
 
-if [ ${KRUIZE_HELM} -eq 0 ]; then
+if [ "${NAMESPACE}" == "" ]; then
 	if [[ "${CLUSTER_TYPE}" == "minikube" ]] || [[ "${CLUSTER_TYPE}" == "kind" ]]; then
 		NAMESPACE="monitoring"
 	else

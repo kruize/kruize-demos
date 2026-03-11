@@ -738,7 +738,7 @@ function kruize_local_demo_setup() {
 # Setup Kruize using helm
 kruize_helm_setup() {
 	echo "Cloning kruize helm..."
-	git clone -b helm_charts_minikube https://github.com/chandrams/kruize-helm.git
+	git clone -b helm_charts_tests https://github.com/chandrams/kruize-helm.git
 	echo "Cloning kruize helm...Done"
 
 	pushd kruize-helm
@@ -782,9 +782,12 @@ kruize_helm_setup() {
 		# Note: --set options override values from -f (values file)
 		# This allows custom images specified via -i and -u to take precedence
 		if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
+			echo "helm install "${release}" charts/kruize -f charts/kruize/values-minikube.yaml -n "${NAMESPACE}" --create-namespace ${helm_set_options}"
 			helm install "${release}" charts/kruize -f charts/kruize/values-minikube.yaml -n "${NAMESPACE}" --create-namespace ${helm_set_options}
 		else
-			helm install "${release}" charts/kruize -n "${NAMESPACE}" --create-namespace ${helm_set_options}
+			echo "helm install "${release}" charts/kruize -f charts/kruize/values-openshift.yaml -n "${NAMESPACE}" --create-namespace ${helm_set_options}"
+
+			helm install "${release}" charts/kruize -f charts/kruize/values-openshift.yaml -n "${NAMESPACE}" --create-namespace ${helm_set_options}
 		fi
 	popd  # Return to original directory
 
