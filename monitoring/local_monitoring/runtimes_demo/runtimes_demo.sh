@@ -72,7 +72,7 @@ export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 
 # Iterate through the commandline options
-while getopts bc:d:kfi:lm:no:pstu: gopts
+while getopts c:kfi:m:no:pstu: gopts
 do
 	case "${gopts}" in
 		c)
