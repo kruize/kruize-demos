@@ -63,7 +63,7 @@ export prometheus=0
 export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
-export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
+export BENCHMARK_MANIFESTS="kruize-demos"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 
