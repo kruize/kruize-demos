@@ -83,7 +83,10 @@ c = supports minikube, kind and openshift cluster-type
 f = create environment setup if cluster-type is minikube, kind
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
 o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+u = kruize ui image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 k = Disable operator and install kruize using deploy scripts instead.
+n = namespace where benchmarks deploys. Default - default
+p = expose prometheus port
 ```
 
 Refer to the Kruize operator documentation [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.
