@@ -279,10 +279,13 @@ function kruize_local_demo_terminate() {
 	echo "Clean up in progress..."
 
     	if [[ "${kruize_operator}" -eq 1 ]]; then
-         	 kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
+    	    	 kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
     	fi
 
-      kruize_uninstall >> "${LOG_FILE}" 2>&1
+    	 kruize_uninstall >> "${LOG_FILE}" 2>&1
+    	 
+    	 # Uninstall kruize-optimizer
+    	 kruize_optimizer_uninstall >> "${LOG_FILE}" 2>&1
 
 	if [ ${demo} == "local" ] && [ -d "benchmarks" ]; then
 		# Check if cluster is accessible before running kubectl commands with timeout
@@ -325,6 +328,7 @@ function kruize_local_demo_terminate() {
 	{
 		delete_repos autotune
 		delete_repos "benchmarks"
+		delete_repos "kruize-optimizer"
 	} >> "${LOG_FILE}" 2>&1
 	end_time=$(get_date)
 	elapsed_time=$(time_diff "${start_time}" "${end_time}")
@@ -342,6 +346,9 @@ function kruize_local_demo_update() {
 			create_namespace ${APP_NAMESPACE}
 			benchmarks_install ${APP_NAMESPACE} ${bench} "resource_provisioning_manifests"
 			echo "Success! Running the benchmark in ${APP_NAMESPACE}"
+			echo
+			echo "Note: Benchmark pods have been labeled with kruize/autotune=enabled"
+			echo "kruize-optimizer will automatically create experiments for these pods"
 			echo
 		fi
 		if [ ${benchmark_load} -eq 1 ]; then
@@ -570,6 +577,8 @@ function kruize_local_demo_setup() {
 		operator_setup >> "${LOG_FILE}" 2>&1
 	else
 		kruize_install >> "${LOG_FILE}" 2>&1
+		# Install kruize-optimizer when using deploy scripts
+		kruize_optimizer_install >> "${LOG_FILE}" 2>&1
 	fi
 	install_pid=$!
 	while kill -0 $install_pid 2>/dev/null;
@@ -608,13 +617,7 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	echo -n "🔄 Installing metric profile..."
-	kruize_local_metric_profile
-	echo "✅ Installation of metric profile complete!"
-
-	echo -n "🔄 Installing metadata profile..."
-	kruize_local_metadata_profile
-	echo "✅ Installation of metadata profile complete!"
+    echo "ℹ️  Skipping profile installation - kruize-optimizer handles this automatically"
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
@@ -622,7 +625,9 @@ function kruize_local_demo_setup() {
 		echo "✅ Collection of metadata complete!"
 		#kruize_local
 
-		# Generate experiment json on local with long running container
+		# For local demo (not VPA/bulk), label pods instead of creating experiments
+		# kruize-optimizer will automatically create experiments for labeled pods
+		# For VPA demo, create experiments as before
 		for experiment in "${EXPERIMENTS[@]}"; do
 			if [ $experiment == "container_experiment_local" ]; then
 				if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
@@ -633,15 +638,17 @@ function kruize_local_demo_setup() {
 					fi
 				fi
 				echo -n "🔄 Finding a long running container to create Kruize experiment..."
-				generate_experiment_from_prometheus
+				generate_experiment_from_prometheus "label"
 				echo "✅ Complete!"
 			fi
 		done
 		if [ ${#EXPERIMENTS[@]} -ne 0 ]; then
 			recomm_start_time=$(get_date)
-			kruize_local_experiments
+			echo -n "🔄 Skipping experiments creation, optimizer will automatically create experiments..."
+			# kruize_local_experiments
 			recomm_end_time=$(get_date)
 		fi
+		
 	elif [ ${demo} == "bulk" ]; then
 		recomm_start_time=$(get_date)
 		kruize_bulk
@@ -707,6 +714,70 @@ function kruize_local_demo_setup() {
 	if [ ${prometheus} -eq 1 ]; then
 		expose_prometheus
 	fi
+}
+
+###########################################
+# Uninstall kruize-optimizer
+###########################################
+function kruize_optimizer_uninstall() {
+	echo "🔄 Uninstalling kruize-optimizer"
+	
+	# Determine which deployment file to use based on cluster type
+	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		DEPLOYMENT_FILE="kruize-optimizer/deployment/deployment_openshift.yaml"
+	else
+		DEPLOYMENT_FILE="kruize-optimizer/deployment/deployment_kind.yaml"
+	fi
+	
+	if [ -f "${DEPLOYMENT_FILE}" ]; then
+		echo "📄 Deleting kruize-optimizer deployment from ${DEPLOYMENT_FILE}"
+		kubectl delete -f "${DEPLOYMENT_FILE}" --ignore-not-found=true >> "${LOG_FILE}" 2>&1
+		echo "✅ kruize-optimizer uninstallation complete!"
+	else
+		echo "⚠️  kruize-optimizer deployment file not found, skipping..."
+	fi
+}
+
+###########################################
+# Install kruize-optimizer
+###########################################
+function kruize_optimizer_install() {
+	echo
+	echo "🔄 Installing kruize-optimizer"
+	
+	# Clone kruize-optimizer repo if not present
+	if [ ! -d "kruize-optimizer" ]; then
+		echo "📥 Cloning kruize-optimizer repository..."
+		git clone https://github.com/kruize/kruize-optimizer.git >> "${LOG_FILE}" 2>&1
+		check_err "ERROR: Failed to clone kruize-optimizer repository"
+	fi
+	
+	# Determine which deployment file to use based on cluster type
+	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		DEPLOYMENT_FILE="kruize-optimizer/deployment/deployment_openshift.yaml"
+	else
+		DEPLOYMENT_FILE="kruize-optimizer/deployment/deployment_kind.yaml"
+	fi
+	
+	# Modify KRUIZE_BULK_SCHEDULER_INTERVAL from 15m to 1m for demo
+	echo "🔧 Configuring kruize-optimizer for demo (setting bulk scheduler interval to 1m)..."
+	sed -i.bak '/KRUIZE_BULK_SCHEDULER_INTERVAL/{n;s/value: "15m"/value: "1m"/;}' "${DEPLOYMENT_FILE}"
+	
+	echo "📄 Applying kruize-optimizer deployment from ${DEPLOYMENT_FILE}"
+	kubectl apply -f "${DEPLOYMENT_FILE}" >> "${LOG_FILE}" 2>&1
+	check_err "ERROR: Failed to apply kruize-optimizer deployment"
+	
+	echo "⏳ Waiting for kruize-optimizer pod to be ready..."
+	kubectl wait --for=condition=Ready pod -l app=kruize-optimizer -n ${NAMESPACE} --timeout=300s >> "${LOG_FILE}" 2>&1
+	if [ $? -ne 0 ]; then
+		echo "❌ kruize-optimizer pod failed to become ready"
+		kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer
+		kubectl describe pod -l app=kruize-optimizer -n ${NAMESPACE}
+		exit 1
+	fi
+	
+	echo "✅ kruize-optimizer installation complete!"
+	sleep 5
 }
 
 #setup the operator and deploy it
@@ -874,7 +945,10 @@ operator_setup() {
 
 # Gnerate experiment with the container which is long running
 # Gathering top 10 container details by default. But using only one for now.
+# Pass "label" as first argument to label pods instead of creating experiments
 generate_experiment_from_prometheus() {
+	local mode="${1:-experiment}"  # Default to experiment mode
+	
 	if [ ${CLUSTER_TYPE} == "minikube" ] || [ ${CLUSTER_TYPE} == "kind" ]; then
 		PROMETHEUS_URL="localhost:9090"
 		TOKEN="TOKEN"
@@ -925,6 +999,7 @@ generate_experiment_from_prometheus() {
 	container=$(echo "$first_row" | jq -r '.metric.container // "unknown"')
 	namespace=$(echo "$first_row" | jq -r '.metric.namespace // "unknown"')
 	image=$(echo "$first_row" | jq -r '.metric.image // "unknown"')
+	pod=$(echo "$first_row" | jq -r '.metric.pod // "unknown"')
 
 	for field in workload workload_type container namespace; do
 		if [ "${!field}" == "unknown" ]; then
@@ -937,27 +1012,43 @@ generate_experiment_from_prometheus() {
 	# Keeping it simple for easy reference
 	#experiment_name="monitor_${container}"
 
-	template_json="experiments/experiment_template.json"
-	container_json="experiments/container_experiment_local.json"
-	nsp_template_json="experiments/namespace_experiment_template.json"
-	namespace_json="experiments/namespace_experiment_local.json"
+	# Check mode: label pods or create experiments
+	if [ "$mode" == "label" ]; then
+		# Label the pod instead of creating experiments
+		if [ -n "$pod" ] && [ "$pod" != "unknown" ] && [ -n "$namespace" ] && [ "$namespace" != "unknown" ]; then
+			kubectl label pod "$pod" -n "$namespace" kruize/autotune=enabled --overwrite >> "${LOG_FILE}" 2>&1
+			if [ $? -eq 0 ]; then
+				echo "✅ Pod '$pod' in namespace '$namespace' labeled successfully with kruize/autotune=enabled"
+				echo "📌 kruize-optimizer will automatically create experiment for this pod"
+			else
+				echo "❌ Failed to label pod '$pod'"
+			fi
+		else
+			echo "⚠️  Could not find valid pod to label"
+		fi
+	else
+		# Original experiment creation logic
+		template_json="experiments/experiment_template.json"
+		container_json="experiments/container_experiment_local.json"
+		nsp_template_json="experiments/namespace_experiment_template.json"
+		namespace_json="experiments/namespace_experiment_local.json"
 
-	cp "$template_json" "$container_json"
-	cp "$nsp_template_json" "$namespace_json"
+		cp "$template_json" "$container_json"
+		cp "$nsp_template_json" "$namespace_json"
 
-	# Use sed to replace placeholders with actual values in the new JSON file
-sed -i \
-	-e "s/PLACEHOLDER_WORKLOAD_TYPE/$workload_type/g" \
-	-e "s/PLACEHOLDER_WORKLOAD/$workload/g" \
-	-e "s/PLACEHOLDER_CONTAINER/$container/g" \
-	-e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
-	-e "s/PLACEHOLDER_IMAGE/$namespace/g" \
-	"$container_json"
+		# Use sed to replace placeholders with actual values in the new JSON file
+		sed -i \
+			-e "s/PLACEHOLDER_WORKLOAD_TYPE/$workload_type/g" \
+			-e "s/PLACEHOLDER_WORKLOAD/$workload/g" \
+			-e "s/PLACEHOLDER_CONTAINER/$container/g" \
+			-e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
+			-e "s/PLACEHOLDER_IMAGE/$namespace/g" \
+			"$container_json"
 
-sed -i \
-        -e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
-        "$namespace_json"
-
+		sed -i \
+			-e "s/PLACEHOLDER_NAMESPACE_NAME/$namespace/g" \
+			"$namespace_json"
+	fi
 }
 
 #  Kruize Operator Cleanup

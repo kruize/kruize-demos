@@ -417,6 +417,91 @@ function benchmarks_install() {
 	popd >/dev/null
 	echo "#######################################"
 	echo
+	
+###########################################
+# Label benchmark pods after installation
+# This allows kruize-optimizer to automatically create experiments
+###########################################
+function label_benchmark_pods() {
+	local namespace="${1:-default}"
+	local benchmark="${2:-tfb}"
+	
+	echo "Waiting for benchmark pods to be ready before labeling..."
+	sleep 10
+	
+	local kubectl_cmd="kubectl"
+	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		kubectl_cmd="oc"
+	fi
+	
+	# Get pods based on benchmark type
+	local pod_selector=""
+	case "${benchmark}" in
+		"tfb")
+			pod_selector="tfb"
+			;;
+		"human-eval")
+			pod_selector="human-eval"
+			;;
+		"ttm")
+			pod_selector="ttm"
+			;;
+		"llm-rag")
+			pod_selector="llm"
+			;;
+		"sysbench")
+			pod_selector="sysbench"
+			;;
+		*)
+			echo "Unknown benchmark type: ${benchmark}, skipping pod labeling"
+			return 0
+			;;
+	esac
+	
+	# Wait for pods to be running (up to 60 seconds)
+	local timeout=60
+	local elapsed=0
+	while [ $elapsed -lt $timeout ]; do
+		local pod_count=$(${kubectl_cmd} get pods -n "${namespace}" 2>/dev/null | grep -c "${pod_selector}" || echo "0")
+		if [ "$pod_count" -gt 0 ]; then
+			# Check if at least one pod is running
+			local running_pods=$(${kubectl_cmd} get pods -n "${namespace}" 2>/dev/null | grep "${pod_selector}" | grep -c "Running" || echo "0")
+			if [ "$running_pods" -gt 0 ]; then
+				break
+			fi
+		fi
+		sleep 5
+		elapsed=$((elapsed + 5))
+	done
+	
+	# Label all matching pods
+	local pods=$(${kubectl_cmd} get pods -n "${namespace}" -o name 2>/dev/null | grep "${pod_selector}" || echo "")
+	
+	if [ -z "$pods" ]; then
+		echo "⚠️  No ${benchmark} pods found in namespace ${namespace} to label"
+		return 0
+	fi
+	
+	echo "🏷️  Labeling ${benchmark} pods in namespace ${namespace}..."
+	local labeled_count=0
+	for pod in $pods; do
+		${kubectl_cmd} label "${pod}" -n "${namespace}" kruize/autotune=enabled --overwrite >> "${LOG_FILE}" 2>&1
+		if [ $? -eq 0 ]; then
+			labeled_count=$((labeled_count + 1))
+			echo "  ✅ Labeled ${pod}"
+		else
+			echo "  ⚠️  Failed to label ${pod}"
+		fi
+	done
+	
+	if [ $labeled_count -gt 0 ]; then
+		echo "✅ Successfully labeled ${labeled_count} ${benchmark} pod(s) with kruize/autotune=enabled"
+		echo "📌 kruize-optimizer will automatically create experiments for these pods"
+	fi
+}
+
+	# Label benchmark pods for kruize-optimizer to automatically create experiments
+	label_benchmark_pods "${APP_NAMESPACE}" "${BENCHMARK}"
 }
 
 ###########################################
