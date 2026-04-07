@@ -225,15 +225,26 @@ function optimizer_demo_setup() {
 		if [ ${CLUSTER_TYPE} == "minikube" ]; then
 			echo -n "🔄 Checking if minikube exists..."
 			check_minikube
-			minikube >/dev/null
+			minikube >/dev/null 2>&1
 			check_err "ERROR: minikube is not available. Please install and try again!"
 			echo "✅ minikube exists!"
+			echo -n "🔄 Checking if minikube cluster is running..."
+			minikube status >/dev/null 2>&1
+			check_err "ERROR: minikube cluster is not running. Please start minikube and try again!"
+			echo "✅ minikube cluster is running!"
 		elif [ ${CLUSTER_TYPE} == "kind" ]; then
 			echo -n "🔄 Checking if kind exists..."
 			check_kind
-			kind >/dev/null
+			kind >/dev/null 2>&1
 			check_err "ERROR: kind is not available. Please install and try again!"
 			echo "✅ kind exists!"
+			echo -n "🔄 Checking if a kind cluster is available..."
+			if ! kind get clusters >/dev/null 2>&1; then
+				echo
+				echo "ERROR: No kind clusters found. Please create/start a kind cluster and try again!"
+				exit 1
+			fi
+			echo "✅ kind cluster is available!"
 		fi
 	fi
 
