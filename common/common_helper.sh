@@ -349,7 +349,6 @@ function benchmarks_install() {
 	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	MANIFESTS="${3:-default_manifests}"
-	BENCHMARK2="${4:-petclinic}"
 
 	echo
 	echo "#######################################"
@@ -366,11 +365,14 @@ function benchmarks_install() {
 			check_err "ERROR: TechEmpower app failed to start, exiting"
 			popd >/dev/null
 		fi
-		if [ ${BENCHMARK2} == "petclinic" ]; then
+		if [ ${BENCHMARK} == "petclinic" ]; then
 			echo "5. Installing spring petclinic benchmark into cluster"
 			pushd spring-petclinic >/dev/null
-
-			kubectl apply -f manifests -n ${APP_NAMESPACE}
+			if [ "${MANIFESTS}" != "default_manifests" ]; then
+				kubectl apply -f manifests/${MANIFESTS} -n ${APP_NAMESPACE}
+		    	else
+				kubectl apply -f manifests/*.yaml -n ${APP_NAMESPACE}
+		    	fi
 			check_err "ERROR: spring petclinic failed to start, exiting"
 			popd >/dev/null
 		fi
@@ -477,7 +479,6 @@ function apply_benchmark_load() {
 	APP_NAMESPACE="${1:-${APP_NAMESPACE}}"
 	BENCHMARK="${2:-tfb}"
 	LOAD_DURATION="${3:-1200}"
-	BENCHMARK2="${4:-petclinic}"
 
 	if [ ${BENCHMARK} == "tfb" ]; then
 		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "tfb"; then
@@ -497,7 +498,7 @@ function apply_benchmark_load() {
 			docker run -d --rm --network="host"  ${TECHEMPOWER_LOAD_IMAGE} /opt/run_hyperfoil_load.sh ${TECHEMPOWER_ROUTE} queries?queries=20 ${LOAD_DURATION} 512 4096 #1024 8096
 		fi
 	fi
-	if [ ${BENCHMARK2} == "petclinic" ]; then
+	if [ ${BENCHMARK} == "petclinic" ]; then
 		if kubectl get pods --namespace ${APP_NAMESPACE} -o jsonpath='{.items[*].metadata.name}' | grep -q "petclinic"; then
 			echo
 			echo "################################################################################################################"

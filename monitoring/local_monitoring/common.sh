@@ -541,9 +541,28 @@ function kruize_local_demo_setup() {
 		if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local namespace_experiment_local" ]] ; then
 			echo -n "🔄 Installing the required benchmarks..."
 			create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
-			benchmarks_install ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
-			apply_benchmark_load ${APP_NAMESPACE} ${bench} "" ${bench2} >> "${LOG_FILE}" 2>&1
+			# Clean up any existing load job so the new one can start fresh
+			echo "Cleaning up any old load jobs..." >> "${LOG_FILE}" 2>&1
+			kubectl delete job petclinic-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+			kubectl delete job tfb-qrh-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+
+			benchmarks_install ${APP_NAMESPACE} ${bench} "kruize-demos" >> "${LOG_FILE}" 2>&1
+			benchmarks_install ${APP_NAMESPACE} ${bench2} "kruize-demos" >> "${LOG_FILE}" 2>&1
 			echo "✅ Completed!"
+		fi
+		quarkus_label="com.redhat.component-name=Quarkus"
+		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+			quarkus_pod_name=$(kubectl get pod | grep tfb-qrh-sample | cut -d " " -f1)
+			kubectl label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Enabling kube state metrics labels..."
+			./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
+		else
+			quarkus_pod_name=$(oc get pod | grep tfb-qrh-sample | cut -d " " -f1)
+			oc label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Enabling user workload monitoring..."
+			./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
 		fi
 		echo "" >> "${LOG_FILE}" 2>&1
 	fi
@@ -647,21 +666,6 @@ function kruize_local_demo_setup() {
 		kruize_bulk
 		recomm_end_time=$(get_date)
 	elif [ ${demo} == "runtimes" ]; then
-		quarkus_label="com.redhat.component-name=Quarkus"
-		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-			quarkus_pod_name=$(kubectl get pod | grep tfb-qrh | cut -d " " -f1)
-			kubectl label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
-			echo -n "🔄 Enabling kube state metrics labels..."
-	                ./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
-			echo "✅ Complete!"
-	        else
-			quarkus_pod_name=$(oc get pod | grep tfb-qrh | cut -d " " -f1)
-			oc label pod "${quarkus_pod_name}" "${quarkus_label}" >> "${LOG_FILE}" 2>&1
-			echo -n "🔄 Enabling user workload monitoring..."
-			./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
-			echo "✅ Complete!"
-        	fi
-
 		echo -n "🔄 Collecting metadata..."
 		kruize_local_metadata
 		echo "✅ Collection of metadata complete!"

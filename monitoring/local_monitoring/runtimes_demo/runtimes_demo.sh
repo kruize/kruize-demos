@@ -42,18 +42,14 @@ PETCLINIC_PORT=8083
 KRUIZE_OPERATOR=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p] [-o kruize operator image] [-k]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [ [-n namespace] ] [-p] [-o kruize operator image] [-k]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
-	echo "b = deploy the benchmark."
-	echo "m = manifests of the benchmark"
 	echo "n = namespace of benchmark. Default - default"
-	echo "l = Run a load against the benchmark"
-	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
 
@@ -63,43 +59,26 @@ function usage() {
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
-export benchmark_load=0
-export benchmark=0
 export prometheus=0
 export env_setup=0
 export start_demo=1
 export APP_NAMESPACE="default"
-export LOAD_DURATION="1200"
-export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
+export BENCHMARK_MANIFESTS="kruize-demos"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 
 # Iterate through the commandline options
-while getopts bc:d:kfi:lm:no:pstu: gopts
+while getopts c:kfi:no:pstu: gopts
 do
 	case "${gopts}" in
-		b)
-			start_demo=2
-			benchmark=1
-			;;
 		c)
 			CLUSTER_TYPE="${OPTARG}"
-			;;
-		d)
-			LOAD_DURATION="${OPTARG}"
 			;;
 		f)
 			env_setup=1
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
-			;;
-		l)
-			start_demo=2
-			benchmark_load=1
-			;;
-		m)
-			BENCHMARK_MANIFESTS="${OPTARG}"
 			;;
 		n)
 			export APP_NAMESPACE="${OPTARG}"
@@ -152,8 +131,6 @@ if [ ${start_demo} -eq 1 ]; then
 	kruize_local_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} ${BENCHMARK2}
 	echo "For detailed logs, look in kruize-demo.log"
 	echo
-elif [ ${start_demo} -eq 2 ]; then
-	kruize_local_demo_update ${BENCHMARK}
 else
 	echo >> "${LOG_FILE}" 2>&1
 	kruize_local_demo_terminate
