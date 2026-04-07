@@ -273,34 +273,59 @@ function optimizer_demo_setup() {
 	cd ${local_monitoring_dir}
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
-	echo -n "🔄 Installing Kruize Optimizer! Please wait..."
+	echo -n "🔄 Installing Kruize! Please wait..."
 	kruize_start_time=$(get_date)
 	if [[ "${kruize_operator}" -eq 1 ]]; then
-		operator_setup >> "${LOG_FILE}" 2>&1
+		operator_setup >> "${LOG_FILE}" 2>&1 &
 	else
-		kruize_install >> "${LOG_FILE}" 2>&1
-		# Install kruize-optimizer when using deploy scripts
-		kruize_optimizer_install >> "${LOG_FILE}" 2>&1
+		kruize_install >> "${LOG_FILE}" 2>&1 &
 	fi
-	install_pid=$!
-	while kill -0 $install_pid 2>/dev/null;
-  	do
+	
+	# Wait for kruize installation
+	wait
+	echo " ✅ Kruize Installation Done!"
+	
+	# Install optimizer if not using operator
+	if [[ "${kruize_operator}" -eq 0 ]]; then
+		echo -n "🔄 Installing Optimizer! Please wait..."
+		kruize_optimizer_install >> "${LOG_FILE}" 2>&1 &
+		wait
+		echo " ✅ Optimizer Installation Done!"
+	fi
+	
+	# Check if kruize-optimizer pod is running
+	echo -n "🔄 Verifying kruize-optimizer pod status..."
+	max_attempts=12
+	attempt=0
+	while [ $attempt -lt $max_attempts ]; do
+		if kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer --no-headers 2>/dev/null | grep -q "Running"; then
+			echo " ✅ Optimizer is Running!"
+			break
+		fi
+		if [ $attempt -eq $((max_attempts - 1)) ]; then
+			echo " ❌ Failed!"
+			echo "Kruize-optimizer pod is not running. Check logs for details."
+			kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer
+			exit 1
+		fi
 		echo -n "."
 		sleep 5
+		attempt=$((attempt + 1))
 	done
-	wait $install_pid
-	status=$?
-	if [ ${status} -ne 0 ]; then
-		echo "❌ Kruize installation failed!"
-		exit 1
-	fi
+	
 	kruize_end_time=$(get_date)
 	echo "✅ Kruize installation complete!"
 
 	# Get the Kruize URL
 	cd ${local_monitoring_dir}
-	get_kruize_url
-	echo "Kruize is available at http://${KRUIZE_URL}"
+	get_urls ${BENCHMARK} ${KRUIZE_OPERATOR}
+	
+	# Port forward the URLs in case of kind
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		port_forward "${BENCHMARK}"
+	fi
+	
+	echo "✅ Kruize is available at http://${KRUIZE_URL}"
 
 	# Wait for Kruize to be ready
 	echo -n "⏳ Waiting for Kruize to be ready..."
@@ -320,54 +345,67 @@ function optimizer_demo_setup() {
 		echo " ⚠️  Timeout waiting for Kruize to be ready"
 	fi
 
-	echo -n "Waiting for optimizer to create experiments (60s) ..."
+	echo -n "⏳ Waiting for optimizer to create experiments (60s) ..."
 	sleep 60
+	echo " ✅ Done!"
 
-	# List experiments
+	# Check for specific experiment
+	EXPECTED_EXP="prometheus-1|default|default|sysbench(deployment)|sysbench"
 	echo
 	echo "######################################################"
-	echo "#     Listing Experiments"
+	echo "#     Checking for Experiment"
 	echo "######################################################"
+	echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."
+	
+	experiment_check=$(curl -s "http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}")
+	
 	{
 		echo
-		echo "curl http://${KRUIZE_URL}/listExperiments"
-		experiments_output=$(curl -s "http://${KRUIZE_URL}/listExperiments")
-		echo $experiments_output | jq '.'
+		echo "curl http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}"
+		echo $experiment_check | jq '.'
 	} >> "${LOG_FILE}" 2>&1
 	
-	# Extract experiment names
-	experiment_names=$(echo $experiments_output | jq -r '.[].experiment_name' 2>/dev/null)
-	
-	if [ -n "$experiment_names" ]; then
-		echo "📋 Experiments found:"
-		echo "$experiment_names" | while read exp_name; do
-			echo "   - $exp_name"
-		done
-	else
-		echo "⚠️  No experiments found. Label your workloads with kruize/autotune=enabled to automatically create experiments."
-	fi
-
-	# Display recommendation URLs
-	echo
-	echo "######################################################"
-	echo "#     Recommendation API URLs"
-	echo "######################################################"
-	echo
-	echo "🔗 Use these URLs to generate and list recommendations:"
-	echo
-	
-	if [ -n "$experiment_names" ]; then
-		echo "$experiment_names" | while read exp_name; do
-			echo "For experiment: $exp_name"
-			echo "  Generate Recommendations:"
-			echo "    curl -X POST 'http://${KRUIZE_URL}/generateRecommendations?experiment_name=${exp_name}'"
+	if echo "$experiment_check" | jq -e '.[0].experiment_name' > /dev/null 2>&1; then
+		echo " ✅ Found!"
+		echo
+		echo "📋 Experiment Details:"
+		echo "$experiment_check" | jq -r '.[0] | "   Name: \(.experiment_name)\n"'
+		
+		# List recommendations
+		echo
+		echo "######################################################"
+		echo "#     Listing Recommendations"
+		echo "######################################################"
+		echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n"
+		
+		recommendations=$(curl -s "http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}")
+		{
 			echo
-			echo "  List Recommendations:"
-			echo "    curl 'http://${KRUIZE_URL}/listRecommendations?experiment_name=${exp_name}'"
-			echo
-		done
+			echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}"
+			echo $recommendations | jq '.'
+		} >> "${LOG_FILE}" 2>&1
+		
+		echo "📊 Recommendations for ${EXPECTED_EXP} (We need at least two data points (15 mins) to generate recommendations):"
+		echo
+		echo "$recommendations" | jq -r '
+			if type == "array" and length > 0 then
+				.[0].kubernetes_objects[0].containers[0] |
+				"Container: \(.container_name)\n" +
+				"Current Resources:\n" +
+				"  CPU Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".current.requests.cpu // "N/A")\n" +
+				"  Memory Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".current.requests.memory // "N/A")\n" +
+				"Recommended Resources:\n" +
+				"  CPU Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".recommendation_terms.short_term.recommendations.requests.cpu // "N/A")\n" +
+				"  Memory Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".recommendation_terms.short_term.recommendations.requests.memory // "N/A")"
+			else
+				"No recommendations available yet. Try again in a few minutes."
+			end
+		' 2>/dev/null || echo "⚠️  Recommendations not ready yet. Check logs for details."
 	else
-		echo "  No experiments available. Create an experiment first."
+		echo " ⚠️  Not found!"
+		echo
+		echo "⚠️  Expected experiment not found."
+		
 	fi
 
 	echo "######################################################"
@@ -383,8 +421,8 @@ function optimizer_demo_setup() {
 	echo "🕒 Success! Kruize optimizer demo setup took ${elapsed_time} seconds"
 	echo
 	echo "📝 Note: This demo installs Kruize optimizer and sysbench workload with labels."
-	echo "   Experiments are auto-created by the optimizer for labelled workloads, use lable - kruize/autotune=enabled."
-	echo "   Use the listExperiments API to see created experiments."
+	echo "📝 Experiments are auto-created by the optimizer for labelled workloads, use lable - kruize/autotune=enabled."
+	echo "📝 Use the listExperiments API or Kruize UI to see created experiments."
 }
 
 function optimizer_demo_terminate() {
