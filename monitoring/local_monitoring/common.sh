@@ -760,6 +760,10 @@ function operator_setup() {
 		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 	fi
 
+	if [ -n "${KRUIZE_OPTIMIZER_IMAGE}" ]; then
+		sed -i -E 's#^([[:space:]]*)optimizer_image:.*#\1optimizer_image: "'"${KRUIZE_OPTIMIZER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+	fi
+
 	sed -i -E 's#^([[:space:]]*)cluster_type:.*#\1cluster_type: "'"${CLUSTER_TYPE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
 	sed -i -E 's#^([[:space:]]*)namespace:.*#\1namespace: "'"${NAMESPACE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
