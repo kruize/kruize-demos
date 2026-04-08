@@ -1386,10 +1386,10 @@ function optimizer_demo_setup() {
 	# Add label to sysbench deployment for auto-experiment creation
 	sysbench_label="kruize/autotune=enabled"
 	if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..."
+		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
 		# Label the deployment so all pods get the label
 		kubectl label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
-		echo -n "🔄 Enabling kube state metrics labels..."
+		echo -n "🔄 Enabling kube state metrics labels..." >> "${LOG_FILE}" 2>&1
 		cd ${local_monitoring_dir}
 		./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
 		echo "✅ Complete!"
@@ -1429,12 +1429,12 @@ function optimizer_demo_setup() {
 	fi
 	
 	# Check if kruize-optimizer pod is running
-	echo -n "🔄 Verifying kruize-optimizer pod status..."
+	echo -n "🔄 Verifying kruize-optimizer pod status..." >> "${LOG_FILE}" 2>&1
 	max_attempts=12
 	attempt=0
 	while [ $attempt -lt $max_attempts ]; do
 		if kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer --no-headers 2>/dev/null | grep -q "Running"; then
-			echo " ✅ Optimizer is Running!"
+			echo " ✅ Optimizer is Running!" >> "${LOG_FILE}" 2>&1
 			break
 		fi
 		if [ $attempt -eq $((max_attempts - 1)) ]; then
@@ -1449,7 +1449,7 @@ function optimizer_demo_setup() {
 	done
 	
 	kruize_end_time=$(get_date)
-	echo "✅ Kruize installation complete!"
+	echo "✅ Kruize installation complete!" >> "${LOG_FILE}" 2>&1
 
 	# Get the Kruize URL
 	cd ${local_monitoring_dir}
@@ -1463,7 +1463,7 @@ function optimizer_demo_setup() {
 	echo "✅ Kruize is available at http://${KRUIZE_URL}"
 
 	# Wait for Kruize to be ready
-	echo -n "⏳ Waiting for Kruize to be ready..."
+	echo -n "⏳ Waiting for Kruize to be ready..." >> "${LOG_FILE}" 2>&1
 	max_attempts=60
 	attempt=0
 	while [ $attempt -lt $max_attempts ]; do
@@ -1486,11 +1486,11 @@ function optimizer_demo_setup() {
 
 	# Check for specific experiment
 	EXPECTED_EXP="prometheus-1|default|default|sysbench(deployment)|sysbench"
-	echo
-	echo "######################################################"
-	echo "#     Checking for Experiment"
-	echo "######################################################"
-	echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."
+	echo >> "${LOG_FILE}" 2>&1
+	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	echo "#     Checking for Experiment" >> "${LOG_FILE}" 2>&1
+	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
 	
 	experiment_check=$(curl -s "http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}")
 	
@@ -1501,22 +1501,22 @@ function optimizer_demo_setup() {
 	} >> "${LOG_FILE}" 2>&1
 	
 	if echo "$experiment_check" | jq -e '.[0].experiment_name' > /dev/null 2>&1; then
-		echo " ✅ Found!"
+		echo " ✅ Found!" >> "${LOG_FILE}" 2>&1
 		echo
 		echo "📋 Experiment Details:"
 		echo "$experiment_check" | jq -r '.[0] | "   Name: \(.experiment_name)\n"'
 		
 		# List recommendations
 		echo
-		echo "######################################################"
-		echo "#     Listing Recommendations"
-		echo "######################################################"
-		echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n"
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo "#     Listing Recommendations" >> "${LOG_FILE}" 2>&1
+		echo "######################################################" >> "${LOG_FILE}" 2>&1
+		echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n" >> "${LOG_FILE}" 2>&1
 		
 		recommendations=$(curl -s "http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}")
 		{
 			echo
-			echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}"
+			echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}" >> "${LOG_FILE}" 2>&1
 			echo $recommendations | jq '.'
 		} >> "${LOG_FILE}" 2>&1
 		
