@@ -538,7 +538,7 @@ function apply_benchmark_load() {
 #  Expose Prometheus port
 ###########################################
 function expose_prometheus() {
-	kubectl_cmd="kubectl -n monitoring"
+	kubectl_cmd="kubectl -n ${NAMESPACE}"
 	echo "8. Port forwarding Prometheus"
 	echo "Info: Prometheus accessible at http://localhost:9090"
 	${kubectl_cmd} port-forward prometheus-k8s-1 9090:9090
@@ -687,7 +687,7 @@ function kill_service_port_forward() {
 ###########################################
 function port_forward() {
 	local benchmark="${1:-}"
-	kubectl_cmd="kubectl -n monitoring"
+	kubectl_cmd="kubectl -n ${NAMESPACE}"
 	port_flag="false"
 
 	{
@@ -698,14 +698,22 @@ function port_forward() {
 		echo "Error: Port ${KRUIZE_PORT} is already in use. Port forwarding for kruize service cannot be established."
 		port_flag="true"
 	else
-		${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
+		if [ "${KRUIZE_HELM}" == "1" ]; then
+			${kubectl_cmd} port-forward svc/${release} ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
+		else
+			${kubectl_cmd} port-forward svc/kruize ${KRUIZE_PORT}:8080 > /dev/null 2>&1 &
+		fi
 	fi
 	# Start port forwarding for kruize-ui-nginx-service in the background
 	if is_port_in_use ${KRUIZE_UI_PORT}; then
 		echo "Error: Port ${KRUIZE_UI_PORT} is already in use. Port forwarding for kruize-ui-nginx-service cannot be established."
 		port_flag="true"
 	else
-		${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
+		if [ "${KRUIZE_HELM}" == "1" ]; then
+			${kubectl_cmd} port-forward svc/${release}-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
+		else
+			${kubectl_cmd} port-forward svc/kruize-ui-nginx-service ${KRUIZE_UI_PORT}:8080 > /dev/null 2>&1 &
+		fi
 	fi
 	# Start port forwarding for tfb-service in the background only if benchmark is tfb
 	if [[ "${benchmark}" == "tfb" ]]; then
@@ -768,13 +776,18 @@ function get_urls() {
 
 	echo ${kruize_operator}
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
-		kubectl_cmd="kubectl -n monitoring"
+		kubectl_cmd="kubectl -n ${NAMESPACE}"
 		kubectl_app_cmd="kubectl -n ${APP_NAMESPACE}"
 
 		MINIKUBE_IP=$(minikube ip)
-
-		KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-		KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		
+		if [ "${KRUIZE_HELM}" == "1" ]; then
+			KRUIZE_PORT=$(${kubectl_cmd} get svc ${release} --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			KRUIZE_UI_PORT=$(${kubectl_cmd} get svc ${release}-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		else
+			KRUIZE_PORT=$(${kubectl_cmd} get svc kruize --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			KRUIZE_UI_PORT=$(${kubectl_cmd} get svc kruize-ui-nginx-service --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+		fi
 
 		export KRUIZE_URL="${MINIKUBE_IP}:${KRUIZE_PORT}"
 		export KRUIZE_UI_URL="${MINIKUBE_IP}:${KRUIZE_UI_PORT}"
@@ -791,11 +804,16 @@ function get_urls() {
 		fi
 
 	elif [ "${CLUSTER_TYPE}" == "aks" ]; then
-		kubectl_cmd="kubectl -n monitoring"
+		kubectl_cmd="kubectl -n ${NAMESPACE}"
 
 		# Expose kruize/kruize-ui-nginx-service via LoadBalancer
-		KRUIZE_SERVICE_URL=$(${kubectl_cmd} get svc kruize -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
-		KRUIZE_UI_SERVICE_URL=$(${kubectl_cmd} get svc kruize-ui-nginx-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		if [ "${KRUIZE_HELM}" == "1" ]; then
+			KRUIZE_SERVICE_URL=$(${kubectl_cmd} get svc ${release} -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+			KRUIZE_UI_SERVICE_URL=$(${kubectl_cmd} get svc ${release}-ui-nginx-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		else
+			KRUIZE_SERVICE_URL=$(${kubectl_cmd} get svc kruize -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+			KRUIZE_UI_SERVICE_URL=$(${kubectl_cmd} get svc kruize-ui-nginx-service -o custom-columns=EXTERNAL-IP:.status.loadBalancer.ingress[*].ip --no-headers)
+		fi
 
 		export KRUIZE_URL="${KRUIZE_SERVICE_URL}:8080"
 		export KRUIZE_UI_URL="${KRUIZE_UI_SERVICE_URL}:8080"
@@ -823,13 +841,19 @@ function get_urls() {
 		export KRUIZE_UI_URL="127.0.0.1:8080"
 
 	elif [ ${CLUSTER_TYPE} == "openshift" ]; then
-		kubectl_cmd="oc -n openshift-tuning"
+		kubectl_cmd="oc -n ${NAMESPACE}"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
-		${kubectl_cmd} expose service kruize
-    		${kubectl_cmd} expose service kruize-ui-nginx-service
+		if [ "${KRUIZE_HELM}" == 1 ]; then
+			${kubectl_cmd} expose service ${release}
+    			${kubectl_cmd} expose service ${release}-ui-nginx-service
+			${kubectl_cmd} annotate route ${release} --overwrite haproxy.router.openshift.io/timeout=60s
+		else
+			${kubectl_cmd} expose service kruize
+    			${kubectl_cmd} expose service kruize-ui-nginx-service
+			${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
+		fi
 
-		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
 
 		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 			${kubectl_app_cmd} expose service tfb-qrh-service
@@ -843,6 +867,9 @@ function get_urls() {
     		if [[ "${kruize_operator}" -eq 1 ]]; then
 			export KRUIZE_URL=$(${kubectl_cmd} get route kruize -o jsonpath='{.spec.host}')
 			export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
+		elif [[ "${KRUIZE_HELM}" -eq 1 ]]; then 
+			export KRUIZE_URL=$(${kubectl_cmd} get route ${release} -o jsonpath='{.spec.host}')
+			export KRUIZE_UI_URL=$(${kubectl_cmd} get route ${release}-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 		else
 			export KRUIZE_URL=$(${kubectl_cmd} get route kruize --no-headers -o wide -o=custom-columns=NODE:.spec.host)
 			export KRUIZE_UI_URL=$(${kubectl_cmd} get route kruize-ui-nginx-service --no-headers -o wide -o=custom-columns=NODE:.spec.host)
