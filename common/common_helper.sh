@@ -978,9 +978,7 @@ function kruize_local_bulk_demo_patch() {
 
 # Patch Kruize Operator CR resources, currently used for Openshift Bulk demo
 function kruize_local_operator_bulk_demo_patch() {
-  OPERATOR_REPO_DIR="${KRUIZE_REPO}/kruize-operator"
-
-  CR_FILE="${OPERATOR_REPO_DIR}/config/samples/v1alpha1_kruize.yaml"
+  CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
   if [ ! -f "${CR_FILE}" ]; then
    echo "Warning: CR file ${CR_FILE} not found, skipping resource patching"
