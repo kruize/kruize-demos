@@ -714,7 +714,7 @@ function kruize_local_demo_setup() {
 }
 
 #setup the operator and deploy it
-operator_setup() {
+function operator_setup() {
 #      	clone_repos kruize-operator
   git clone -b mvp_demo https://github.com/kruize/kruize-operator.git
 
@@ -1165,7 +1165,7 @@ function kruize_operator_cleanup() {
 }
 
 # Check if Go is installed and meets minimum version requirement
-check_go_prerequisite() {
+function check_go_prerequisite() {
 	echo -n "🔍 Pre-req check: Verifying Go for operator deployment..."
 
 	# Check if go is in PATH
@@ -1196,7 +1196,7 @@ check_go_prerequisite() {
 }
 
 # Patch to remove resources config from CR for minikube/kind clusters
-remove_optional_cr_resource_blocks() {
+function remove_optional_cr_resource_blocks() {
 
   local CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
