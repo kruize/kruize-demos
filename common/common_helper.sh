@@ -977,6 +977,8 @@ function kruize_local_bulk_demo_patch() {
 }
 
 # Patch Kruize Operator CR resources, currently used for Openshift Bulk demo
+# Increase PV/PVC storage to 1Gi
+# Increase Kruize/Kruize-db memory to 2Gi and 2 CPU cores
 function kruize_local_operator_bulk_demo_patch() {
   CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
