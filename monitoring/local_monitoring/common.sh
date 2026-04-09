@@ -764,17 +764,12 @@ operator_setup() {
 
 	sed -i -E 's#^([[:space:]]*)namespace:.*#\1namespace: "'"${NAMESPACE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
-	if [[ ${CLUSTER_TYPE} == "minikube" || ${CLUSTER_TYPE} == "kind" ]]; then
-	  remove_optional_cr_resource_blocks
-	fi
-
-
-	if [ [${cluster_type} == "openshift" && ${demo} =="bulk"]  ]; then
+	if [[ ${CLUSTER_TYPE} == "openshift" && ${demo} =="bulk" ]]; then
 	  # Patch the CR resources before deployment for openshift bulk demo
 	  kruize_local_operator_bulk_demo_patch
 	else
 	  # Remove optional resource config before deployment for minikube/kind demo
-	  remove_optional_cr_blocks_for_minikube
+	  remove_optional_cr_resource_blocks
 	fi
 
 	echo
