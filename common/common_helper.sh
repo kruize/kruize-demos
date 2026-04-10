@@ -976,3 +976,69 @@ function kruize_local_bulk_demo_patch() {
   fi
 }
 
+# Patch Kruize Operator CR resources, currently used for Openshift Bulk demo
+# Increase PV/PVC storage to 1Gi
+# Increase Kruize/Kruize-db memory to 2Gi and 2 CPU cores
+function kruize_local_operator_bulk_demo_patch() {
+  CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
+
+  if [ ! -f "${CR_FILE}" ]; then
+   echo "Warning: CR file ${CR_FILE} not found, skipping resource patching"
+   return
+  fi
+
+  echo "Patching operator CR resources in ${CR_FILE}..."
+
+  # Backup original file
+  cp "${CR_FILE}" "${CR_FILE}.bak"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    SED_INPLACE="sed -i ''"
+  else
+    SED_INPLACE="sed -i"
+  fi
+
+
+  # Update kruize-db resources
+  ${SED_INPLACE} '/kruize-db:/,/volumeMounts:/ {
+    /requests:/,/limits:/ {
+      s/cpu: ".*"/cpu: "2"/g
+      s/memory: ".*"/memory: "2Gi"/g
+    }
+  }' ${CR_FILE}
+
+  ${SED_INPLACE} '/kruize-db:/,/volumeMounts:/ {
+    /limits:/,/volumeMounts:/ {
+      s/cpu: ".*"/cpu: "2"/g
+      s/memory: ".*"/memory: "2Gi"/g
+    }
+  }' ${CR_FILE}
+
+  # Update kruize application resources
+  ${SED_INPLACE} '/^[[:space:]]*kruize:/,$ {
+    /^[[:space:]]*requests:/,/^[[:space:]]*limits:/ {
+        s/cpu: ".*"/cpu: "2"/g
+        s/memory: ".*"/memory: "2Gi"/g
+    }
+    /^[[:space:]]*limits:/,$ {
+        s/cpu: ".*"/cpu: "2"/g
+        s/memory: ".*"/memory: "2Gi"/g
+    }
+  }' ${CR_FILE}
+
+  # Update persistent volume configuration
+  ${SED_INPLACE} '/persistentVolume:/,/persistentVolumeClaim:/ {
+    /capacity:/,/accessModes:/ {
+      s/storage: ".*"/storage: "1Gi"/
+    }
+  }' ${CR_FILE}
+
+  # Update persistent volume claim storage request
+  ${SED_INPLACE} '/persistentVolumeClaim:/,/kruize-db:/ {
+    /resources:/,/labels:/ {
+      s/storage: ".*"/storage: "1Gi"/
+    }
+  }' ${CR_FILE}
+
+  echo "Operator CR resources patched successfully"
+}
+

@@ -714,8 +714,9 @@ function kruize_local_demo_setup() {
 }
 
 #setup the operator and deploy it
-operator_setup() {
-      	clone_repos kruize-operator
+function operator_setup() {
+#      	clone_repos kruize-operator
+  git clone -b mvp_demo https://github.com/kruize/kruize-operator.git
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
@@ -762,6 +763,14 @@ operator_setup() {
 	sed -i -E 's#^([[:space:]]*)cluster_type:.*#\1cluster_type: "'"${CLUSTER_TYPE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
 	sed -i -E 's#^([[:space:]]*)namespace:.*#\1namespace: "'"${NAMESPACE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+
+	if [[ ${CLUSTER_TYPE} == "openshift" && ${demo} == "bulk" ]]; then
+	  # Patch the CR resources before deployment for openshift bulk demo
+	  kruize_local_operator_bulk_demo_patch
+	elif [[ ${CLUSTER_TYPE} == "minikube" || ${CLUSTER_TYPE} == "kind"  ]]; then
+	  # Remove optional resource config before deployment for minikube/kind demo
+	  remove_optional_cr_resource_blocks
+	fi
 
 	echo
 	echo "📄 Applying Kruize resource..."
@@ -1156,7 +1165,7 @@ function kruize_operator_cleanup() {
 }
 
 # Check if Go is installed and meets minimum version requirement
-check_go_prerequisite() {
+function check_go_prerequisite() {
 	echo -n "🔍 Pre-req check: Verifying Go for operator deployment..."
 
 	# Check if go is in PATH
@@ -1184,4 +1193,38 @@ check_go_prerequisite() {
 		echo " Please upgrade Go from: https://go.dev/doc/install"
 		return 1
 	fi
+}
+
+# Patch to remove resources config from CR for minikube/kind clusters
+function remove_optional_cr_resource_blocks() {
+
+  local CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
+
+  if [ ! -f "${CR_FILE}" ]; then
+    echo "Warning: CR file ${CR_FILE} not found, skipping cleanup"
+    return
+  fi
+
+  echo "Removing optional CR blocks for minikube from ${CR_FILE}..."
+
+  cp "${CR_FILE}" "${CR_FILE}.bak"
+
+  awk '
+    BEGIN {
+      skip = 0
+    }
+
+    # start skipping these top-level spec children
+    /^  persistentVolume:$/      { skip = 1; next }
+    /^  persistentVolumeClaim:$/ { skip = 1; next }
+    /^  kruize-db:$/             { skip = 1; next }
+    /^  kruize:$/                { skip = 1; next }
+
+    # next top-level spec child stops skipping
+    /^  [a-zA-Z0-9_-]+:/ {
+      skip = 0
+    }
+
+    !skip { print }
+  ' "${CR_FILE}" > "${CR_FILE}.tmp" && mv "${CR_FILE}.tmp" "${CR_FILE}"
 }
