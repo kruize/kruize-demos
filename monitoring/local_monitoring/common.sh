@@ -1394,16 +1394,46 @@ function optimizer_demo_setup() {
 		./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
 		echo "✅ Complete!"
 	else
-		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..."
+		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
 		# Label the deployment so all pods get the label
 		oc label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
 		echo "✅ Complete!"
-		echo -n "🔄 Enabling user workload monitoring..."
+		echo -n "🔄 Enabling user workload monitoring..." >> "${LOG_FILE}" 2>&1
 		cd ${local_monitoring_dir}
 		./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
 		echo "✅ Complete!"
 	fi
 	echo "" >> "${LOG_FILE}" 2>&1
+
+	# Install TFB benchmark if BENCHMARK2 is set
+	if [ ! -z "${BENCHMARK2}" ]; then
+		echo -n "🔄 Installing TFB benchmark..."
+		cd ${local_monitoring_dir}
+		# Clean up any existing tfb deployment
+		echo "Cleaning up any old TFB deployment..." >> "${LOG_FILE}" 2>&1
+		kubectl delete deployment tfb-qrh-sample -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete deployment tfb-qrh-sample-db -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete service tfb-qrh-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete service tfb-database-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		
+		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK2} "kruize-demos" >> "${LOG_FILE}" 2>&1
+		echo "✅ Completed!"
+
+		# Add label to tfb deployment for auto-experiment creation
+		tfb_label="kruize/autotune=enabled"
+		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
+			# Label the deployment so all pods get the label
+			kubectl label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!"
+		else
+			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
+			# Label the deployment so all pods get the label
+			oc label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
+		fi
+		echo "" >> "${LOG_FILE}" 2>&1
+	fi
 
 	cd ${local_monitoring_dir}
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
@@ -1458,6 +1488,10 @@ function optimizer_demo_setup() {
 	# Port forward the URLs in case of kind
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
 		port_forward "${BENCHMARK}"
+		# Also port forward TFB if BENCHMARK2 is set
+		if [ ! -z "${BENCHMARK2}" ]; then
+			port_forward "${BENCHMARK2}"
+		fi
 	fi
 	
 	echo "✅ Kruize is available at http://${KRUIZE_URL}"
@@ -1484,64 +1518,70 @@ function optimizer_demo_setup() {
 	sleep 60
 	echo " ✅ Done!"
 
-	# Check for specific experiment
-	EXPECTED_EXP="prometheus-1|default|default|sysbench(deployment)|sysbench"
+	# Check for specific experiments
+	EXPECTED_EXPS=("prometheus-1|default|default|sysbench(deployment)|sysbench")
+	
+	# Add TFB experiments if BENCHMARK2 is set
+	if [ ! -z "${BENCHMARK2}" ]; then
+		EXPECTED_EXPS+=("prometheus-1|default|default|tfb-qrh-sample(deployment)|tfb-server")
+	fi
+	
 	echo >> "${LOG_FILE}" 2>&1
 	echo "######################################################" >> "${LOG_FILE}" 2>&1
-	echo "#     Checking for Experiment" >> "${LOG_FILE}" 2>&1
+	echo "#     Checking for Experiments" >> "${LOG_FILE}" 2>&1
 	echo "######################################################" >> "${LOG_FILE}" 2>&1
-	echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
 	
-	experiment_check=$(curl -s "http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}")
-	
-	{
-		echo
-		echo "curl http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}"
-		echo $experiment_check | jq '.'
-	} >> "${LOG_FILE}" 2>&1
-	
-	if echo "$experiment_check" | jq -e '.[0].experiment_name' > /dev/null 2>&1; then
-		echo " ✅ Found!" >> "${LOG_FILE}" 2>&1
-		echo
-		echo "📋 Experiment Details:"
-		echo "$experiment_check" | jq -r '.[0] | "   Name: \(.experiment_name)\n"'
+	for EXPECTED_EXP in "${EXPECTED_EXPS[@]}"; do
+		echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
 		
-		# List recommendations
-		echo
-		echo "######################################################" >> "${LOG_FILE}" 2>&1
-		echo "#     Listing Recommendations" >> "${LOG_FILE}" 2>&1
-		echo "######################################################" >> "${LOG_FILE}" 2>&1
-		echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n" >> "${LOG_FILE}" 2>&1
+		experiment_check=$(curl -s "http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}")
 		
-		recommendations=$(curl -s "http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}")
 		{
 			echo
-			echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}" >> "${LOG_FILE}" 2>&1
-			echo $recommendations | jq '.'
+			echo "curl http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}"
+			echo $experiment_check | jq '.'
 		} >> "${LOG_FILE}" 2>&1
 		
-		echo "📊 Recommendations for ${EXPECTED_EXP} (We need at least two data points (15 mins) to generate recommendations):"
-		echo
-		echo "$recommendations" | jq -r '
-			if type == "array" and length > 0 then
-				.[0].kubernetes_objects[0].containers[0] |
-				"Container: \(.container_name)\n" +
-				"Current Resources:\n" +
-				"  CPU Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".current.requests.cpu // "N/A")\n" +
-				"  Memory Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".current.requests.memory // "N/A")\n" +
-				"Recommended Resources:\n" +
-				"  CPU Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".recommendation_terms.short_term.recommendations.requests.cpu // "N/A")\n" +
-				"  Memory Request: \(.recommendations.data."2024-01-01T00:00:00.000Z".recommendation_terms.short_term.recommendations.requests.memory // "N/A")"
+		if echo "$experiment_check" | jq -e '.[0].experiment_name' > /dev/null 2>&1; then
+			echo " ✅ Found!" >> "${LOG_FILE}" 2>&1
+			echo
+			echo "📋 Experiment Details:"
+			echo "$experiment_check" | jq -r '.[0] | "   Name: \(.experiment_name)\n"'
+			
+			# List recommendations
+			echo
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo "#     Listing Recommendations for ${EXPECTED_EXP}" >> "${LOG_FILE}" 2>&1
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n" >> "${LOG_FILE}" 2>&1
+			
+			recommendations=$(curl -s "http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}")
+			
+			# Log full response to log file
+			{
+				echo
+				echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}"
+				echo $recommendations | jq '.'
+			} >> "${LOG_FILE}" 2>&1
+			
+			# Check if recommendations are available and inform user
+			echo "📊 Recommendations for ${EXPECTED_EXP}:"
+			echo
+			if echo "$recommendations" | grep -q "Recommendations Are Available"; then
+				echo "✅ Recommendations are available. Details have been logged to ${LOG_FILE}"
 			else
-				"No recommendations available yet. Try again in a few minutes."
-			end
-		' 2>/dev/null || echo "⚠️  Recommendations not ready yet. Check logs for details."
-	else
-		echo " ⚠️  Not found!"
-		echo
-		echo "⚠️  Expected experiment not found."
-		
-	fi
+				echo "⚠️  No recommendations available yet."
+				echo "ℹ️  Kruize requires at least two data points (approximately 15 minutes) to generate recommendations."
+				echo "ℹ️  Please wait and try again later."
+			fi
+			echo
+		else
+			echo " ⚠️  Not found!" >> "${LOG_FILE}" 2>&1
+			echo
+			echo "⚠️  Expected experiment ${EXPECTED_EXP} not found."
+			echo
+		fi
+	done
 
 	echo "######################################################"
 	echo
@@ -1588,6 +1628,10 @@ function optimizer_demo_terminate() {
 	if timeout 5 kubectl cluster-info &>/dev/null; then
 		if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "sysbench"; then
 			benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+		fi
+		if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
+			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+			kill_service_port_forward "tfb-qrh-service"
 		fi
 	fi
 	

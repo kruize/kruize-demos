@@ -766,7 +766,7 @@ function get_urls() {
 	local kruize_operator=$2
 	local bench2=$3
 
-	echo ${kruize_operator}
+	echo ${kruize_operator} >> "${LOG_FILE}" 2>&1
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then
 		kubectl_cmd="kubectl -n monitoring"
 		kubectl_app_cmd="kubectl -n ${APP_NAMESPACE}"
@@ -826,10 +826,10 @@ function get_urls() {
 		kubectl_cmd="oc -n openshift-tuning"
 		kubectl_app_cmd="oc -n ${APP_NAMESPACE}"
 
-		${kubectl_cmd} expose service kruize
-    		${kubectl_cmd} expose service kruize-ui-nginx-service
+		${kubectl_cmd} expose service kruize >> "${LOG_FILE}" 2>&1
+	   		${kubectl_cmd} expose service kruize-ui-nginx-service >> "${LOG_FILE}" 2>&1
 
-		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s
+		${kubectl_cmd} annotate route kruize --overwrite haproxy.router.openshift.io/timeout=60s >> "${LOG_FILE}" 2>&1
 
 		if [[ ${demo} == "local" || ${demo} == "runtimes" ]] && [[ ${bench} == "tfb" ]]; then
 			${kubectl_app_cmd} expose service tfb-qrh-service
