@@ -1556,6 +1556,7 @@ function optimizer_demo_setup() {
 	echo " Monitored Workloads:"
 	
 	exp_counter=1
+	norecommendations=0
 	for EXPECTED_EXP in "${EXPECTED_EXPS[@]}"; do
 		echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
 		
@@ -1608,6 +1609,7 @@ function optimizer_demo_setup() {
 				echo "ℹ️  Recommendations logged to: ${LOG_FILE}"
 			else
 				echo "📊 Status: ⚠️ NO RECOMMENDATIONS YET"
+				norecommendations=1
 			fi
 			echo
 			
@@ -1619,6 +1621,12 @@ function optimizer_demo_setup() {
 			echo
 		fi
 	done
+
+	if [[ ${norecommendations} == 1 ]]; then
+		echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!"
+		echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN."
+		echo
+	fi
 
 	echo "######################################################"
 	echo
