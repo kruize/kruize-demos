@@ -1494,7 +1494,7 @@ function optimizer_demo_setup() {
 		fi
 	fi
 	
-	echo "✅ Kruize is available at http://${KRUIZE_URL}"
+	echo "✅ Kruize is available at http://${KRUIZE_URL}" >> "${LOG_FILE}" 2>&1
 
 	# Wait for Kruize to be ready
 	echo -n "⏳ Waiting for Kruize to be ready..." >> "${LOG_FILE}" 2>&1
@@ -1542,6 +1542,10 @@ function optimizer_demo_setup() {
 		fi
 	fi
 	
+	echo
+	echo " Monitored Workloads:"
+	
+	exp_counter=1
 	for EXPECTED_EXP in "${EXPECTED_EXPS[@]}"; do
 		echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
 		
@@ -1555,8 +1559,6 @@ function optimizer_demo_setup() {
 		
 		if echo "$experiment_check" | jq -e '.[0].experiment_name' > /dev/null 2>&1; then
 			echo " ✅ Found!" >> "${LOG_FILE}" 2>&1
-			echo
-			echo "📋 Experiment Details:"
 			
 			# Parse experiment name to extract details
 			# Format: prometheus-1|default|default|sysbench(deployment)|sysbench
@@ -1568,14 +1570,14 @@ function optimizer_demo_setup() {
 			WORKLOAD_TYPE="${WORKLOAD_PART#*(}"
 			WORKLOAD_TYPE="${WORKLOAD_TYPE%)}"
 			
-			echo "   Experiment: ${EXPECTED_EXP}"
-			echo "   Type: ${WORKLOAD_TYPE}"
-			echo "   Namespace: ${EXP_PARTS[2]}"
-			echo "   Container: ${EXP_PARTS[4]}"
-			echo
+			echo "📋 Experiment ${exp_counter}: ${WORKLOAD_NAME}"
+			echo "• Name:      ${EXPECTED_EXP}"
+			echo "• Type:      ${WORKLOAD_TYPE}"
+			echo "• Namespace: ${EXP_PARTS[2]}"
+			echo "• Container: ${EXP_PARTS[4]}"
 			
 			# List recommendations
-			echo
+			echo >> "${LOG_FILE}" 2>&1
 			echo "######################################################" >> "${LOG_FILE}" 2>&1
 			echo "#     Listing Recommendations for ${EXPECTED_EXP}" >> "${LOG_FILE}" 2>&1
 			echo "######################################################" >> "${LOG_FILE}" 2>&1
@@ -1591,16 +1593,15 @@ function optimizer_demo_setup() {
 			} >> "${LOG_FILE}" 2>&1
 			
 			# Check if recommendations are available and inform user
-			echo "📊 Recommendations for ${EXPECTED_EXP}:"
-			echo
 			if echo "$recommendations" | grep -q "Recommendations Are Available"; then
-				echo "✅ RECOMMENDATIONS ARE AVAILABLE. DETAILS HAVE BEEN LOGGED TO ${LOG_FILE}"
+				echo "📊 Status: ✅ RECOMMENDATIONS AVAILABLE"
+				echo "ℹ️  Recommendations logged to: ${LOG_FILE}"
 			else
-				echo "⚠️  NO RECOMMENDATIONS ARE AVAILABLE YET."
-				echo "ℹ️  KRUIZE REQUIRES AT LEAST TWO DATA POINTS (APPROXIMATELY 15 MINUTES) TO GENERATE RECOMMENDATIONS."
-				echo "ℹ️  PLEASE WAIT AND TRY AGAIN LATER."
+				echo "📊 Status: ⚠️ NO RECOMMENDATIONS YET"
 			fi
 			echo
+			
+			exp_counter=$((exp_counter + 1))
 		else
 			echo " ⚠️  Not found!" >> "${LOG_FILE}" 2>&1
 			echo
