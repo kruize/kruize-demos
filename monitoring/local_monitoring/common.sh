@@ -832,12 +832,22 @@ function operator_setup() {
 	fi
 
 	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
-    	if [ $? -ne 0 ]; then
-        	echo "❌ Kruize pod failed to become ready"
-        	kubectl get pods -n $NAMESPACE
-        	kubectl describe pod -l app=kruize -n $NAMESPACE
-        	exit 1
-    	fi
+	   	if [ $? -ne 0 ]; then
+	       	echo "❌ Kruize pod failed to become ready"
+	       	kubectl get pods -n $NAMESPACE
+	       	kubectl describe pod -l app=kruize -n $NAMESPACE
+	       	exit 1
+	   	fi
+
+	if [ "${demo}" == "optimizer" ]; then
+		kubectl wait --for=condition=Ready pod -l app=kruize-optimizer -n $NAMESPACE --timeout=600s
+		if [ $? -ne 0 ]; then
+			echo "❌ Kruize-optimizer pod failed to become ready"
+			kubectl get pods -n $NAMESPACE
+			kubectl describe pod -l app=kruize-optimizer -n $NAMESPACE
+			exit 1
+		fi
+	fi
 
 	echo "⏳ Waiting for kruize-ui pod to be ready..."
 	# First wait for pod to exist
