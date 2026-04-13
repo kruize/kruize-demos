@@ -1514,22 +1514,33 @@ function optimizer_demo_setup() {
 		echo " ⚠️  Timeout waiting for Kruize to be ready"
 	fi
 
-	echo -n "⏳ Waiting for optimizer to create experiments (60s) ..."
-	sleep 60
+	echo -n "⏳ Waiting for optimizer to create experiments (90s) ..."
+	sleep 90
 	echo " ✅ Done!"
 
-	# Check for specific experiments
-	EXPECTED_EXPS=("prometheus-1|default|default|sysbench(deployment)|sysbench")
-	
-	# Add TFB experiments if BENCHMARK2 is set
-	if [ ! -z "${BENCHMARK2}" ]; then
-		EXPECTED_EXPS+=("prometheus-1|default|default|tfb-qrh-sample(deployment)|tfb-server")
-	fi
-	
+	# Get all experiments and find the ones we're looking for
 	echo >> "${LOG_FILE}" 2>&1
 	echo "######################################################" >> "${LOG_FILE}" 2>&1
 	echo "#     Checking for Experiments" >> "${LOG_FILE}" 2>&1
 	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	
+	# Get all experiments
+	all_experiments=$(curl -s "http://${KRUIZE_URL}/listExperiments")
+	
+	# Find sysbench experiment
+	EXPECTED_EXPS=()
+	sysbench_exp=$(echo "$all_experiments" | jq -r '.[] | select(.kubernetes_objects[0].name == "sysbench") | .experiment_name' 2>/dev/null | head -1)
+	if [ ! -z "$sysbench_exp" ]; then
+		EXPECTED_EXPS+=("$sysbench_exp")
+	fi
+	
+	# Find TFB experiment if BENCHMARK2 is set
+	if [ ! -z "${BENCHMARK2}" ]; then
+		tfb_exp=$(echo "$all_experiments" | jq -r '.[] | select(.kubernetes_objects[0].name == "tfb-qrh-sample") | .experiment_name' 2>/dev/null | head -1)
+		if [ ! -z "$tfb_exp" ]; then
+			EXPECTED_EXPS+=("$tfb_exp")
+		fi
+	fi
 	
 	for EXPECTED_EXP in "${EXPECTED_EXPS[@]}"; do
 		echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
