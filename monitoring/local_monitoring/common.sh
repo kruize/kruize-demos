@@ -1373,7 +1373,7 @@ function optimizer_demo_setup() {
 	fi
 
 	# Install sysbench benchmark
-	echo -n "🔄 Installing sysbench benchmark..."
+	echo -n "🔄 Installing sysbench benchmark (Workload labeled: kruize/autotune=enabled)..."
 	cd ${local_monitoring_dir}
 	create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 	# Clean up any existing sysbench deployment
@@ -1392,22 +1392,22 @@ function optimizer_demo_setup() {
 		echo -n "🔄 Enabling kube state metrics labels..." >> "${LOG_FILE}" 2>&1
 		cd ${local_monitoring_dir}
 		./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
-		echo "✅ Complete!"
+		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
 	else
 		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
 		# Label the deployment so all pods get the label
 		oc label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
-		echo "✅ Complete!"
+		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
 		echo -n "🔄 Enabling user workload monitoring..." >> "${LOG_FILE}" 2>&1
 		cd ${local_monitoring_dir}
 		./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
-		echo "✅ Complete!"
+		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
 	fi
 	echo "" >> "${LOG_FILE}" 2>&1
 
 	# Install TFB benchmark if BENCHMARK2 is set
 	if [ ! -z "${BENCHMARK2}" ]; then
-		echo -n "🔄 Installing TFB benchmark..."
+		echo -n "🔄 Installing TFB benchmark (Workload labeled: kruize/autotune=enabled)..."
 		cd ${local_monitoring_dir}
 		# Clean up any existing tfb deployment
 		echo "Cleaning up any old TFB deployment..." >> "${LOG_FILE}" 2>&1
@@ -1448,14 +1448,14 @@ function optimizer_demo_setup() {
 	
 	# Wait for kruize installation
 	wait
-	echo " ✅ Kruize Installation Done!"
+	echo " ✅ Kruize Installation Done & Ready!"
 	
 	# Install optimizer if not using operator
 	if [[ "${kruize_operator}" -eq 0 ]]; then
 		echo -n "🔄 Installing Optimizer! Please wait..."
 		kruize_optimizer_install >> "${LOG_FILE}" 2>&1 &
 		wait
-		echo " ✅ Optimizer Installation Done!"
+		echo " ✅ Optimizer Installation Done & Ready!"
 	fi
 	
 	# Check if kruize-optimizer pod is running
@@ -1502,7 +1502,7 @@ function optimizer_demo_setup() {
 	attempt=0
 	while [ $attempt -lt $max_attempts ]; do
 		if curl -s "http://${KRUIZE_URL}/health" > /dev/null 2>&1; then
-			echo " ✅ Ready!"
+			echo " ✅ Ready!" >> "${LOG_FILE}" 2>&1
 			break
 		fi
 		echo -n "."
@@ -1534,7 +1534,7 @@ function optimizer_demo_setup() {
 	for EXPECTED_EXP in "${EXPECTED_EXPS[@]}"; do
 		echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
 		
-		experiment_check=$(curl -s "http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}")
+		experiment_check=$(curl -s -G "http://${KRUIZE_URL}/listExperiments" --data-urlencode "experiment_name=${EXPECTED_EXP}")
 		
 		{
 			echo
@@ -1546,7 +1546,22 @@ function optimizer_demo_setup() {
 			echo " ✅ Found!" >> "${LOG_FILE}" 2>&1
 			echo
 			echo "📋 Experiment Details:"
-			echo "$experiment_check" | jq -r '.[0] | "   Name: \(.experiment_name)\n"'
+			
+			# Parse experiment name to extract details
+			# Format: prometheus-1|default|default|sysbench(deployment)|sysbench
+			IFS='|' read -ra EXP_PARTS <<< "${EXPECTED_EXP}"
+			
+			# Extract workload name and type from the 4th part (e.g., "sysbench(deployment)")
+			WORKLOAD_PART="${EXP_PARTS[3]}"
+			WORKLOAD_NAME="${WORKLOAD_PART%(*}"
+			WORKLOAD_TYPE="${WORKLOAD_PART#*(}"
+			WORKLOAD_TYPE="${WORKLOAD_TYPE%)}"
+			
+			echo "   Experiment: ${EXPECTED_EXP}"
+			echo "   Type: ${WORKLOAD_TYPE}"
+			echo "   Namespace: ${EXP_PARTS[2]}"
+			echo "   Container: ${EXP_PARTS[4]}"
+			echo
 			
 			# List recommendations
 			echo
@@ -1555,7 +1570,7 @@ function optimizer_demo_setup() {
 			echo "######################################################" >> "${LOG_FILE}" 2>&1
 			echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n" >> "${LOG_FILE}" 2>&1
 			
-			recommendations=$(curl -s "http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}")
+			recommendations=$(curl -s -G "http://${KRUIZE_URL}/listRecommendations" --data-urlencode "experiment_name=${EXPECTED_EXP}")
 			
 			# Log full response to log file
 			{
@@ -1568,11 +1583,11 @@ function optimizer_demo_setup() {
 			echo "📊 Recommendations for ${EXPECTED_EXP}:"
 			echo
 			if echo "$recommendations" | grep -q "Recommendations Are Available"; then
-				echo "✅ Recommendations are available. Details have been logged to ${LOG_FILE}"
+				echo "✅ RECOMMENDATIONS ARE AVAILABLE. DETAILS HAVE BEEN LOGGED TO ${LOG_FILE}"
 			else
-				echo "⚠️  No recommendations available yet."
-				echo "ℹ️  Kruize requires at least two data points (approximately 15 minutes) to generate recommendations."
-				echo "ℹ️  Please wait and try again later."
+				echo "⚠️  NO RECOMMENDATIONS ARE AVAILABLE YET."
+				echo "ℹ️  KRUIZE REQUIRES AT LEAST TWO DATA POINTS (APPROXIMATELY 15 MINUTES) TO GENERATE RECOMMENDATIONS."
+				echo "ℹ️  PLEASE WAIT AND TRY AGAIN LATER."
 			fi
 			echo
 		else
@@ -1595,8 +1610,8 @@ function optimizer_demo_setup() {
 	echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
 	echo "🕒 Success! Kruize optimizer demo setup took ${elapsed_time} seconds"
 	echo
-	echo "📝 Note: This demo installs Kruize optimizer and sysbench workload with labels."
-	echo "📝 Experiments are auto-created by the optimizer for labelled workloads, use lable - kruize/autotune=enabled."
+	echo "📝 Note: This demo installs Kruize optimizer and sysbench, tfb workload with labels."
+	echo "📝 Experiments are auto-created by the optimizer for labelled workloads, use label - kruize/autotune=enabled."
 	echo "📝 Use the listExperiments API or Kruize UI to see created experiments."
 }
 
