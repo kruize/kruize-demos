@@ -627,13 +627,16 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	echo -n "🔄 Installing metric profile..."
-	kruize_local_metric_profile
-	echo "✅ Installation of metric profile complete!"
+	# Skip metric and metadata profile installation in operator mode
+	if [[ "${kruize_operator}" -eq 0 ]]; then
+		echo -n "🔄 Installing metric profile..."
+		kruize_local_metric_profile
+		echo "✅ Installation of metric profile complete!"
 
-	echo -n "🔄 Installing metadata profile..."
-	kruize_local_metadata_profile
-	echo "✅ Installation of metadata profile complete!"
+		echo -n "🔄 Installing metadata profile..."
+		kruize_local_metadata_profile
+		echo "✅ Installation of metadata profile complete!"
+	fi
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
