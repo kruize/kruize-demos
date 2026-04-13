@@ -1514,24 +1514,6 @@ function optimizer_demo_setup() {
 	
 	echo "✅ Kruize is available at http://${KRUIZE_URL}" >> "${LOG_FILE}" 2>&1
 
-	# Wait for Kruize to be ready
-	echo -n "⏳ Waiting for Kruize to be ready..." >> "${LOG_FILE}" 2>&1
-	max_attempts=60
-	attempt=0
-	while [ $attempt -lt $max_attempts ]; do
-		if curl -s "http://${KRUIZE_URL}/health" > /dev/null 2>&1; then
-			echo " ✅ Ready!" >> "${LOG_FILE}" 2>&1
-			break
-		fi
-		echo -n "."
-		sleep 5
-		attempt=$((attempt + 1))
-	done
-
-	if [ $attempt -ge $max_attempts ]; then
-		echo " ⚠️  Timeout waiting for Kruize to be ready"
-	fi
-
 	echo -n "⏳ Waiting for optimizer to create experiments (90s) ..."
 	sleep 90
 	echo " ✅ Done!"
