@@ -1217,6 +1217,11 @@ function check_go_prerequisite() {
 function remove_optional_cr_resource_blocks() {
 
   local CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
+  
+  # updating the path for optimizer demo (minikube/kind)
+  if [ -f "./kruize-operator/config/samples/v1alpha1_kruize.yaml" ]; then
+    CR_FILE="./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+  fi
 
   if [ ! -f "${CR_FILE}" ]; then
     echo "Warning: CR file ${CR_FILE} not found, skipping cleanup"
