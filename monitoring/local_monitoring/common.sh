@@ -1441,7 +1441,7 @@ function optimizer_demo_setup() {
 			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
 			# Label the deployment so all pods get the label
 			kubectl label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
-			echo "✅ Complete!"
+			echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
 		else
 			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
 			# Label the deployment so all pods get the label
@@ -1459,14 +1459,17 @@ function optimizer_demo_setup() {
 	kruize_start_time=$(get_date)
 
 	if [[ "${kruize_operator}" -eq 1 ]]; then
-		(operator_setup >> "${LOG_FILE}" 2>&1) &
+		operator_setup >> "${LOG_FILE}" 2>&1 &
 		install_pid=$!
 	else
-	    (kruize_install >> "${LOG_FILE}" 2>&1) &
-		install_pid=$!
+		( 
+      		kruize_install >> "${LOG_FILE}" 2>&1 
+      		# Explicitly exit the subshell to stop waiting for children
+      		exit 
+    	) &
+    	install_pid=$!
 	fi
 
-	echo "DEBUG: install_pid=$install_pid"
 	while kill -0 $install_pid 2>/dev/null;
   	do
 		echo -n "."
