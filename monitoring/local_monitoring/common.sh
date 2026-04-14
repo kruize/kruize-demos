@@ -1289,6 +1289,7 @@ function optimizer_demo_setup() {
 
 	operator_exists=false
 	kruize_exists=false
+	optimizer_exists=false
 
 	# Only check for existing deployments if cluster is accessible
 	if [ "$cluster_accessible" = true ]; then
@@ -1297,6 +1298,7 @@ function optimizer_demo_setup() {
 
 		# Check for kruize pods
 		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+		optimizer_pods=$(kubectl get pod -l app=kruize-optimizer -n ${NAMESPACE} 2>&1)
 
 		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
 			operator_exists=true
@@ -1305,9 +1307,12 @@ function optimizer_demo_setup() {
 		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
 			kruize_exists=true
 		fi
+		if [[ ! "$optimizer_pods" =~ "NotFound" ]] && [[ ! "$optimizer_pods" =~ "No resources" ]]; then
+			optimizer_exists=true
+		fi
 	fi
 	
-	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
+	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ] || [ "$optimizer_exists" = true ]; then
 		echo " Found!"
 		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 		{
@@ -1615,10 +1620,18 @@ function optimizer_demo_setup() {
 				echo $recommendations | jq '.'
 			} >> "${LOG_FILE}" 2>&1
 			
+			# Save recommendations to JSON file
+			# Create filename: container_<workload_name>_<type>_<containername>_optimizer_recommendation
+			CONTAINER_NAME="${EXP_PARTS[4]}"
+			SANITIZED_NAME="container_${WORKLOAD_NAME}_${WORKLOAD_TYPE}_${CONTAINER_NAME}"
+			RECOMMENDATION_FILE="${SANITIZED_NAME}_optimizer_recommendation.json"
+			echo $recommendations | jq '.' > "${RECOMMENDATION_FILE}" 2>/dev/null
+			
 			# Check if recommendations are available and inform user
 			if echo "$recommendations" | grep -q "Recommendations Are Available"; then
 				echo "📊 Status: ✅ RECOMMENDATIONS AVAILABLE"
-				echo "ℹ️  Recommendations logged to: ${LOG_FILE}"
+				echo "ℹ️  Recommendations saved to: ${RECOMMENDATION_FILE}"
+				echo "ℹ️  Recommendations also logged to: ${LOG_FILE}"
 			else
 				echo "📊 Status: ⚠️ NO RECOMMENDATIONS YET"
 				norecommendations=1
