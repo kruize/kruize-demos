@@ -842,15 +842,13 @@ function operator_setup() {
 	       	exit 1
 	   	fi
 
-	if [ "${demo}" == "optimizer" ]; then
-		kubectl wait --for=condition=Ready pod -l app=kruize-optimizer -n $NAMESPACE --timeout=600s
+	kubectl wait --for=condition=Ready pod -l app=kruize-optimizer -n $NAMESPACE --timeout=600s
 		if [ $? -ne 0 ]; then
 			echo "❌ Kruize-optimizer pod failed to become ready"
 			kubectl get pods -n $NAMESPACE
 			kubectl describe pod -l app=kruize-optimizer -n $NAMESPACE
 			exit 1
 		fi
-	fi
 
 	echo "⏳ Waiting for kruize-ui pod to be ready..."
 	# First wait for pod to exist
@@ -1457,15 +1455,34 @@ function optimizer_demo_setup() {
 	kruize_local_patch >> "${LOG_FILE}" 2>&1
 
 	echo -n "🔄 Installing Kruize! Please wait..."
+
 	kruize_start_time=$(get_date)
+
 	if [[ "${kruize_operator}" -eq 1 ]]; then
-		operator_setup >> "${LOG_FILE}" 2>&1 &
+		(operator_setup >> "${LOG_FILE}" 2>&1) &
+		install_pid=$!
 	else
-		kruize_install >> "${LOG_FILE}" 2>&1 &
+	    (kruize_install >> "${LOG_FILE}" 2>&1) &
+		install_pid=$!
 	fi
+
+	echo "DEBUG: install_pid=$install_pid"
+	while kill -0 $install_pid 2>/dev/null;
+  	do
+		echo -n "."
+		sleep 5
+	done
+
+	wait $install_pid
+
+	status=$?
+	if [ ${status} -ne 0 ]; then
+		#echo "For detailed logs, look in ${LOG_FILE}"
+		exit 1
+	fi
+
+	kruize_end_time=$(get_date)
 	
-	# Wait for kruize installation
-	wait
 	echo " ✅ Kruize Installation Done & Ready!"
 	
 	# Install optimizer if not using operator
@@ -1496,7 +1513,6 @@ function optimizer_demo_setup() {
 		attempt=$((attempt + 1))
 	done
 	
-	kruize_end_time=$(get_date)
 	echo "✅ Kruize installation complete!" >> "${LOG_FILE}" 2>&1
 
 	# Get the Kruize URL
