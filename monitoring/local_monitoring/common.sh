@@ -492,7 +492,7 @@ function kruize_local_demo_setup() {
 			fi
 			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
 				kruize_uninstall
-				kruize_optimizer_uninstall
+				
 			fi
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Cleanup complete!"
@@ -1325,11 +1325,16 @@ function optimizer_demo_setup() {
 			# Check if kruize pods still exist and call kruize_uninstall if needed (only if cluster is accessible)
 			if [ "$cluster_accessible" = true ]; then
 				kruize_pods_after=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+				optimizer_pods_after=$(kubectl get pod -l app=kruize-optimizer -n ${NAMESPACE} 2>&1)
 			else
 				kruize_pods_after="Error: cluster not accessible"
+				optimizer_pods_after="Error: cluster not accessible"
 			fi
 			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
 				kruize_uninstall
+			fi
+			if [[ ! "$optimizer_pods_after" =~ "NotFound" ]] && [[ ! "$optimizer_pods_after" =~ "No resources" ]] && [[ ! "$optimizer_pods_after" =~ "Error" ]]; then
+				kruize_optimizer_uninstall
 			fi
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Cleanup complete!"
@@ -1426,12 +1431,13 @@ function optimizer_demo_setup() {
 	if [ ! -z "${BENCHMARK2}" ]; then
 		echo -n "🔄 Installing TFB benchmark (Workload labeled: kruize/autotune=enabled)..."
 		cd ${local_monitoring_dir}
-		# Clean up any existing tfb deployment
-		echo "Cleaning up any old TFB deployment..." >> "${LOG_FILE}" 2>&1
+		# Clean up any existing tfb deployment and load jobs
+		echo "Cleaning up any old TFB deployment and load jobs..." >> "${LOG_FILE}" 2>&1
 		kubectl delete deployment tfb-qrh-sample -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 		kubectl delete deployment tfb-qrh-sample-db -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 		kubectl delete service tfb-qrh-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 		kubectl delete service tfb-database-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete job tfb-qrh-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 		
 		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK2} "kruize-demos" >> "${LOG_FILE}" 2>&1
 		echo "✅ Completed!"
