@@ -1517,15 +1517,11 @@ function optimizer_demo_setup() {
 
 	# Get the Kruize URL
 	cd ${local_monitoring_dir}
-	get_urls ${BENCHMARK} ${KRUIZE_OPERATOR}
+	get_urls ${BENCHMARK2} ${KRUIZE_OPERATOR}
 	
 	# Port forward the URLs in case of kind
 	if [ ${CLUSTER_TYPE} == "kind" ]; then
-		port_forward "${BENCHMARK}"
-		# Also port forward TFB if BENCHMARK2 is set
-		if [ ! -z "${BENCHMARK2}" ]; then
-			port_forward "${BENCHMARK2}"
-		fi
+		port_forward "${BENCHMARK2}"
 	fi
 	
 	echo "✅ Kruize is available at http://${KRUIZE_URL}" >> "${LOG_FILE}" 2>&1
