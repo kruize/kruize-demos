@@ -492,6 +492,7 @@ function kruize_local_demo_setup() {
 			fi
 			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
 				kruize_uninstall
+				kruize_optimizer_uninstall
 			fi
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Cleanup complete!"
