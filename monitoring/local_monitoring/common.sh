@@ -446,6 +446,8 @@ function kruize_local_demo_setup() {
 
 	operator_exists=false
 	kruize_exists=false
+	optimizer_exists=false
+	
 
 	# Only check for existing deployments if cluster is accessible
 	if [ "$cluster_accessible" = true ]; then
@@ -462,9 +464,12 @@ function kruize_local_demo_setup() {
 		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
 			kruize_exists=true
 		fi
+		if [[ ! "$optimizer_pods" =~ "NotFound" ]] && [[ ! "$optimizer_pods" =~ "No resources" ]]; then
+			optimizer_exists=true
+		fi
 	fi
 	
-	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
+	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ] || [ "$optimizer_exists" = true ]; then
 		echo " Found!"
 		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 		{
@@ -493,6 +498,9 @@ function kruize_local_demo_setup() {
 			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
 				kruize_uninstall
 				
+			fi
+			if [[ ! "$optimizer_pods_after" =~ "NotFound" ]] && [[ ! "$optimizer_pods_after" =~ "No resources" ]] && [[ ! "$optimizer_pods_after" =~ "Error" ]]; then
+				kruize_optimizer_uninstall
 			fi
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Cleanup complete!"
@@ -1286,7 +1294,6 @@ function optimizer_demo_setup() {
 	if timeout 5 kubectl cluster-info &>/dev/null; then
 		cluster_accessible=true
 	fi
-
 	operator_exists=false
 	kruize_exists=false
 	optimizer_exists=false
