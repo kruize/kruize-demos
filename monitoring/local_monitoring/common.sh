@@ -1627,11 +1627,11 @@ function optimizer_demo_setup() {
 				echo $recommendations | jq '.'
 			} >> "${LOG_FILE}" 2>&1
 			
-			# Save recommendations to JSON file
+			# Save recommendations to JSON file in optimizer_demo directory
 			# Create filename: container_<workload_name>_<type>_<containername>_optimizer_recommendation
 			CONTAINER_NAME="${EXP_PARTS[4]}"
 			SANITIZED_NAME="container_${WORKLOAD_NAME}_${WORKLOAD_TYPE}_${CONTAINER_NAME}"
-			RECOMMENDATION_FILE="${SANITIZED_NAME}_optimizer_recommendation.json"
+			RECOMMENDATION_FILE="${local_monitoring_dir}/optimizer_demo/${SANITIZED_NAME}_optimizer_recommendation.json"
 			echo $recommendations | jq '.' > "${RECOMMENDATION_FILE}" 2>/dev/null
 			
 			# Check if recommendations are available and inform user
@@ -1742,19 +1742,11 @@ function optimizer_demo_terminate() {
 function kruize_optimizer_uninstall() {
 	echo "🔄 Uninstalling kruize-optimizer"
 	
-	# Determine the correct path to kruize-optimizer directory
-	# Try local_monitoring_dir if set, otherwise use SCRIPT_DIR, otherwise use current_dir
-	local optimizer_base_dir=""
-	if [ -n "${local_monitoring_dir}" ] && [ -d "${local_monitoring_dir}/kruize-optimizer" ]; then
-		optimizer_base_dir="${local_monitoring_dir}"
-	elif [ -n "${SCRIPT_DIR}" ] && [ -d "${SCRIPT_DIR}/kruize-optimizer" ]; then
-		optimizer_base_dir="${SCRIPT_DIR}"
-	elif [ -n "${current_dir}" ] && [ -d "${current_dir}/kruize-optimizer" ]; then
-		optimizer_base_dir="${current_dir}"
-	fi
+	# kruize-optimizer is always installed in optimizer_demo directory
+	local optimizer_dir="${local_monitoring_dir}/optimizer_demo/kruize-optimizer"
 	
-	if [ -n "${optimizer_base_dir}" ]; then
-		cd ${optimizer_base_dir}/kruize-optimizer
+	if [ -d "${optimizer_dir}" ]; then
+		pushd ${optimizer_dir} > /dev/null
 		
 		# Determine which overlay to use based on cluster type
 		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
@@ -1766,8 +1758,10 @@ function kruize_optimizer_uninstall() {
 		echo "📄 Deleting kruize-optimizer deployment using kustomize overlay: ${OVERLAY}"
 		kubectl delete -k "deployment/overlays/${OVERLAY}" --ignore-not-found=true >> "${LOG_FILE}" 2>&1
 		echo "✅ kruize-optimizer uninstallation complete!"
+		
+		popd > /dev/null
 	else
-		echo "⚠️  kruize-optimizer directory not found, skipping..."
+		echo "⚠️  kruize-optimizer directory not found at ${optimizer_dir}, skipping..."
 	fi
 }
 
@@ -1778,29 +1772,20 @@ function kruize_optimizer_install() {
 	echo
 	echo "🔄 Installing kruize-optimizer"
 	
-	# Determine the correct base directory for kruize-optimizer
-	# Try local_monitoring_dir if set, otherwise use SCRIPT_DIR, otherwise use current_dir
-	local optimizer_base_dir=""
-	if [ -n "${local_monitoring_dir}" ]; then
-		optimizer_base_dir="${local_monitoring_dir}"
-	elif [ -n "${SCRIPT_DIR}" ]; then
-		optimizer_base_dir="${SCRIPT_DIR}"
-	elif [ -n "${current_dir}" ]; then
-		optimizer_base_dir="${current_dir}"
-	else
-		echo "ERROR: Unable to determine base directory for kruize-optimizer"
-		return 1
-	fi
+	# kruize-optimizer is always installed in optimizer_demo directory
+	local optimizer_demo_dir="${local_monitoring_dir}/optimizer_demo"
+	local optimizer_dir="${optimizer_demo_dir}/kruize-optimizer"
 	
 	# Clone kruize-optimizer repo if not present
-	if [ ! -d "${optimizer_base_dir}/kruize-optimizer" ]; then
+	if [ ! -d "${optimizer_dir}" ]; then
 		echo "📥 Cloning kruize-optimizer repository (mvp_demo branch)..."
-		cd ${optimizer_base_dir}
+		pushd ${optimizer_demo_dir} > /dev/null
 		git clone -b mvp_demo https://github.com/kruize/kruize-optimizer.git >> "${LOG_FILE}" 2>&1
 		check_err "ERROR: Failed to clone kruize-optimizer repository"
+		popd > /dev/null
 	fi
 	
-	cd ${optimizer_base_dir}/kruize-optimizer
+	pushd ${optimizer_dir} > /dev/null
 	
 	# Update optimizer image if custom image is provided
 	if [ -n "${KRUIZE_OPTIMIZER_IMAGE}" ]; then
@@ -1830,6 +1815,8 @@ function kruize_optimizer_install() {
 	
 	echo "✅ kruize-optimizer installation complete!"
 	sleep 5
+	
+	popd > /dev/null
 }
 
 
