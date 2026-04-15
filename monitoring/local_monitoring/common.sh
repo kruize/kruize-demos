@@ -1742,8 +1742,19 @@ function optimizer_demo_terminate() {
 function kruize_optimizer_uninstall() {
 	echo "🔄 Uninstalling kruize-optimizer"
 	
-	if [ -d "${local_monitoring_dir}/kruize-optimizer" ]; then
-		cd ${local_monitoring_dir}/kruize-optimizer
+	# Determine the correct path to kruize-optimizer directory
+	# Try local_monitoring_dir if set, otherwise use SCRIPT_DIR, otherwise use current_dir
+	local optimizer_base_dir=""
+	if [ -n "${local_monitoring_dir}" ] && [ -d "${local_monitoring_dir}/kruize-optimizer" ]; then
+		optimizer_base_dir="${local_monitoring_dir}"
+	elif [ -n "${SCRIPT_DIR}" ] && [ -d "${SCRIPT_DIR}/kruize-optimizer" ]; then
+		optimizer_base_dir="${SCRIPT_DIR}"
+	elif [ -n "${current_dir}" ] && [ -d "${current_dir}/kruize-optimizer" ]; then
+		optimizer_base_dir="${current_dir}"
+	fi
+	
+	if [ -n "${optimizer_base_dir}" ]; then
+		cd ${optimizer_base_dir}/kruize-optimizer
 		
 		# Determine which overlay to use based on cluster type
 		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
@@ -1767,15 +1778,29 @@ function kruize_optimizer_install() {
 	echo
 	echo "🔄 Installing kruize-optimizer"
 	
+	# Determine the correct base directory for kruize-optimizer
+	# Try local_monitoring_dir if set, otherwise use SCRIPT_DIR, otherwise use current_dir
+	local optimizer_base_dir=""
+	if [ -n "${local_monitoring_dir}" ]; then
+		optimizer_base_dir="${local_monitoring_dir}"
+	elif [ -n "${SCRIPT_DIR}" ]; then
+		optimizer_base_dir="${SCRIPT_DIR}"
+	elif [ -n "${current_dir}" ]; then
+		optimizer_base_dir="${current_dir}"
+	else
+		echo "ERROR: Unable to determine base directory for kruize-optimizer"
+		return 1
+	fi
+	
 	# Clone kruize-optimizer repo if not present
-	if [ ! -d "${local_monitoring_dir}/kruize-optimizer" ]; then
+	if [ ! -d "${optimizer_base_dir}/kruize-optimizer" ]; then
 		echo "📥 Cloning kruize-optimizer repository (mvp_demo branch)..."
-		cd ${local_monitoring_dir}
+		cd ${optimizer_base_dir}
 		git clone -b mvp_demo https://github.com/kruize/kruize-optimizer.git >> "${LOG_FILE}" 2>&1
 		check_err "ERROR: Failed to clone kruize-optimizer repository"
 	fi
 	
-	cd ${local_monitoring_dir}/kruize-optimizer
+	cd ${optimizer_base_dir}/kruize-optimizer
 	
 	# Update optimizer image if custom image is provided
 	if [ -n "${KRUIZE_OPTIMIZER_IMAGE}" ]; then
