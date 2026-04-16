@@ -691,6 +691,18 @@ function port_forward() {
 	port_flag="false"
 
 	{
+	# Check and kill any existing port-forwards before establishing new ones
+	kill_service_port_forward "kruize"
+	kill_service_port_forward "kruize-ui-nginx-service"
+	
+	if [[ "${benchmark}" == "tfb" ]]; then
+		kill_service_port_forward "tfb-qrh-service"
+	fi
+	
+	# Also kill petclinic port-forward if it exists
+	if [ -n "${PETCLINIC_PORT}" ]; then
+		kill_service_port_forward "petclinic-service"
+	fi
 	
 	# enable port forwarding to access the endpoints since 'Kind' doesn't expose external IPs
 	# Start port forwarding for kruize service in the background
