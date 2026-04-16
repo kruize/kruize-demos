@@ -17,6 +17,7 @@
 
 # include the common_utils.sh script to access methods
 current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+local_monitoring_dir="${current_dir}"
 common_dir="${current_dir}/../../common/"
 source ${common_dir}common_helper.sh
 source ${current_dir}/common.sh
