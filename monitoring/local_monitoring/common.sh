@@ -446,6 +446,8 @@ function kruize_local_demo_setup() {
 
 	operator_exists=false
 	kruize_exists=false
+	optimizer_exists=false
+	
 
 	# Only check for existing deployments if cluster is accessible
 	if [ "$cluster_accessible" = true ]; then
@@ -462,9 +464,12 @@ function kruize_local_demo_setup() {
 		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
 			kruize_exists=true
 		fi
+		if [[ ! "$optimizer_pods" =~ "NotFound" ]] && [[ ! "$optimizer_pods" =~ "No resources" ]]; then
+			optimizer_exists=true
+		fi
 	fi
 	
-	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ]; then
+	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ] || [ "$optimizer_exists" = true ]; then
 		echo " Found!"
 		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
 		{
@@ -492,6 +497,10 @@ function kruize_local_demo_setup() {
 			fi
 			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
 				kruize_uninstall
+				
+			fi
+			if [[ ! "$optimizer_pods_after" =~ "NotFound" ]] && [[ ! "$optimizer_pods_after" =~ "No resources" ]] && [[ ! "$optimizer_pods_after" =~ "Error" ]]; then
+				kruize_optimizer_uninstall
 			fi
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Cleanup complete!"
@@ -627,13 +636,16 @@ function kruize_local_demo_setup() {
 	}
 	fi
 
-	echo -n "🔄 Installing metric profile..."
-	kruize_local_metric_profile
-	echo "✅ Installation of metric profile complete!"
+	# Skip metric and metadata profile installation in operator mode
+	if [[ "${kruize_operator}" -eq 0 ]]; then
+		echo -n "🔄 Installing metric profile..."
+		kruize_local_metric_profile
+		echo "✅ Installation of metric profile complete!"
 
-	echo -n "🔄 Installing metadata profile..."
-	kruize_local_metadata_profile
-	echo "✅ Installation of metadata profile complete!"
+		echo -n "🔄 Installing metadata profile..."
+		kruize_local_metadata_profile
+		echo "✅ Installation of metadata profile complete!"
+	fi
 
 	if [ ${demo} == "local" ]; then
 		echo -n "🔄 Collecting metadata..."
@@ -760,6 +772,10 @@ function operator_setup() {
 		sed -i -E 's#^([[:space:]]*)autotune_ui_image:.*#\1autotune_ui_image: "'"${KRUIZE_UI_DOCKER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 	fi
 
+	if [ -n "${KRUIZE_OPTIMIZER_IMAGE}" ]; then
+		sed -i -E 's#^([[:space:]]*)optimizer_image:.*#\1optimizer_image: "'"${KRUIZE_OPTIMIZER_IMAGE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+	fi
+
 	sed -i -E 's#^([[:space:]]*)cluster_type:.*#\1cluster_type: "'"${CLUSTER_TYPE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
 
 	sed -i -E 's#^([[:space:]]*)namespace:.*#\1namespace: "'"${NAMESPACE}"'"#' "./kruize-operator/config/samples/v1alpha1_kruize.yaml"
@@ -828,12 +844,20 @@ function operator_setup() {
 	fi
 
 	kubectl wait --for=condition=Ready pod -l app=kruize -n $NAMESPACE --timeout=600s
-    	if [ $? -ne 0 ]; then
-        	echo "❌ Kruize pod failed to become ready"
-        	kubectl get pods -n $NAMESPACE
-        	kubectl describe pod -l app=kruize -n $NAMESPACE
-        	exit 1
-    	fi
+	   	if [ $? -ne 0 ]; then
+	       	echo "❌ Kruize pod failed to become ready"
+	       	kubectl get pods -n $NAMESPACE
+	       	kubectl describe pod -l app=kruize -n $NAMESPACE
+	       	exit 1
+	   	fi
+
+	kubectl wait --for=condition=Ready pod -l app=kruize-optimizer -n $NAMESPACE --timeout=600s
+		if [ $? -ne 0 ]; then
+			echo "❌ Kruize-optimizer pod failed to become ready"
+			kubectl get pods -n $NAMESPACE
+			kubectl describe pod -l app=kruize-optimizer -n $NAMESPACE
+			exit 1
+		fi
 
 	echo "⏳ Waiting for kruize-ui pod to be ready..."
 	# First wait for pod to exist
@@ -1195,10 +1219,16 @@ function check_go_prerequisite() {
 	fi
 }
 
+
 # Patch to remove resources config from CR for minikube/kind clusters
 function remove_optional_cr_resource_blocks() {
 
   local CR_FILE="${current_dir}/kruize-operator/config/samples/v1alpha1_kruize.yaml"
+  
+  # updating the path for optimizer demo (minikube/kind)
+  if [ -f "./kruize-operator/config/samples/v1alpha1_kruize.yaml" ]; then
+    CR_FILE="./kruize-operator/config/samples/v1alpha1_kruize.yaml"
+  fi
 
   if [ ! -f "${CR_FILE}" ]; then
     echo "Warning: CR file ${CR_FILE} not found, skipping cleanup"
@@ -1228,3 +1258,565 @@ function remove_optional_cr_resource_blocks() {
     !skip { print }
   ' "${CR_FILE}" > "${CR_FILE}.tmp" && mv "${CR_FILE}.tmp" "${CR_FILE}"
 }
+
+
+###########################################
+# Optimizer Demo Setup
+###########################################
+function optimizer_demo_setup() {
+	bench=$1
+	kruize_operator=$2
+	
+	# Start all the installs
+	start_time=$(get_date)
+	echo | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo "# Kruize Optimizer Demo Setup on ${CLUSTER_TYPE} " | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo
+
+	# Clone repos first if not already present (needed for cleanup functions)
+	if [ ! -d "${local_monitoring_dir}/autotune" ]; then
+		echo -n "🔄 Pulling required repositories... "
+		{
+			cd ${local_monitoring_dir}
+			clone_repos autotune
+			clone_repos benchmarks
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Done!"
+	fi
+
+	# Check for both operator and kruize deployments
+	echo -n "🔍 Checking if Kruize deployment is running..."
+	
+	# First check if cluster is accessible with timeout
+	cluster_accessible=false
+	if timeout 5 kubectl cluster-info &>/dev/null; then
+		cluster_accessible=true
+	fi
+	operator_exists=false
+	kruize_exists=false
+	optimizer_exists=false
+
+	# Only check for existing deployments if cluster is accessible
+	if [ "$cluster_accessible" = true ]; then
+		# Check for operator deployment
+		operator_deployment=$(kubectl get deployment kruize-operator -n ${NAMESPACE} 2>&1)
+
+		# Check for kruize pods
+		kruize_pods=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+		optimizer_pods=$(kubectl get pod -l app=kruize-optimizer -n ${NAMESPACE} 2>&1)
+
+		if [[ ! "$operator_deployment" =~ "NotFound" ]] && [[ ! "$operator_deployment" =~ "No resources" ]]; then
+			operator_exists=true
+		fi
+
+		if [[ ! "$kruize_pods" =~ "NotFound" ]] && [[ ! "$kruize_pods" =~ "No resources" ]]; then
+			kruize_exists=true
+		fi
+		if [[ ! "$optimizer_pods" =~ "NotFound" ]] && [[ ! "$optimizer_pods" =~ "No resources" ]]; then
+			optimizer_exists=true
+		fi
+	fi
+	
+	if [ "$operator_exists" = true ] || [ "$kruize_exists" = true ] || [ "$optimizer_exists" = true ]; then
+		echo " Found!"
+		echo -n "🔄 Cleaning up existing Kruize deployment (including database)..."
+		{
+		  	# Kill existing port-forwards before cleanup (only for kind cluster)
+	   		if [ ${CLUSTER_TYPE} == "kind" ]; then
+				kill_service_port_forward "kruize"
+				kill_service_port_forward "kruize-ui-nginx-service"
+	   		fi
+
+			# Run operator cleanup if operator exists
+			if [ "$operator_exists" = true ]; then
+				kruize_operator_cleanup $NAMESPACE
+			fi
+			
+			# Check if kruize pods still exist and call kruize_uninstall if needed (only if cluster is accessible)
+			if [ "$cluster_accessible" = true ]; then
+				kruize_pods_after=$(kubectl get pod -l app=kruize -n ${NAMESPACE} 2>&1)
+				optimizer_pods_after=$(kubectl get pod -l app=kruize-optimizer -n ${NAMESPACE} 2>&1)
+			else
+				kruize_pods_after="Error: cluster not accessible"
+				optimizer_pods_after="Error: cluster not accessible"
+			fi
+			if [[ ! "$kruize_pods_after" =~ "NotFound" ]] && [[ ! "$kruize_pods_after" =~ "No resources" ]] && [[ ! "$kruize_pods_after" =~ "Error" ]]; then
+				kruize_uninstall
+			fi
+			if [[ ! "$optimizer_pods_after" =~ "NotFound" ]] && [[ ! "$optimizer_pods_after" =~ "No resources" ]] && [[ ! "$optimizer_pods_after" =~ "Error" ]]; then
+				kruize_optimizer_uninstall
+			fi
+		} >> "${LOG_FILE}" 2>&1
+		echo "✅ Cleanup complete!"
+		
+		# Wait for cleanup to complete and resources to be fully removed
+		echo -n "⏳ Waiting for resources to be fully removed..."
+		sleep 10
+		echo " Done!"
+	else
+		echo " Not running."
+	fi
+
+	if [[ ${env_setup} -eq 1 ]]; then
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			echo -n "🔄 Installing minikube and prometheus! Please wait..."
+			check_minikube
+			minikube >/dev/null
+			check_err "ERROR: minikube not installed"
+			minikube_start
+			cd ${local_monitoring_dir}
+			prometheus_install autotune
+			echo "✅ Installation of minikube and prometheus complete!"
+		elif [ ${CLUSTER_TYPE} == "kind" ]; then
+			echo -n "🔄 Installing kind and prometheus! Please wait..."
+			check_kind
+			kind >/dev/null
+			check_err "ERROR: kind not installed"
+			kind_start
+			cd ${local_monitoring_dir}
+			prometheus_install
+			echo "✅ Installation of kind and prometheus complete!"
+		fi
+	elif [[ ${env_setup} -eq 0 ]]; then
+		if [ ${CLUSTER_TYPE} == "minikube" ]; then
+			echo -n "🔄 Checking if minikube exists..."
+			check_minikube
+			minikube >/dev/null 2>&1
+			check_err "ERROR: minikube is not available. Please install and try again!"
+			echo "✅ minikube exists!"
+			echo -n "🔄 Checking if minikube cluster is running..."
+			minikube status >/dev/null 2>&1
+			check_err "ERROR: minikube cluster is not running. Please start minikube and try again!"
+			echo "✅ minikube cluster is running!"
+		elif [ ${CLUSTER_TYPE} == "kind" ]; then
+			echo -n "🔄 Checking if kind exists..."
+			check_kind
+			kind >/dev/null 2>&1
+			check_err "ERROR: kind is not available. Please install and try again!"
+			echo "✅ kind exists!"
+			echo -n "🔄 Checking if a kind cluster is available..."
+			if ! kind get clusters >/dev/null 2>&1; then
+				echo
+				echo "ERROR: No kind clusters found. Please create/start a kind cluster and try again!"
+				exit 1
+			fi
+			echo "✅ kind cluster is available!"
+		fi
+	fi
+
+	# Install sysbench benchmark
+	echo -n "🔄 Installing sysbench benchmark (Workload labeled: kruize/autotune=enabled)..."
+	cd ${local_monitoring_dir}
+	create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
+	# Clean up any existing sysbench deployment
+	echo "Cleaning up any old sysbench deployment..." >> "${LOG_FILE}" 2>&1
+	kubectl delete deployment sysbench -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+	
+	benchmarks_install ${APP_NAMESPACE} ${bench} "kruize-demos" >> "${LOG_FILE}" 2>&1
+	echo "✅ Completed!"
+
+	# Add label to sysbench deployment for auto-experiment creation
+	sysbench_label="kruize/autotune=enabled"
+	if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
+		# Label the deployment so all pods get the label
+		kubectl label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
+		echo -n "🔄 Enabling kube state metrics labels..." >> "${LOG_FILE}" 2>&1
+		cd ${local_monitoring_dir}
+		./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
+		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
+	else
+		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
+		# Label the deployment so all pods get the label
+		oc label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
+		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
+		echo -n "🔄 Enabling user workload monitoring..." >> "${LOG_FILE}" 2>&1
+		cd ${local_monitoring_dir}
+		./autotune/scripts/enable_user_workload_monitoring_openshift.sh >> "${LOG_FILE}" 2>&1
+		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
+	fi
+	echo "" >> "${LOG_FILE}" 2>&1
+
+	# Install TFB benchmark if BENCHMARK2 is set
+	if [ ! -z "${BENCHMARK2}" ]; then
+		echo -n "🔄 Installing TFB benchmark (Workload labeled: kruize/autotune=enabled)..."
+		cd ${local_monitoring_dir}
+		# Clean up any existing tfb deployment and load jobs
+		echo "Cleaning up any old TFB deployment and load jobs..." >> "${LOG_FILE}" 2>&1
+		kubectl delete deployment tfb-qrh-sample -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete deployment tfb-qrh-sample-db -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete service tfb-qrh-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete service tfb-database-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		kubectl delete job tfb-qrh-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		
+		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK2} "kruize-demos" >> "${LOG_FILE}" 2>&1
+		echo "✅ Completed!"
+
+		# Add label to tfb deployment for auto-experiment creation
+		tfb_label="kruize/autotune=enabled"
+		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
+			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
+			# Label the deployment so all pods get the label
+			kubectl label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
+		else
+			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
+			# Label the deployment so all pods get the label
+			oc label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
+			echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
+		fi
+		echo "" >> "${LOG_FILE}" 2>&1
+	fi
+
+	cd ${local_monitoring_dir}
+	kruize_local_patch >> "${LOG_FILE}" 2>&1
+
+	echo -n "🔄 Installing Kruize! Please wait..."
+
+	kruize_start_time=$(get_date)
+
+	if [[ "${kruize_operator}" -eq 1 ]]; then
+		operator_setup >> "${LOG_FILE}" 2>&1 &
+		install_pid=$!
+	else
+		( 
+      		kruize_install >> "${LOG_FILE}" 2>&1 
+      		# Explicitly exit the subshell to stop waiting for children
+      		exit 
+    	) &
+    	install_pid=$!
+	fi
+
+	while kill -0 $install_pid 2>/dev/null;
+  	do
+		echo -n "."
+		sleep 5
+	done
+
+	wait $install_pid
+
+	status=$?
+	if [ ${status} -ne 0 ]; then
+		#echo "For detailed logs, look in ${LOG_FILE}"
+		exit 1
+	fi
+
+	kruize_end_time=$(get_date)
+	
+	echo " ✅ Kruize Installation Done & Ready!"
+	
+	# Install optimizer if not using operator
+	if [[ "${kruize_operator}" -eq 0 ]]; then
+		echo -n "🔄 Installing Optimizer! Please wait..."
+		kruize_optimizer_install >> "${LOG_FILE}" 2>&1 &
+		wait
+		echo " ✅ Optimizer Installation Done & Ready!"
+	fi
+	
+	# Check if kruize-optimizer pod is running
+	echo -n "🔄 Verifying kruize-optimizer pod status..." >> "${LOG_FILE}" 2>&1
+	max_attempts=12
+	attempt=0
+	while [ $attempt -lt $max_attempts ]; do
+		if kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer --no-headers 2>/dev/null | grep -q "Running"; then
+			echo " ✅ Optimizer is Running!" >> "${LOG_FILE}" 2>&1
+			break
+		fi
+		if [ $attempt -eq $((max_attempts - 1)) ]; then
+			echo " ❌ Failed!"
+			echo "Kruize-optimizer pod is not running. Check logs for details."
+			kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer
+			exit 1
+		fi
+		echo -n "."
+		sleep 5
+		attempt=$((attempt + 1))
+	done
+	
+	echo "✅ Kruize installation complete!" >> "${LOG_FILE}" 2>&1
+
+	# Get the Kruize URL
+	cd ${local_monitoring_dir}
+	get_urls ${BENCHMARK2} ${KRUIZE_OPERATOR}
+	
+	# Port forward the URLs in case of kind
+	if [ ${CLUSTER_TYPE} == "kind" ]; then
+		port_forward "${BENCHMARK2}"
+	fi
+	
+	echo "✅ Kruize is available at http://${KRUIZE_URL}" >> "${LOG_FILE}" 2>&1
+
+	echo -n "⏳ Waiting for optimizer to create experiments (90s) ..."
+	sleep 90
+	echo " ✅ Done!"
+
+	# Get all experiments and find the ones we're looking for
+	echo >> "${LOG_FILE}" 2>&1
+	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	echo "#     Checking for Experiments" >> "${LOG_FILE}" 2>&1
+	echo "######################################################" >> "${LOG_FILE}" 2>&1
+	
+	# Get all experiments
+	all_experiments=$(curl -s "http://${KRUIZE_URL}/listExperiments")
+	
+	# Find sysbench experiment
+	EXPECTED_EXPS=()
+	sysbench_exp=$(echo "$all_experiments" | jq -r '.[] | select(.kubernetes_objects[0].name == "sysbench") | .experiment_name' 2>/dev/null | head -1)
+	if [ ! -z "$sysbench_exp" ]; then
+		EXPECTED_EXPS+=("$sysbench_exp")
+	fi
+	
+	# Find TFB experiment if BENCHMARK2 is set
+	if [ ! -z "${BENCHMARK2}" ]; then
+		tfb_exp=$(echo "$all_experiments" | jq -r '.[] | select(.kubernetes_objects[0].name == "tfb-qrh-sample") | .experiment_name' 2>/dev/null | head -1)
+		if [ ! -z "$tfb_exp" ]; then
+			EXPECTED_EXPS+=("$tfb_exp")
+		fi
+	fi
+	
+	echo
+	echo " Monitored Workloads:"
+	
+	exp_counter=1
+	norecommendations=0
+	for EXPECTED_EXP in "${EXPECTED_EXPS[@]}"; do
+		echo -n "🔍 Looking for experiment: ${EXPECTED_EXP}..."  >> "${LOG_FILE}" 2>&1
+		
+		experiment_check=$(curl -s -G "http://${KRUIZE_URL}/listExperiments" --data-urlencode "experiment_name=${EXPECTED_EXP}")
+		
+		{
+			echo
+			echo "curl http://${KRUIZE_URL}/listExperiments?experiment_name=${EXPECTED_EXP}"
+			echo $experiment_check | jq '.'
+		} >> "${LOG_FILE}" 2>&1
+		
+		if echo "$experiment_check" | jq -e '.[0].experiment_name' > /dev/null 2>&1; then
+			echo " ✅ Found!" >> "${LOG_FILE}" 2>&1
+			
+			# Parse experiment name to extract details
+			# Format: prometheus-1|default|default|sysbench(deployment)|sysbench
+			IFS='|' read -ra EXP_PARTS <<< "${EXPECTED_EXP}"
+			
+			# Extract workload name and type from the 4th part (e.g., "sysbench(deployment)")
+			WORKLOAD_PART="${EXP_PARTS[3]}"
+			WORKLOAD_NAME="${WORKLOAD_PART%(*}"
+			WORKLOAD_TYPE="${WORKLOAD_PART#*(}"
+			WORKLOAD_TYPE="${WORKLOAD_TYPE%)}"
+			
+			echo "📋 Experiment ${exp_counter}: ${WORKLOAD_NAME}"
+			echo "• Name:      ${EXPECTED_EXP}"
+			echo "• Type:      ${WORKLOAD_TYPE}"
+			echo "• Namespace: ${EXP_PARTS[2]}"
+			echo "• Container: ${EXP_PARTS[4]}"
+			
+			# List recommendations
+			echo >> "${LOG_FILE}" 2>&1
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo "#     Listing Recommendations for ${EXPECTED_EXP}" >> "${LOG_FILE}" 2>&1
+			echo "######################################################" >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Listing recommendations for ${EXPECTED_EXP}...\n" >> "${LOG_FILE}" 2>&1
+			
+			recommendations=$(curl -s -G "http://${KRUIZE_URL}/listRecommendations" --data-urlencode "experiment_name=${EXPECTED_EXP}")
+			
+			# Log full response to log file
+			{
+				echo
+				echo "curl http://${KRUIZE_URL}/listRecommendations?experiment_name=${EXPECTED_EXP}"
+				echo $recommendations | jq '.'
+			} >> "${LOG_FILE}" 2>&1
+			
+			# Save recommendations to JSON file in optimizer_demo directory
+			# Create filename: container_<workload_name>_<type>_<containername>_optimizer_recommendation
+			CONTAINER_NAME="${EXP_PARTS[4]}"
+			SANITIZED_NAME="container_${WORKLOAD_NAME}_${WORKLOAD_TYPE}_${CONTAINER_NAME}"
+			RECOMMENDATION_FILE="${local_monitoring_dir}/optimizer_demo/${SANITIZED_NAME}_optimizer_recommendation.json"
+			echo $recommendations | jq '.' > "${RECOMMENDATION_FILE}" 2>/dev/null
+			
+			# Check if recommendations are available and inform user
+			if echo "$recommendations" | grep -q "Recommendations Are Available"; then
+				echo "📊 Status: ✅ RECOMMENDATIONS AVAILABLE"
+				echo "ℹ️  Recommendations saved to: ${RECOMMENDATION_FILE}"
+				echo "ℹ️  Recommendations also logged to: ${LOG_FILE}"
+			else
+				echo "📊 Status: ⚠️ NO RECOMMENDATIONS YET"
+				norecommendations=1
+			fi
+			echo
+			
+			exp_counter=$((exp_counter + 1))
+		else
+			echo " ⚠️  Not found!" >> "${LOG_FILE}" 2>&1
+			echo
+			echo "⚠️  Expected experiment ${EXPECTED_EXP} not found."
+			echo
+		fi
+	done
+
+	if [[ ${norecommendations} == 1 ]]; then
+		echo "🔔 ATLEAST TWO DATAPOINTS ARE REQUIRED TO GENERATE RECOMMENDATIONS!"
+		echo "🔔 PLEASE WAIT FOR FEW MINS AND GENERATE THE RECOMMENDATIONS AGAIN."
+		echo
+	fi
+
+	echo "######################################################"
+	echo
+
+	cd ${local_monitoring_dir}
+	show_urls ${bench}
+
+	end_time=$(get_date)
+	kruize_elapsed_time=$(time_diff "${kruize_start_time}" "${kruize_end_time}")
+	elapsed_time=$(time_diff "${start_time}" "${end_time}")
+	echo "🛠️ Kruize installation took ${kruize_elapsed_time} seconds"
+	echo "🕒 Success! Kruize optimizer demo setup took ${elapsed_time} seconds"
+	echo
+	echo "📝 Note: This demo installs Kruize optimizer and sysbench, tfb workload with labels."
+	echo "📝 Experiments are auto-created by the optimizer for labelled workloads, use label - kruize/autotune=enabled."
+	echo "📝 Use the listExperiments API or Kruize UI to see created experiments."
+}
+
+###########################################
+# Optimizer Demo Terminate
+###########################################
+function optimizer_demo_terminate() {
+	kruize_operator=$1
+	start_time=$(get_date)
+	echo | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo "#  Kruize Optimizer Demo Terminate on ${CLUSTER_TYPE} #" | tee -a "${LOG_FILE}"
+	echo "#######################################" | tee -a "${LOG_FILE}"
+	echo | tee -a "${LOG_FILE}"
+	echo "Clean up in progress..."
+
+	cd ${local_monitoring_dir}
+
+	if [[ "${kruize_operator}" -eq 1 ]]; then
+		kruize_operator_cleanup $NAMESPACE >> "${LOG_FILE}" 2>&1
+	fi
+
+	kruize_uninstall >> "${LOG_FILE}" 2>&1
+	
+	# Uninstall kruize-optimizer
+	kruize_optimizer_uninstall >> "${LOG_FILE}" 2>&1
+
+	# Check if cluster is accessible before running kubectl commands with timeout
+	if timeout 5 kubectl cluster-info &>/dev/null; then
+		if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "sysbench"; then
+			benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+		fi
+		if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
+			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+			kill_service_port_forward "tfb-qrh-service"
+		fi
+	fi
+	
+	if [[ ${APP_NAMESPACE} != "default" ]]; then
+		delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
+	fi
+
+	if [ ${CLUSTER_TYPE} == "minikube" ]; then
+		minikube_delete >> "${LOG_FILE}" 2>&1
+	elif [ ${CLUSTER_TYPE} == "kind" ]; then
+		kill_service_port_forward "kruize"
+		kill_service_port_forward "kruize-ui-nginx-service"
+		kind_delete >> "${LOG_FILE}" 2>&1
+	fi
+
+	{
+		delete_repos autotune
+		delete_repos "benchmarks"
+		delete_repos "kruize-operator"
+		delete_repos "kruize-optimizer"
+	} >> "${LOG_FILE}" 2>&1
+	
+	end_time=$(get_date)
+	elapsed_time=$(time_diff "${start_time}" "${end_time}")
+	echo "🕒 Success! Kruize optimizer demo cleanup took ${elapsed_time} seconds"
+}
+
+###########################################
+# Uninstall kruize-optimizer
+###########################################
+function kruize_optimizer_uninstall() {
+	echo "🔄 Uninstalling kruize-optimizer"
+	
+	# kruize-optimizer is always installed in optimizer_demo directory
+	local optimizer_dir="${local_monitoring_dir}/optimizer_demo/kruize-optimizer"
+	
+	if [ -d "${optimizer_dir}" ]; then
+		pushd ${optimizer_dir} > /dev/null
+		
+		# Determine which overlay to use based on cluster type
+		if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+			OVERLAY="openshift"
+		else
+			OVERLAY="kind"
+		fi
+		
+		echo "📄 Deleting kruize-optimizer deployment using kustomize overlay: ${OVERLAY}"
+		kubectl delete -k "deployment/overlays/${OVERLAY}" --ignore-not-found=true >> "${LOG_FILE}" 2>&1
+		echo "✅ kruize-optimizer uninstallation complete!"
+		
+		popd > /dev/null
+	else
+		echo "⚠️  kruize-optimizer directory not found at ${optimizer_dir}, skipping..."
+	fi
+}
+
+###########################################
+# Install kruize-optimizer
+###########################################
+function kruize_optimizer_install() {
+	echo
+	echo "🔄 Installing kruize-optimizer"
+	
+	# kruize-optimizer is always installed in optimizer_demo directory
+	local optimizer_demo_dir="${local_monitoring_dir}/optimizer_demo"
+	local optimizer_dir="${optimizer_demo_dir}/kruize-optimizer"
+	
+	# Clone kruize-optimizer repo if not present
+	if [ ! -d "${optimizer_dir}" ]; then
+		echo "📥 Cloning kruize-optimizer repository (mvp_demo branch)..."
+		pushd ${optimizer_demo_dir} > /dev/null
+		git clone -b mvp_demo https://github.com/kruize/kruize-optimizer.git >> "${LOG_FILE}" 2>&1
+		check_err "ERROR: Failed to clone kruize-optimizer repository"
+		popd > /dev/null
+	fi
+	
+	pushd ${optimizer_dir} > /dev/null
+	
+	# Update optimizer image if custom image is provided
+	if [ -n "${KRUIZE_OPTIMIZER_IMAGE}" ]; then
+		echo "🔧 Updating kruize-optimizer image to: ${KRUIZE_OPTIMIZER_IMAGE}"
+		sed -i.bak "s|image: .*|image: ${KRUIZE_OPTIMIZER_IMAGE}|" deployment/base/deployment.yaml
+	fi
+	
+	# Determine which overlay to use based on cluster type
+	if [ "${CLUSTER_TYPE}" == "openshift" ]; then
+		OVERLAY="openshift"
+	else
+		OVERLAY="kind"
+	fi
+	
+	echo "📄 Applying kruize-optimizer deployment using kustomize overlay: ${OVERLAY}"
+	kubectl apply -k "deployment/overlays/${OVERLAY}" >> "${LOG_FILE}" 2>&1
+	check_err "ERROR: Failed to apply kruize-optimizer deployment"
+	
+	echo "⏳ Waiting for kruize-optimizer pod to be ready..."
+	kubectl wait --for=condition=Ready pod -l app=kruize-optimizer -n ${NAMESPACE} --timeout=300s >> "${LOG_FILE}" 2>&1
+	if [ $? -ne 0 ]; then
+		echo "❌ kruize-optimizer pod failed to become ready"
+		kubectl get pods -n ${NAMESPACE} -l app=kruize-optimizer
+		kubectl describe pod -l app=kruize-optimizer -n ${NAMESPACE}
+		exit 1
+	fi
+	
+	echo "✅ kruize-optimizer installation complete!"
+	sleep 5
+	
+	popd > /dev/null
+}
+
+
