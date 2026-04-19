@@ -25,6 +25,10 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Kruize operator deployment name constant
 OPERATOR_DEPLOYMENT_NAME="kruize-operator"
 
+# Configurable wait duration for optimizer to create experiments (in seconds)
+# TODO: Remove this workaround once BULK API filters are fixed (issue #182)
+OPTIMIZER_WAIT_DURATION="${OPTIMIZER_WAIT_DURATION:-120}"
+
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
@@ -1548,8 +1552,9 @@ function optimizer_demo_setup() {
 	
 	echo "✅ Kruize is available at http://${KRUIZE_URL}" >> "${LOG_FILE}" 2>&1
 
-	echo -n "⏳ Waiting for optimizer to create experiments (120s) ..."
-	sleep 120
+	echo -n "⏳ Waiting for optimizer to create experiments (${OPTIMIZER_WAIT_DURATION}s) ..."
+	# TODO: Reduce this sleep workaround once BULK API filters are fixed (issue #182)
+	sleep ${OPTIMIZER_WAIT_DURATION}
 	echo " ✅ Done!"
 
 	# Get all experiments and find the ones we're looking for
