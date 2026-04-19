@@ -1548,8 +1548,8 @@ function optimizer_demo_setup() {
 	
 	echo "✅ Kruize is available at http://${KRUIZE_URL}" >> "${LOG_FILE}" 2>&1
 
-	echo -n "⏳ Waiting for optimizer to create experiments (90s) ..."
-	sleep 90
+	echo -n "⏳ Waiting for optimizer to create experiments (120s) ..."
+	sleep 120
 	echo " ✅ Done!"
 
 	# Get all experiments and find the ones we're looking for
