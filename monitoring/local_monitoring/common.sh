@@ -29,6 +29,12 @@ OPERATOR_DEPLOYMENT_NAME="kruize-operator"
 # TODO: Remove this workaround once BULK API filters are fixed (issue #182)
 OPTIMIZER_WAIT_DURATION="${OPTIMIZER_WAIT_DURATION:-120}"
 
+# Validate OPTIMIZER_WAIT_DURATION to ensure it is a non-negative integer
+if ! [[ "${OPTIMIZER_WAIT_DURATION}" =~ ^[0-9]+$ ]]; then
+	echo "ERROR: OPTIMIZER_WAIT_DURATION must be a non-negative integer (seconds), got '${OPTIMIZER_WAIT_DURATION}'" >&2
+	exit 1
+fi
+
 function kruize_local_metric_profile() {
 	export DATASOURCE="prometheus-1"
 	export CLUSTER_NAME="default"
