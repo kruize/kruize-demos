@@ -51,7 +51,7 @@ function usage() {
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "o = Specify custom Kruize operator image: -o <image>. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
-	echo "r = Specify Kruize operator branch to clone: -r <branch>. Default - main"
+	echo "g = Specify Kruize operator git branch to clone: -g <branch>. Default - main"
 	echo "e = supports container, namespace and gpu"
 	echo "b = deploy the benchmark."
 	echo "m = manifests of the benchmark"
@@ -79,7 +79,7 @@ export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:klm:no:psr:tu: gopts
+while getopts bc:d:e:fg:i:klm:no:pstu: gopts
 do
 	case "${gopts}" in
 		b)
@@ -97,6 +97,9 @@ do
 			;;
 		f)
 			env_setup=1
+			;;
+		g)
+			export KRUIZE_OPERATOR_BRANCH="${OPTARG}"
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
@@ -127,10 +130,7 @@ do
 			KRUIZE_OPERATOR_IMAGE="${OPTARG}"
 			;;
 	 	k)
-      			KRUIZE_OPERATOR=0
-      			;;
-		r)
-			export KRUIZE_OPERATOR_BRANCH="${OPTARG}"
+			KRUIZE_OPERATOR=0
 			;;
 		*)
 			usage
