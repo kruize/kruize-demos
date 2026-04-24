@@ -25,6 +25,9 @@ source ${local_monitoring_dir}/common.sh
 # Default operator docker image repo
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 
+# Default operator branch
+export KRUIZE_OPERATOR_BRANCH="main"
+
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 
@@ -47,6 +50,7 @@ function usage() {
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "o = Specify custom Kruize operator image: -o <image>. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+	echo "g = Specify Kruize operator git branch to clone: -g <branch>. Default - main"
 	echo "p = Specify custom Kruize optimizer image: -p <image>. Default - quay.io/kruize/kruize-optimizer:<version as in Deployment File>"
 	echo "n = namespace of benchmark. Default - default"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
@@ -64,7 +68,7 @@ export KRUIZE_OPERATOR_IMAGE=""
 export KRUIZE_OPTIMIZER_IMAGE="quay.io/kruize/kruize-optimizer:0.0.1"
 
 # Iterate through the commandline options
-while getopts c:fi:kn:o:p:stu: gopts
+while getopts c:fg:i:kn:o:p:stu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -72,6 +76,9 @@ do
 			;;
 		f)
 			env_setup=1
+			;;
+		g)
+			export KRUIZE_OPERATOR_BRANCH="${OPTARG}"
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
