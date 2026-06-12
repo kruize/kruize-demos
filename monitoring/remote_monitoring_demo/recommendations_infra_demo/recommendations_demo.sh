@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Usage: ./recommendations_demo.sh [--api-version=v1|legacy]
+#
 
 current_dir="$(dirname "$0")"
 source ${current_dir}/../../../common/common_helper.sh
@@ -30,7 +32,7 @@ target="crc"
 visualize=0
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--summarize] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--summarize] [--visualize] [--api-version=v1|legacy]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "a = feed experiments to existing kruize deployment"
@@ -43,6 +45,11 @@ function usage() {
 	echo "summarizeNamespaces = Summarize the namespace data. Default - all namespaces. Append --namespaceName=<> for individual summary"
 	echo "validate = Validates the recommendations for a set of experiments"
 	echo "visualize = Visualize the recommendations in grafana (Yet to be implemented)"
+	echo ""
+	echo "API Version Parameter:"
+	echo "  --api-version=v1      Use NEW v1 API (/kruize/api/v1/recommendations)"
+	echo "  --api-version=legacy  Use OLD/LEGACY APIs (/updateRecommendations, /generateRecommendations)"
+	echo "  Default: legacy (if no parameter specified)"
 	exit 1
 }
 
@@ -323,6 +330,9 @@ do
 	 case ${gopts} in
          -)
                 case "${OPTARG}" in
+                        api-version=*)
+                               api_version=${OPTARG#*=}
+                               ;;
                         visualize)
                                 visualize=1
 				;;
@@ -430,6 +440,28 @@ do
 		;;
 	esac
 done
+
+# Set the API version environment variable if specified
+if [ -n "${api_version}" ]; then
+	case "${api_version}" in
+		v1|V1)
+			export USE_NEW_RECOMMENDATION_API=true
+			echo "Using NEW API (v1): /kruize/api/v1/recommendations"
+			;;
+		legacy|LEGACY|old|OLD)
+			export USE_NEW_RECOMMENDATION_API=false
+			echo "Using OLD/LEGACY APIs: /updateRecommendations, /generateRecommendations"
+			;;
+		*)
+			echo "Error: Invalid API version '${api_version}'. Valid values are: v1, legacy"
+			exit -1
+			;;
+	esac
+else
+	# Default to old/legacy API if no parameter specified
+	export USE_NEW_RECOMMENDATION_API=false
+	echo "Using default OLD/LEGACY APIs: /updateRecommendations, /generateRecommendations"
+fi
 
 #Todo
 # Options

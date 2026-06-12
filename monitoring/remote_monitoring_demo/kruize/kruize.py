@@ -27,6 +27,11 @@ from .json_validate import validate_exp_input_json
 URL = ""
 KRUIZE_UI_URL = ""
 
+# Environment variable to control which API to use
+# Set USE_NEW_RECOMMENDATION_API=true to use new v1 API
+# Set USE_NEW_RECOMMENDATION_API=false to use old APIs (default)
+USE_NEW_API = os.getenv('USE_NEW_RECOMMENDATION_API', 'false').lower() == 'true'
+
 def get_pod_name(label_selector, namespace):
     result = subprocess.run(
         [
@@ -182,11 +187,26 @@ def update_results(result_json_file):
 
 
 def update_recommendations(name, edate):
-    print("\nUpdating the Recommendations...")
-    url = URL + "/updateRecommendations?experiment_name=%s&interval_end_time=%s" % (name, edate)
-    print("URL = ", url)
-
-    response = requests.post(url, )
+    if USE_NEW_API:
+        print("[Using NEW API: /kruize/api/v1/recommendations]")
+        print("\nGenerating the recommendation for %s with interval_end_time: %s..." % (name, edate))
+        
+        queryString = "?"
+        if name:
+            queryString += "experiment_name=%s" % name
+        if edate:
+            queryString += "&interval_end_time=%s" % edate
+        
+        url = URL + "/kruize/api/v1/recommendations%s" % queryString
+        print("URL = ", url)
+        response = requests.post(url)
+    else:
+        print("[Using OLD API: /updateRecommendations]")
+        print("\nUpdating the Recommendations...")
+        url = URL + "/updateRecommendations?experiment_name=%s&interval_end_time=%s" % (name, edate)
+        print("URL = ", url)
+        response = requests.post(url)
+    
     print("Response status code = ", response.status_code)
     # print(response.text)
     return response
@@ -195,15 +215,27 @@ def update_recommendations(name, edate):
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
 def list_recommendations(experiment_name, rm=False):
-    print("\nListing the recommendations...")
-    url = URL + "/listRecommendations"
-    if rm:
-        url += "?rm=true"
-    print("URL = ", url)
-    print("KRUIZE UI URL = ", KRUIZE_UI_URL)
-
-    PARAMS = {'experiment_name': experiment_name}
-    response = requests.get(url=url, params=PARAMS)
+    if USE_NEW_API:
+        print("[Using NEW API: /kruize/api/v1/recommendations]")
+        print("\nListing the recommendations...")
+        url = URL + "/kruize/api/v1/recommendations"
+        print("URL = ", url)
+        print("KRUIZE UI URL = ", KRUIZE_UI_URL)
+        
+        PARAMS = {'experiment_name': experiment_name}
+        response = requests.get(url=url, params=PARAMS)
+    else:
+        print("[Using OLD API: /listRecommendations]")
+        print("\nListing the recommendations...")
+        url = URL + "/listRecommendations"
+        if rm:
+            url += "?rm=true"
+        print("URL = ", url)
+        print("KRUIZE UI URL = ", KRUIZE_UI_URL)
+        
+        PARAMS = {'experiment_name': experiment_name}
+        response = requests.get(url=url, params=PARAMS)
+    
     print("Response status code = ", response.status_code)
 
     return response.json()
