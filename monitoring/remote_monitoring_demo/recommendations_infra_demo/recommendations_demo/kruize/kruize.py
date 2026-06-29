@@ -22,6 +22,11 @@ import os
 import time
 import shutil
 
+# Environment variable to control which API to use
+# Set USE_NEW_RECOMMENDATION_API=true to use new v1 API
+# Set USE_NEW_RECOMMENDATION_API=false to use old APIs (default)
+USE_NEW_API = os.getenv('USE_NEW_RECOMMENDATION_API', 'false').lower() == 'true'
+
 
 def form_kruize_url(cluster_type):
     global URL
@@ -96,7 +101,7 @@ def update_results(result_json_file):
 # Input Parameters: experiment_name , interval_end time
 def update_recommendations(experiment_name, end_time=None):
     print("\nUpdating the Recommendations...")
-    url = URL + "/updateRecommendations"
+    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/updateRecommendations")
     if end_time is not None:
         PARAMS = {'experiment_name':experiment_name,'interval_end_time':end_time}
     else:
@@ -111,7 +116,7 @@ def update_recommendations(experiment_name, end_time=None):
 # Input Parameters: experiment name
 def list_recommendations(experiment_name,rm=False):
     print("\nListing the recommendations...")
-    url = URL + "/listRecommendations"
+    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/listRecommendations")
     if rm:
         url += "?rm=true"
     PARAMS = {'experiment_name': experiment_name}

@@ -315,6 +315,8 @@ function monitoring_demo_cleanup() {
 	echo
 }
 
+# Set the API version environment variable if specified
+declare -l api_version
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
 cluster_monitoring_setup=1
@@ -441,26 +443,10 @@ do
 	esac
 done
 
-# Set the API version environment variable if specified
-if [ -n "${api_version}" ]; then
-	case "${api_version}" in
-		v1|V1)
-			export USE_NEW_RECOMMENDATION_API=true
-			echo "Using NEW API (v1): /kruize/api/v1/recommendations"
-			;;
-		legacy|LEGACY|old|OLD)
-			export USE_NEW_RECOMMENDATION_API=false
-			echo "Using OLD/LEGACY APIs: /updateRecommendations, /generateRecommendations"
-			;;
-		*)
-			echo "Error: Invalid API version '${api_version}'. Valid values are: v1, legacy"
-			exit -1
-			;;
-	esac
+if [[ "${api_version}" == "v1" ]]; then
+	export USE_NEW_RECOMMENDATION_API=true
 else
-	# Default to old/legacy API if no parameter specified
 	export USE_NEW_RECOMMENDATION_API=false
-	echo "Using default OLD/LEGACY APIs: /updateRecommendations, /generateRecommendations"
 fi
 
 #Todo

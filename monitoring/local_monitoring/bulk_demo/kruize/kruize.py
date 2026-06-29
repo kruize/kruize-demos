@@ -15,8 +15,14 @@ limitations under the License.
 """
 
 import json
+import os
 import requests
 import subprocess
+
+# Environment variable to control which API to use
+# Set USE_NEW_RECOMMENDATION_API=true to use new v1 API
+# Set USE_NEW_RECOMMENDATION_API=false to use old APIs (default)
+USE_NEW_API = os.getenv('USE_NEW_RECOMMENDATION_API', 'false').lower() == 'true'
 
 
 def form_kruize_url(cluster_type, SERVER_IP=None):
@@ -110,7 +116,7 @@ def get_bulk_job_status(job_id, include=None, experimentName=None):
 def list_recommendations(experiment_name=None, latest=None, monitoring_end_time=None):
     PARAMS = ""
     # print("\nListing the recommendations...")
-    url = URL + "/listRecommendations"
+    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/listRecommendations")
     # print("URL = ", url)
 
     if experiment_name == None:
@@ -187,6 +193,7 @@ def update_recommendations(experiment_name, startTime, endTime):
     print("\n************************************************************")
     print("\nUpdating the recommendation \n for %s for dates Start-time: %s and End-time: %s..." % (
         experiment_name, startTime, endTime))
+    endpoint = "/kruize/api/v1/recommendations" if USE_NEW_API else "/updateRecommendations"
     queryString = "?"
     if experiment_name:
         queryString = queryString + "&experiment_name=%s" % (experiment_name)
@@ -194,8 +201,8 @@ def update_recommendations(experiment_name, startTime, endTime):
         queryString = queryString + "&interval_end_time=%s" % (endTime)
     if startTime:
         queryString = queryString + "&interval_start_time=%s" % (startTime)
+    url = URL + "%s?%s" % (endpoint, queryString)
 
-    url = URL + "/updateRecommendations?%s" % (queryString)
     print("URL = ", url)
     response = requests.post(url, )
     print("Response status code = ", response.status_code)
