@@ -27,11 +27,6 @@ from .json_validate import validate_exp_input_json
 URL = ""
 KRUIZE_UI_URL = ""
 
-# Environment variable to control which API to use
-# Set USE_NEW_RECOMMENDATION_API=true to use new v1 API
-# Set USE_NEW_RECOMMENDATION_API=false to use old APIs (default)
-USE_NEW_API = os.getenv('USE_NEW_RECOMMENDATION_API', 'false').lower() == 'true'
-
 def get_pod_name(label_selector, namespace):
     result = subprocess.run(
         [
@@ -188,7 +183,7 @@ def update_results(result_json_file):
 
 def update_recommendations(name, edate):
     print("\nUpdating the Recommendations...")
-    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/updateRecommendations") + "?experiment_name=%s&interval_end_time=%s" % (name, edate)
+    url = URL + "/updateRecommendations?experiment_name=%s&interval_end_time=%s" % (name, edate)
     print("URL = ", url)
 
     response = requests.post(url, )
@@ -201,7 +196,7 @@ def update_recommendations(name, edate):
 # Input Parameters: experiment name
 def list_recommendations(experiment_name, rm=False):
     print("\nListing the recommendations...")
-    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/listRecommendations")
+    url = URL + "/listRecommendations"
     if rm:
         url += "?rm=true"
     print("URL = ", url)

@@ -41,7 +41,7 @@ TECHEMPOWER_PORT=8082
 KRUIZE_OPERATOR=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p] [--api-version=v1|legacy]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-e experiment_type] [ [-b] [-m benchmark-manifests] [-n namespace] [-l] [-d load-duration] ] [-p]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind, aks and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
@@ -56,18 +56,11 @@ function usage() {
 	echo "d = duration to run the benchmark load"
 	echo "p = expose prometheus port"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
-	echo ""
-	echo "API Version Parameter:"
-	echo "  --api-version=v1      Use NEW v1 API (/kruize/api/v1/recommendations)"
-	echo "  --api-version=legacy  Use OLD/LEGACY APIs (/updateRecommendations, /listRecommendations)"
-	echo "  Default: legacy (if no parameter specified)"
 
 	exit 1
 }
 
 
-# Set the API version environment variable if specified
-declare -l api_version
 # By default we start the demo and dont expose prometheus port
 export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
@@ -82,19 +75,9 @@ export BENCHMARK_MANIFESTS="resource_provisioning_manifests"
 export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 # Iterate through the commandline options
-while getopts bc:d:e:fi:klm:no:pstu:-: gopts
+while getopts bc:d:e:fi:klm:no:pstu: gopts
 do
 	case "${gopts}" in
-		-)
-			case "${OPTARG}" in
-				api-version=*)
-					api_version=${OPTARG#*=}
-					;;
-				*)
-					usage
-					;;
-			esac
-			;;
 		b)
 			start_demo=2
 			benchmark=1
@@ -146,12 +129,6 @@ do
 			usage
 	esac
 done
-
-if [[ "${api_version}" == "v1" ]]; then
-	export USE_NEW_RECOMMENDATION_API=true
-else
-	export USE_NEW_RECOMMENDATION_API=false
-fi
 
 export demo="local"
 
