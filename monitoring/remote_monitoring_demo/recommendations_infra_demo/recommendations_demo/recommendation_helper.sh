@@ -236,7 +236,7 @@ function monitoring_recommendations_demo_with_data() {
 	fi
 	
 	for file in $(find "$BENCHMARK_RESULTS_DIR" -name "*.csv"); do
-		if [[ ${VALIDATE} == "true" ]] && ([[ "$file" == *"/recommendations/"* ]] || [[ "$file" == *"/boxplots/"* ]]); then
+		if [[ ${VALIDATE} == "true" ]] && ([[ "$file" == *"/recommendations/"* ]] || [[ "$file" == *"/boxplots/"* ]] || [[ "$file" == *"/recommendations_v1/"* ]]); then
 			continue
 		fi
 
@@ -323,7 +323,11 @@ function validate_experiment_recommendations() {
                 if [[ ${VALIDATE} == "true" ]]; then
                         IFS="|" read -ra parts <<< "${exp_name}"
                         recommendation_file="${parts[1]}.csv"
-                        recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
+                        if [[ ${USE_NEW_RECOMMENDATION_API} == true ]] && [[ ${EXP_TYPE} == "container" ]]; then
+                                recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations_v1/${recommendation_file}"
+                        else
+                                recommendation_filepath="${BENCHMARK_RESULTS_DIR}/recommendations/${recommendation_file}"
+                        fi
                         boxplot_filepath="${BENCHMARK_RESULTS_DIR}/boxplots/${recommendation_file}"
                         if [[ -f ${recommendation_filepath} ]]; then
                                 python3 -c "import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.validate_experiment_recommendations_boxplots('${exp_name}', '${EXP_TYPE}', \"experimentMetrics_sorted.csv\", '${recommendation_filepath}',\"RECOMMENDATIONS\")"
