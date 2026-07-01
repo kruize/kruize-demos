@@ -20,7 +20,6 @@
 current_dir="$(dirname "$0")"
 source ${current_dir}/../../../common/common_helper.sh
 source ${current_dir}/recommendations_demo/recommendation_helper.sh
-source ${current_dir}/autotune/tests/scripts/common/common_functions.sh
 # Default docker image repos
 AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
 
@@ -88,6 +87,7 @@ function kruize_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
+		source ./tests/scripts/common/common_functions.sh
 		# Checkout the mvp_demo branch for now
 		git checkout mvp_demo
 		cluster_type=${CLUSTER_TYPE}
