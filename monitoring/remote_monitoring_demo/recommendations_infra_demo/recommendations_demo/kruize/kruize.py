@@ -94,7 +94,8 @@ def update_results(result_json_file):
     url = URL + "/updateResults"
     response = requests.post(url, json=result_json)
     print("URL = ", url, "  Response status code = ", response.status_code)
-    #print(response.text)
+    if not response.ok:
+        print(response.text)
     return response
 
 # Description: This function generates the recommendations for an experiment
@@ -109,7 +110,8 @@ def update_recommendations(experiment_name, end_time=None):
 
     response = requests.post(url, params = PARAMS )
     print("URL = ", url, "  Response status code = ", response.status_code)
-    #print(response.text)
+    if not response.ok:
+        print(response.text)
     return response
 
 # Description: This function obtains the recommendations from Kruize using listRecommendations API

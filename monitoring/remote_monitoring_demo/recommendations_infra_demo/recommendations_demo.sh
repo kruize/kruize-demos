@@ -20,6 +20,7 @@
 current_dir="$(dirname "$0")"
 source ${current_dir}/../../../common/common_helper.sh
 source ${current_dir}/recommendations_demo/recommendation_helper.sh
+source ${current_dir}/autotune/tests/scripts/common/common_functions.sh
 # Default docker image repos
 AUTOTUNE_DOCKER_REPO="docker.io/kruize/autotune_operator"
 
@@ -89,7 +90,8 @@ function kruize_install() {
 	pushd autotune >/dev/null
 		# Checkout the mvp_demo branch for now
 		git checkout mvp_demo
-		kruize_local_disable
+		cluster_type=${CLUSTER_TYPE}
+		kruize_remote_patch
 		kruize_remote_demo_patch
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
