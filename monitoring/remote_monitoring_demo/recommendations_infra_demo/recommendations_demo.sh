@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Usage: ./recommendations_demo.sh [--api-version=v1|legacy]
+#
 
 current_dir="$(dirname "$0")"
 source ${current_dir}/../../../common/common_helper.sh
@@ -30,7 +32,7 @@ target="crc"
 visualize=0
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--summarize] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-a] [-c cluster-type] [-d] [--summarize] [--visualize] [--api-version=v1|legacy]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "a = feed experiments to existing kruize deployment"
@@ -43,6 +45,11 @@ function usage() {
 	echo "summarizeNamespaces = Summarize the namespace data. Default - all namespaces. Append --namespaceName=<> for individual summary"
 	echo "validate = Validates the recommendations for a set of experiments"
 	echo "visualize = Visualize the recommendations in grafana (Yet to be implemented)"
+	echo ""
+	echo "API Version Parameter:"
+	echo "  --api-version=v1      Use NEW v1 API (/kruize/api/v1/recommendations)"
+	echo "  --api-version=legacy  Use OLD/LEGACY APIs (/updateRecommendations, /generateRecommendations)"
+	echo "  Default: legacy (if no parameter specified)"
 	exit 1
 }
 
@@ -80,9 +87,11 @@ function kruize_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
+		source ./tests/scripts/common/common_functions.sh
 		# Checkout the mvp_demo branch for now
 		git checkout mvp_demo
-		kruize_local_disable
+		cluster_type=${CLUSTER_TYPE}
+		kruize_remote_patch
 		kruize_remote_demo_patch
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
@@ -308,6 +317,8 @@ function monitoring_demo_cleanup() {
 	echo
 }
 
+# Set the API version environment variable if specified
+declare -l api_version
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
 cluster_monitoring_setup=1
@@ -323,6 +334,9 @@ do
 	 case ${gopts} in
          -)
                 case "${OPTARG}" in
+                        api-version=*)
+                               api_version=${OPTARG#*=}
+                               ;;
                         visualize)
                                 visualize=1
 				;;
@@ -430,6 +444,12 @@ do
 		;;
 	esac
 done
+
+if [[ "${api_version}" == "v1" ]]; then
+	export USE_NEW_RECOMMENDATION_API=true
+else
+	export USE_NEW_RECOMMENDATION_API=false
+fi
 
 #Todo
 # Options

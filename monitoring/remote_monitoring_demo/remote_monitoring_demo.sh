@@ -36,7 +36,7 @@ visualize=0
 PYTHON_CMD=python3
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--days=] [--visualize]"
+	echo "Usage: $0 [-s|-t] [-o kruize-image] [-r] [-c cluster-type] [-d] [--days=] [--visualize] [--api-version=v1|legacy]"
 	echo "s = start (default), t = terminate"
 	echo "r = restart kruize monitoring only"
 	echo "o = kruize image. Default - docker.io/kruize/autotune_operator:<version as in pom.xml>"
@@ -46,6 +46,11 @@ function usage() {
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "days = number of days data to push into kruize. Do not exceed 15."
 	echo "visualize = Visualize the resource usage and recommendations in grafana (Yet to be implemented)"
+	echo ""
+	echo "API Version Parameter:"
+	echo "  --api-version=v1      Use NEW v1 API (/kruize/api/v1/recommendations)"
+	echo "  --api-version=legacy  Use OLD/LEGACY APIs (/updateRecommendations, /listRecommendations)"
+	echo "  Default: legacy (if no parameter specified)"
 	exit 1
 }
 
@@ -351,6 +356,8 @@ function remote_monitoring_demo_cleanup() {
 	echo
 }
 
+# Set the API version environment variable if specified
+declare -l api_version
 # By default we start the demo & experiment and we dont expose prometheus port
 prometheus=0
 monitoring_restart=0
@@ -369,6 +376,9 @@ while getopts o:c:d:prstu:-: gopts; do
                                 ;;
                         days=*)
                           DATA_DAYS=${OPTARG#*=}
+                          ;;
+                        api-version=*)
+                          api_version=${OPTARG#*=}
                           ;;
                         *)
                           if [ "${OPTERR}" == 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
@@ -408,6 +418,12 @@ while getopts o:c:d:prstu:-: gopts; do
           ;;
 	      esac
 done
+if [[ "${api_version}" == "v1" ]]; then
+	export USE_NEW_RECOMMENDATION_API=true
+else
+	export USE_NEW_RECOMMENDATION_API=false
+fi
+
 if [ ${start_demo} -eq 1 ]; then
 	echo > "${LOG_FILE}" 2>&1
 	remote_monitoring_demo_start

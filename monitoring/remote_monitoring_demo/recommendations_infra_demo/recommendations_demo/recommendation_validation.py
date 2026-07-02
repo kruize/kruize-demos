@@ -28,6 +28,7 @@ import subprocess
 import math
 
 # Validate the recommendations generated to the csv created by scripts(which contains the recommendation logic)
+#TODO: Deprecated: Need to remove this in the future
 def validate_recomm(filename):
     with open(filename, 'r') as f:
        data = json.load(f)
@@ -747,12 +748,16 @@ def getNamespaceExperimentMetrics(filename):
                                                 if 'recommendation_engines' in recomm_typedata:
                                                     for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
                                                         if "config" in recomm_enginedata:
-                                                            for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
+                                                            # New API wraps resources under a "resources" key; old API uses flat config
+                                                            config_items = recomm_enginedata["config"].get("resources", recomm_enginedata["config"]).items()
+                                                            for recomm_config, recomm_configmetrics in config_items:
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                                     recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
                                                                     recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                                         if "variation" in recomm_enginedata:
-                                                            for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
+                                                            # New API wraps resources under a "resources" key; old API uses flat variation
+                                                            variation_items = recomm_enginedata["variation"].get("resources", recomm_enginedata["variation"]).items()
+                                                            for recomm_config, recomm_configmetrics in variation_items:
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                                     recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
                                                                     recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
@@ -851,8 +856,13 @@ def getExperimentMetrics(filename):
                     'performance_long_term_cpu_limits_variation', 'performance_long_term_memory_limits_variation',
 
                     # Final formatting fields
-                    'cpuUsage_format', 'memoryUsage_format'
-                    ]
+                    'cpuUsage_format', 'memoryUsage_format',
+                    # TODO: to be updated in the next release
+                    # Pod count related columns
+                    # 'short_term_pod_count_avg', 'short_term_pod_count_max', 'short_term_pod_count_min',
+                    # 'medium_term_pod_count_avg', 'medium_term_pod_count_max', 'medium_term_pod_count_min',
+                    # 'long_term_pod_count_avg', 'long_term_pod_count_max', 'long_term_pod_count_min'
+            ]
             # Additional GPU-related fields
             accelerator_fields = [
                     'acceleratorFrameBufferUsage_min', 'acceleratorFrameBufferUsage_max', 'acceleratorFrameBufferUsage_avg',
@@ -907,11 +917,34 @@ def getExperimentMetrics(filename):
                                                 metric_dict[metric_agg_var_name] = str(agg_value)
                                     for recomm_timezone, recomm_data in container_data["recommendations"]["data"].items():
                                         if recomm_timezone == timezone:
+                                            # TODO: to be updated in the next release
+                                            # current = recomm_data["current"]
+                                            # if "replicas" in current:
+                                            #     recomm_dict["current_replicas"] = str(current["replicas"])
+                                            # current_resources = current.get("resources", current)
+                                            # if 'requests' in current_resources:
+                                            #     if 'cpu' in current_resources["requests"]:
+                                            #         recomm_dict["current_cpu_requests"] = str(current_resources["requests"]["cpu"]["amount"])
+                                            #     if 'memory' in current_resources["requests"]:
+                                            #         recomm_dict["current_memory_requests"] = str(current_resources["requests"]["memory"]["amount"])
+                                            # if 'limits' in current_resources:
+                                            #     if 'cpu' in current_resources["limits"]:
+                                            #         recomm_dict["current_cpu_limits"] = str(current_resources["limits"]["cpu"]["amount"])
+                                            #     if 'memory' in current_resources["limits"]:
+                                            #         recomm_dict["current_memory_limits"] = str(current_resources["limits"]["memory"]["amount"])
                                             for recomm_type, recomm_typedata in recomm_data["recommendation_terms"].items():
+                                                # TODO: to be updated in the next release
+                                                # if "metrics_info" in recomm_typedata:
+                                                #     pod_count = recomm_typedata["metrics_info"].get("pod_count", {})
+                                                #     for stat in ["avg", "max", "min"]:
+                                                #         if stat in pod_count:
+                                                #             recomm_dict[recomm_type + "_pod_count_" + stat] = str(pod_count[stat])
                                                 if 'recommendation_engines' in recomm_typedata:
                                                     for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
                                                         if "config" in recomm_enginedata:
-                                                            for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
+                                                            # New API wraps resources under a "resources" key; old API uses flat config
+                                                            config_items = recomm_enginedata["config"].get("resources", recomm_enginedata["config"]).items()
+                                                            for recomm_config, recomm_configmetrics in config_items:
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                                     if recomm_resource not in ["cpu", "memory"]:
                                                                         recomm_var_name = recomm_engine + '_' + recomm_type + '_accelerator_' + recomm_config
@@ -920,7 +953,9 @@ def getExperimentMetrics(filename):
                                                                         recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
                                                                         recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                                         if "variation" in recomm_enginedata:
-                                                            for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
+                                                            # New API wraps resources under a "resources" key; old API uses flat variation
+                                                            variation_items = recomm_enginedata["variation"].get("resources", recomm_enginedata["variation"]).items()
+                                                            for recomm_config, recomm_configmetrics in variation_items:
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                                     recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
                                                                     recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
@@ -963,7 +998,7 @@ def get_recommondations(filename):
         print("No experiments found!")
     else:
         with open('experimentRecommendations_temp.csv', 'w', newline='') as f:
-            fieldnames = ['experiment_name', 'cluster_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'current_cpu_requests', 'current_memory_requests', 'current_cpu_limits', 'current_memory_limits', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation', 'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation', 'performance_medium_term_cpu_requests_variation' , 'performance_medium_term_memory_requests_variation', 'performance_medium_term_cpu_limits_variation' , 'performance_medium_term_memory_limits_variation', 'performance_long_term_cpu_requests_variation' , 'performance_long_term_memory_requests_variation', 'performance_long_term_cpu_limits_variation' , 'performance_long_term_memory_limits_variation', 'cost_short_term_cpu_requests_format', 'cost_short_term_memory_requests_format', 'cost_short_term_cpu_limits_format', 'cost_short_term_memory_limits_format', 'cost_medium_term_cpu_requests_format' , 'cost_medium_term_memory_requests_format', 'cost_medium_term_cpu_limits_format' , 'cost_medium_term_memory_limits_format', 'cost_long_term_cpu_requests_format' , 'cost_long_term_memory_requests_format', 'cost_long_term_cpu_limits_format' , 'cost_long_term_memory_limits_format' ]
+            fieldnames = ['experiment_name', 'cluster_name', 'namespace', 'type', 'name', 'container_name', 'timezone', 'cost_short_term_cpu_requests', 'cost_short_term_memory_requests', 'cost_short_term_cpu_limits', 'cost_short_term_memory_limits', 'cost_medium_term_cpu_requests', 'cost_medium_term_memory_requests', 'cost_medium_term_cpu_limits', 'cost_medium_term_memory_limits', 'cost_long_term_cpu_requests', 'cost_long_term_memory_requests', 'cost_long_term_cpu_limits', 'cost_long_term_memory_limits', 'cost_short_term_cpu_requests_variation', 'cost_short_term_memory_requests_variation', 'cost_short_term_cpu_limits_variation', 'cost_short_term_memory_limits_variation', 'cost_medium_term_cpu_requests_variation' , 'cost_medium_term_memory_requests_variation', 'cost_medium_term_cpu_limits_variation' , 'cost_medium_term_memory_limits_variation', 'cost_long_term_cpu_requests_variation' , 'cost_long_term_memory_requests_variation', 'cost_long_term_cpu_limits_variation' , 'cost_long_term_memory_limits_variation', 'performance_short_term_cpu_requests', 'performance_short_term_memory_requests', 'performance_short_term_cpu_limits', 'performance_short_term_memory_limits', 'performance_medium_term_cpu_requests', 'performance_medium_term_memory_requests', 'performance_medium_term_cpu_limits', 'performance_medium_term_memory_limits', 'performance_long_term_cpu_requests', 'performance_long_term_memory_requests', 'performance_long_term_cpu_limits', 'performance_long_term_memory_limits', 'performance_short_term_cpu_requests_variation', 'performance_short_term_memory_requests_variation', 'performance_short_term_cpu_limits_variation', 'performance_short_term_memory_limits_variation', 'performance_medium_term_cpu_requests_variation' , 'performance_medium_term_memory_requests_variation', 'performance_medium_term_cpu_limits_variation' , 'performance_medium_term_memory_limits_variation', 'performance_long_term_cpu_requests_variation' , 'performance_long_term_memory_requests_variation', 'performance_long_term_cpu_limits_variation' , 'performance_long_term_memory_limits_variation', 'cost_short_term_cpu_requests_format', 'cost_short_term_memory_requests_format', 'cost_short_term_cpu_limits_format', 'cost_short_term_memory_limits_format', 'cost_medium_term_cpu_requests_format' , 'cost_medium_term_memory_requests_format', 'cost_medium_term_cpu_limits_format' , 'cost_medium_term_memory_limits_format', 'cost_long_term_cpu_requests_format' , 'cost_long_term_memory_requests_format', 'cost_long_term_cpu_limits_format' , 'cost_long_term_memory_limits_format' ]
 
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
@@ -1010,24 +1045,38 @@ def get_recommondations(filename):
                                 'timezone': timezone,
                                 }
                                 recomm_dict = {}
-                                for current_resource, current_resourcedata in timezone_data["current"].items():
-                                    if 'requests' in current_resourcedata:
-                                        if 'cpu' in current_resourcedata["requests"]:
-                                            recomm_dict["current_cpu_requests"] = str(current_resourcedata["requests"]["cpu"]["amount"])
-                                        if 'memory' in current_resourcedata["requests"]:
-                                            recomm_dict["current_memory_requests"] = str(current_resourcedata["requests"]["memory"]["amount"])
-                                    if 'limits' in current_resourcedata:
-                                        if 'cpu' in current_resourcedata["limits"]:
-                                            recomm_dict["current_cpu_limits"] = str(current_resourcedata["limits"]["cpu"]["amount"])
-                                        if 'memory' in current_resourcedata["limits"]:
-                                            recomm_dict["current_memory_limits"] = str(current_resourcedata["limits"]["memory"]["amount"])
-
+                                # TODO: to be updated in the next release
+                                # current = timezone_data["current"]
+                                # # New API nests requests/limits under "resources" and adds "replicas"
+                                # # Old API has requests/limits at the top level of "current"
+                                # if "replicas" in current:
+                                #     recomm_dict["current_replicas"] = str(current["replicas"])
+                                # current_resources = current.get("resources", current)
+                                # if 'requests' in current_resources:
+                                #     if 'cpu' in current_resources["requests"]:
+                                #         recomm_dict["current_cpu_requests"] = str(current_resources["requests"]["cpu"]["amount"])
+                                #     if 'memory' in current_resources["requests"]:
+                                #         recomm_dict["current_memory_requests"] = str(current_resources["requests"]["memory"]["amount"])
+                                # if 'limits' in current_resources:
+                                #     if 'cpu' in current_resources["limits"]:
+                                #         recomm_dict["current_cpu_limits"] = str(current_resources["limits"]["cpu"]["amount"])
+                                #     if 'memory' in current_resources["limits"]:
+                                #         recomm_dict["current_memory_limits"] = str(current_resources["limits"]["memory"]["amount"])
 
                                 for recomm_type, recomm_typedata in timezone_data["recommendation_terms"].items():
+                                    # TODO: to be updated in the next release
+                                    # New API: capture metrics_info.pod_count per term
+                                    # if "metrics_info" in recomm_typedata:
+                                    #     pod_count = recomm_typedata["metrics_info"].get("pod_count", {})
+                                    #     for stat in ["avg", "max", "min"]:
+                                    #         if stat in pod_count:
+                                    #             recomm_dict[recomm_type + "_pod_count_" + stat] = str(pod_count[stat])
                                     if 'recommendation_engines' in recomm_typedata:
                                         for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
                                             if "config" in recomm_enginedata:
-                                                for recomm_config, recomm_configmetrics in recomm_enginedata["config"].items():
+                                                # New API wraps resources under a "resources" key; old API uses flat config
+                                                config_items = recomm_enginedata["config"].get("resources", recomm_enginedata["config"]).items()
+                                                for recomm_config, recomm_configmetrics in config_items:
                                                     for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
                                                         recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
                                                         recomm_var_format = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_format'
@@ -1035,9 +1084,11 @@ def get_recommondations(filename):
                                                         if recomm_engine != "performance":
                                                             recomm_dict[recomm_var_format] = str(recomm_resourcedata["format"])
                                             if "variation" in recomm_enginedata:
-                                                for recomm_config, recomm_configmetrics in recomm_enginedata["variation"].items():
+                                                # New API wraps resources under a "resources" key; old API uses flat variation
+                                                variation_items = recomm_enginedata["variation"].get("resources", recomm_enginedata["variation"]).items()
+                                                for recomm_config, recomm_configmetrics in variation_items:
                                                     for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
-                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config +  '_variation'
+                                                        recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
                                                         recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                 kobj_dict.update(recomm_dict)
                                 writer.writerow(kobj_dict)

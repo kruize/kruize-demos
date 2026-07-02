@@ -22,6 +22,11 @@ import os
 import time
 import shutil
 
+# Environment variable to control which API to use
+# Set USE_NEW_RECOMMENDATION_API=true to use new v1 API
+# Set USE_NEW_RECOMMENDATION_API=false to use old APIs (default)
+USE_NEW_API = os.getenv('USE_NEW_RECOMMENDATION_API', 'false').lower() == 'true'
+
 
 def form_kruize_url(cluster_type):
     global URL
@@ -89,14 +94,15 @@ def update_results(result_json_file):
     url = URL + "/updateResults"
     response = requests.post(url, json=result_json)
     print("URL = ", url, "  Response status code = ", response.status_code)
-    #print(response.text)
+    if not response.ok:
+        print(response.text)
     return response
 
 # Description: This function generates the recommendations for an experiment
 # Input Parameters: experiment_name , interval_end time
 def update_recommendations(experiment_name, end_time=None):
     print("\nUpdating the Recommendations...")
-    url = URL + "/updateRecommendations"
+    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/updateRecommendations")
     if end_time is not None:
         PARAMS = {'experiment_name':experiment_name,'interval_end_time':end_time}
     else:
@@ -104,14 +110,15 @@ def update_recommendations(experiment_name, end_time=None):
 
     response = requests.post(url, params = PARAMS )
     print("URL = ", url, "  Response status code = ", response.status_code)
-    #print(response.text)
+    if not response.ok:
+        print(response.text)
     return response
 
 # Description: This function obtains the recommendations from Kruize using listRecommendations API
 # Input Parameters: experiment name
 def list_recommendations(experiment_name,rm=False):
     print("\nListing the recommendations...")
-    url = URL + "/listRecommendations"
+    url = URL + ("/kruize/api/v1/recommendations" if USE_NEW_API else "/listRecommendations")
     if rm:
         url += "?rm=true"
     PARAMS = {'experiment_name': experiment_name}
