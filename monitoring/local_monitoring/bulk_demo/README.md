@@ -49,8 +49,9 @@ u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.j
 w = Wait for the specified seconds for metrics to be available before generating recommendations on a new cluster. Default - 0
 n = namespace of benchmark. Default - default
 d = duration to run the benchmark load
-k = install kruize using deploy scripts
 o = specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+g = Specify Kruize operator git branch to clone (optional). Default - main
+k = install kruize using deploy scripts
 ```
 
 **Note**: By default, Bulk demo uses operator mode with the image version from the Kruize operator Makefile: `quay.io/kruize/kruize-operator:<version>`. You can optionally specify a custom operator image using the `-o` flag.

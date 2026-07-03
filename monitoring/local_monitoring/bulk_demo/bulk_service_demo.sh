@@ -27,6 +27,9 @@ export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 # Default operator docker image repo
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 
+# Default operator branch
+export KRUIZE_OPERATOR_BRANCH="main"
+
 # Default cluster
 export CLUSTER_TYPE="minikube"
 
@@ -56,6 +59,7 @@ function usage() {
 	echo "n = namespace of benchmark. Default - default"
 	echo "d = duration to run the benchmark load"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+	echo "g = Specify Kruize operator git branch to clone: -g <branch>. Default - main"
       	echo "k = install kruize using deploy scripts."
 	echo "f = create environment setup if cluster-type is minikube, kind"
 
@@ -95,7 +99,7 @@ export LOAD_DURATION="1200"
 export WAIT_TIME=0
 
 # Iterate through the commandline options
-while getopts c:i:n:d:w:klfprstu:o: gopts
+while getopts c:d:fg:i:kln:o:prstw:u: gopts
 do
 	case "${gopts}" in
 		c)
@@ -113,7 +117,10 @@ do
 		f)
 			env_setup=1
 			;;
-	  	l)
+		g)
+			export KRUIZE_OPERATOR_BRANCH="${OPTARG}"
+			;;
+		l)
 			start_demo=2
 			;;
 		s)

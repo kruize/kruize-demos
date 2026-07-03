@@ -737,8 +737,13 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 function operator_setup() {
-#      	clone_repos kruize-operator
-  git clone -b mvp_demo https://github.com/kruize/kruize-operator.git
+	clone_repos kruize-operator
+	
+	# Checkout the specified branch
+	pushd kruize-operator >/dev/null
+	git checkout ${KRUIZE_OPERATOR_BRANCH}
+	check_err "ERROR: Failed to checkout branch ${KRUIZE_OPERATOR_BRANCH}"
+	popd >/dev/null
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 

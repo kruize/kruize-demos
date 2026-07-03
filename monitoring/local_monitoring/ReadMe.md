@@ -72,12 +72,13 @@ For detailed deployment options and advanced usage, see the [Advanced Users Guid
 
 ### Usage
 ```
-./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image] [-k]
+./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image] [-g git-branch] [-k]
   -c: Cluster type (kind, minikube, openshift)
   -s: Start demo (default)
   -t: Terminate demo
   -f: Fresh setup (kind/minikube only)
   -o: Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+  -g: Specify Kruize operator git branch to clone (optional). Default - main
   -k: Disable operator and use deploy scripts instead
 ```
 

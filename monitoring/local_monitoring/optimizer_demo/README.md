@@ -31,6 +31,7 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 | `-i` | Custom Kruize image | `quay.io/kruize/autotune_operator:<version>` |
 | `-u` | Custom Kruize UI image | `quay.io/kruize/kruize-ui:<version>` |
 | `-o` | Custom Kruize operator image | `quay.io/kruize/kruize-operator:<version>` |
+| `-g` | Specify Kruize operator git branch to clone | `main` |
 | `-p` | Custom Kruize optimizer image | `quay.io/kruize/kruize-optimizer:0.0.1` |
 | `-n` | Namespace for benchmark | `default` |
 | `-k` | Disable operator and use deploy scripts | - |
