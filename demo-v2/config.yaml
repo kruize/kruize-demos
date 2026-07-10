@@ -1,0 +1,84 @@
+# Kruize Demos v2 - Default Configuration
+# This file contains default settings for all demos
+
+# Cluster Configuration
+cluster:
+  type: kind  # Options: kind, minikube, openshift
+  setup: false  # Automatically setup cluster (kind/minikube only)
+  min_cpu: 8
+  min_memory: 16384  # MB
+
+# Kruize Configuration
+kruize:
+  # Docker images
+  image: quay.io/kruize/autotune_operator:latest
+  ui_image: quay.io/kruize/kruize-ui:latest
+  operator_image: quay.io/kruize/kruize-operator:latest
+  
+  # Deployment options
+  use_operator: true  # Use operator deployment (recommended)
+  
+  # Ports
+  port: 8080
+  ui_port: 8081
+  prometheus_port: 9090
+  
+  # Namespaces
+  namespace_minikube: monitoring
+  namespace_kind: monitoring
+  namespace_openshift: openshift-tuning
+
+# Demo Configuration
+demo:
+  # General settings
+  namespace: default
+  load_duration: 1200  # seconds
+  wait_time: 0  # seconds to wait for metrics
+  
+  # Benchmark options
+  deploy_benchmark: true
+  benchmarks: []  # Empty = prompt user (default: tfb, sysbench). Options: tfb, petclinic, sysbench, human-eval, ttm, llm-rag
+  app_namespace: default
+  run_load: false
+  benchmark_manifests: kruize-demos
+  
+  # Experiments to create (auto-set based on benchmarks if empty)
+  experiments: []  # Auto-generated from benchmarks
+  
+  # Experiment types
+  experiment_type: ""  # Options: container, namespace, gpu
+  
+  # Feature flags
+  expose_prometheus: false
+
+# Remote Monitoring Demo
+remote_monitoring:
+  data_days: 1  # Number of days of data to push
+  visualize: false  # Enable grafana visualization
+
+# Bulk Demo
+bulk:
+  wait_time: 0  # Wait time before processing bulk experiments
+
+# Logging Configuration
+logging:
+  level: INFO  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: kruize-demo.log
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  console_output: true
+
+# API Configuration
+api:
+  timeout: 30  # seconds
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+
+# Paths (relative to demo-v2 directory)
+paths:
+  experiments: experiments
+  manifests: manifests
+  data: data
+  logs: logs
+  temp: temp
+
+# Made with Bob
