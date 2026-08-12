@@ -17,7 +17,7 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 ## Usage
 
 ```bash
-./optimizer_demo.sh [-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k]
+./optimizer_demo.sh [-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k] [--skip-app]
 ```
 
 ### Options
@@ -34,6 +34,7 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 | `-p` | Custom Kruize optimizer image | `quay.io/kruize/kruize-optimizer:0.0.1` |
 | `-n` | Namespace for benchmark | `default` |
 | `-k` | Disable operator and use deploy scripts | - |
+| `--skip-app` | When used with `-t`, skip cleanup of the benchmark application and its namespace | - |
 
 ## Examples
 
@@ -65,6 +66,11 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 ### Terminate the demo
 ```bash
 ./optimizer_demo.sh -t
+```
+
+### Terminate without removing the benchmark application
+```bash
+./optimizer_demo.sh -t --skip-app
 ```
 
 ## Configuration
@@ -125,6 +131,14 @@ The demo can run in two modes:
 
 To clean up the demo, run the following command:
 
+```bash
+./optimizer_demo.sh -t -c [cluster-type]
 ```
-./optimizer-demo.sh -t -c [cluster-type]
+
+To clean up only Kruize (operator, services, repos) while leaving the benchmark application running:
+
+```bash
+./optimizer_demo.sh -t --skip-app -c [cluster-type]
 ```
+
+This is useful when you want to restart Kruize without re-deploying the benchmark workloads from scratch.
