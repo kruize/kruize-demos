@@ -34,7 +34,7 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 | `-p` | Custom Kruize optimizer image | `quay.io/kruize/kruize-optimizer:0.0.1` |
 | `-n` | Namespace for benchmark | `default` |
 | `-k` | Disable operator and use deploy scripts | - |
-| `--skip-app` | When used with `-t`, skip cleanup of the benchmark application and its namespace | - |
+| `--skip-app` | skip cleanup of the benchmark application and its namespace | - |
 
 ## Examples
 

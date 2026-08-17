@@ -140,7 +140,7 @@ if [ ${start_demo} -eq 1 ]; then
 		check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
 	fi
 
-	optimizer_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
+	optimizer_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} ${skip_app}
 	echo "For detailed logs, look in optimizer-demo.log"
 	echo
 else
