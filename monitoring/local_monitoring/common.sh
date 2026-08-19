@@ -1276,6 +1276,7 @@ function remove_optional_cr_resource_blocks() {
 function optimizer_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	skip_app=$3
 	
 	# Start all the installs
 	start_time=$(get_date)
@@ -1421,7 +1422,7 @@ function optimizer_demo_setup() {
 	cd ${local_monitoring_dir}
 	create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 	# Clean up any existing sysbench deployment
-	if [[ "${skip_app}" -eq 1 ]]; then
+	if [[ "${skip_app}" -eq 0 ]]; then
 		echo "Cleaning up any old sysbench deployment..." >> "${LOG_FILE}" 2>&1
 		kubectl delete deployment sysbench -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 	fi
@@ -1455,7 +1456,7 @@ function optimizer_demo_setup() {
 		echo -n "🔄 Installing TFB benchmark (Workload labeled: kruize/autotune=enabled)..."
 		cd ${local_monitoring_dir}
 		# Clean up any existing tfb deployment and load jobs
-		if [[ "${skip_app}" -eq 1 ]]; then
+		if [[ "${skip_app}" -eq 0 ]]; then
 			echo "Cleaning up any old TFB deployment and load jobs..." >> "${LOG_FILE}" 2>&1
 			kubectl delete deployment tfb-qrh-sample -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
 			kubectl delete deployment tfb-qrh-sample-db -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
