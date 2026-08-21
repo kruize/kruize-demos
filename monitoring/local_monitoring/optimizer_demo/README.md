@@ -43,6 +43,11 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 ./optimizer_demo.sh
 ```
 
+### Start demo without removing the benchmark application
+```bash
+./optimizer_demo.sh --skip-app
+```
+
 ### Start demo on Minikube with environment setup
 ```bash
 ./optimizer_demo.sh -c minikube -f
