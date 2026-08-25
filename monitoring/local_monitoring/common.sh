@@ -1276,6 +1276,7 @@ function remove_optional_cr_resource_blocks() {
 function optimizer_demo_setup() {
 	bench=$1
 	kruize_operator=$2
+	skip_app=$3
 	
 	# Start all the installs
 	start_time=$(get_date)
@@ -1421,9 +1422,10 @@ function optimizer_demo_setup() {
 	cd ${local_monitoring_dir}
 	create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 	# Clean up any existing sysbench deployment
-	echo "Cleaning up any old sysbench deployment..." >> "${LOG_FILE}" 2>&1
-	kubectl delete deployment sysbench -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
-	
+	if [[ "${skip_app}" -eq 0 ]]; then
+		echo "Cleaning up any old sysbench deployment..." >> "${LOG_FILE}" 2>&1
+		kubectl delete deployment sysbench -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+	fi
 	benchmarks_install ${APP_NAMESPACE} ${bench} "kruize-demos" >> "${LOG_FILE}" 2>&1
 	echo "✅ Completed!"
 
@@ -1454,13 +1456,14 @@ function optimizer_demo_setup() {
 		echo -n "🔄 Installing TFB benchmark (Workload labeled: kruize/autotune=enabled)..."
 		cd ${local_monitoring_dir}
 		# Clean up any existing tfb deployment and load jobs
-		echo "Cleaning up any old TFB deployment and load jobs..." >> "${LOG_FILE}" 2>&1
-		kubectl delete deployment tfb-qrh-sample -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
-		kubectl delete deployment tfb-qrh-sample-db -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
-		kubectl delete service tfb-qrh-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
-		kubectl delete service tfb-database-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
-		kubectl delete job tfb-qrh-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
-		
+		if [[ "${skip_app}" -eq 0 ]]; then
+			echo "Cleaning up any old TFB deployment and load jobs..." >> "${LOG_FILE}" 2>&1
+			kubectl delete deployment tfb-qrh-sample -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+			kubectl delete deployment tfb-qrh-sample-db -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+			kubectl delete service tfb-qrh-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+			kubectl delete service tfb-database-service -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+			kubectl delete job tfb-qrh-load-generator -n ${APP_NAMESPACE} --ignore-not-found >> "${LOG_FILE}" 2>&1
+		fi
 		benchmarks_install ${APP_NAMESPACE} ${BENCHMARK2} "kruize-demos" >> "${LOG_FILE}" 2>&1
 		echo "✅ Completed!"
 
@@ -1693,6 +1696,7 @@ function optimizer_demo_setup() {
 ###########################################
 function optimizer_demo_terminate() {
 	kruize_operator=$1
+	skip_app=${2:-0}
 	start_time=$(get_date)
 	echo | tee -a "${LOG_FILE}"
 	echo "#######################################" | tee -a "${LOG_FILE}"
@@ -1712,19 +1716,23 @@ function optimizer_demo_terminate() {
 	# Uninstall kruize-optimizer
 	kruize_optimizer_uninstall >> "${LOG_FILE}" 2>&1
 
-	# Check if cluster is accessible before running kubectl commands with timeout
-	if timeout 5 kubectl cluster-info &>/dev/null; then
-		if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "sysbench"; then
-			benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+	if [[ "${skip_app}" -eq 1 ]]; then
+		echo "Skipping benchmark application cleanup (--skip-app specified)." | tee -a "${LOG_FILE}"
+	else
+		# Check if cluster is accessible before running kubectl commands with timeout
+		if timeout 5 kubectl cluster-info &>/dev/null; then
+			if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "sysbench"; then
+				benchmarks_uninstall ${APP_NAMESPACE} "sysbench" >> "${LOG_FILE}" 2>&1
+			fi
+			if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
+				benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
+				kill_service_port_forward "tfb-qrh-service"
+			fi
 		fi
-		if kubectl get pods -n "${APP_NAMESPACE}" 2>/dev/null | grep -q "tfb"; then
-			benchmarks_uninstall ${APP_NAMESPACE} "tfb" >> "${LOG_FILE}" 2>&1
-			kill_service_port_forward "tfb-qrh-service"
+		
+		if [[ ${APP_NAMESPACE} != "default" ]]; then
+			delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 		fi
-	fi
-	
-	if [[ ${APP_NAMESPACE} != "default" ]]; then
-		delete_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 	fi
 
 	if [ ${CLUSTER_TYPE} == "minikube" ]; then

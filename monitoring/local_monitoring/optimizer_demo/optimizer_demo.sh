@@ -40,7 +40,7 @@ KRUIZE_UI_PORT=8081
 KRUIZE_OPERATOR=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k] [--skip-app]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
@@ -50,6 +50,7 @@ function usage() {
 	echo "p = Specify custom Kruize optimizer image: -p <image>. Default - quay.io/kruize/kruize-optimizer:<version as in Deployment File>"
 	echo "n = namespace of benchmark. Default - default"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
+	echo "--skip-app = When used with -t, skip cleanup of the benchmark application and its namespace."
 
 	exit 1
 }
@@ -59,9 +60,24 @@ export DOCKER_IMAGES=""
 export KRUIZE_DOCKER_IMAGE=""
 export env_setup=0
 export start_demo=1
+export skip_app=0
 export APP_NAMESPACE="default"
 export KRUIZE_OPERATOR_IMAGE=""
 export KRUIZE_OPTIMIZER_IMAGE="quay.io/kruize/kruize-optimizer:0.0.1"
+
+# Pre-process long options before passing to getopts
+args=()
+for arg in "$@"; do
+	case "${arg}" in
+		--skip-app)
+			skip_app=1
+			;;
+		*)
+			args+=("${arg}")
+			;;
+	esac
+done
+set -- "${args[@]}"
 
 # Iterate through the commandline options
 while getopts c:fi:kn:o:p:stu: gopts
@@ -124,12 +140,12 @@ if [ ${start_demo} -eq 1 ]; then
 		check_err "ERROR: Go pre-requisite check failed. Cannot proceed with operator deployment."
 	fi
 
-	optimizer_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR}
+	optimizer_demo_setup ${BENCHMARK} ${KRUIZE_OPERATOR} ${skip_app}
 	echo "For detailed logs, look in optimizer-demo.log"
 	echo
 else
 	echo >> "${LOG_FILE}" 2>&1
-	optimizer_demo_terminate ${KRUIZE_OPERATOR}
+	optimizer_demo_terminate ${KRUIZE_OPERATOR} ${skip_app}
 	echo "For detailed logs, look in optimizer-demo.log"
 	echo
 fi
