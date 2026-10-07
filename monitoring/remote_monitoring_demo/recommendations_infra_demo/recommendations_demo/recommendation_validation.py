@@ -26,6 +26,7 @@ import filecmp
 import shutil
 import subprocess
 import math
+import re
 
 # Validate the recommendations generated to the csv created by scripts(which contains the recommendation logic)
 #TODO: Deprecated: Need to remove this in the future
@@ -759,6 +760,8 @@ def getNamespaceExperimentMetrics(filename):
                                                             variation_items = recomm_enginedata["variation"].get("resources", recomm_enginedata["variation"]).items()
                                                             for recomm_config, recomm_configmetrics in variation_items:
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                                    if recomm_resource == "accelerators":
+                                                                        continue
                                                                     recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
                                                                     recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                     kobj_dict.update(metric_dict)
@@ -957,6 +960,8 @@ def getExperimentMetrics(filename):
                                                             variation_items = recomm_enginedata["variation"].get("resources", recomm_enginedata["variation"]).items()
                                                             for recomm_config, recomm_configmetrics in variation_items:
                                                                 for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                                    if recomm_resource == "accelerators":
+                                                                        continue
                                                                     recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
                                                                     recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                     kobj_dict.update(metric_dict)
@@ -1078,6 +1083,8 @@ def get_recommondations(filename):
                                                 config_items = recomm_enginedata["config"].get("resources", recomm_enginedata["config"]).items()
                                                 for recomm_config, recomm_configmetrics in config_items:
                                                     for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                        if recomm_resource == "accelerators":
+                                                            continue
                                                         recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config
                                                         recomm_var_format = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_format'
                                                         recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
@@ -1088,6 +1095,8 @@ def get_recommondations(filename):
                                                 variation_items = recomm_enginedata["variation"].get("resources", recomm_enginedata["variation"]).items()
                                                 for recomm_config, recomm_configmetrics in variation_items:
                                                     for recomm_resource, recomm_resourcedata in recomm_configmetrics.items():
+                                                        if recomm_resource == "accelerators":
+                                                            continue
                                                         recomm_var_name = recomm_engine + '_' + recomm_type + '_' + recomm_resource + '_' + recomm_config + '_variation'
                                                         recomm_dict[recomm_var_name] = str(recomm_resourcedata["amount"])
                                 kobj_dict.update(recomm_dict)
@@ -1453,3 +1462,181 @@ def add_column_to_csv(folder_path, column_name, column_value, start_index):
                 new_column_value = f'{column_value}{cluster_index}'
                 df[column_name] = new_column_value
                 df.to_csv(csv_path, index=False)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GPU / Accelerator recommendation validation
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Notification codes used by Kruize for accelerator recommendations
+_INFO_ACCELERATOR_RECOMMENDATIONS_AVAILABLE = "128001"
+_NOTICE_ACCELERATOR_NOT_SUPPORTED_BY_KRUIZE = "328001"
+_MIG_PATTERN = re.compile(r"nvidia\.com/mig-[1-4|7]g\.(5|10|20|40|80|94|96|141)gb", re.IGNORECASE)
+
+
+def _validate_accelerator_current_limits(current_limits, container_name, interval):
+    """
+    Asserts that current.limits.accelerators is a non-empty list with the expected
+    structure: model (str), count (int == 1), compute.format == "slices",
+    memory.format == "GiB".
+    """
+    accelerators = current_limits.get("accelerators")
+    assert isinstance(accelerators, list) and len(accelerators) > 0, (
+        f"[{container_name}@{interval}] current.limits.accelerators must be a non-empty list, got: {accelerators}"
+    )
+    for item in accelerators:
+        assert isinstance(item.get("model"), str) and item["model"], (
+            f"[{container_name}@{interval}] current accelerator missing model: {item}"
+        )
+        assert item.get("count") == 1, (
+            f"[{container_name}@{interval}] current accelerator count expected 1, got: {item.get('count')}"
+        )
+        compute = item.get("compute") or {}
+        assert compute.get("format") == "slices", (
+            f"[{container_name}@{interval}] current accelerator compute format expected 'slices', got: {compute}"
+        )
+        memory = item.get("memory") or {}
+        assert memory.get("format") == "GiB", (
+            f"[{container_name}@{interval}] current accelerator memory format expected 'GiB', got: {memory}"
+        )
+    assert "acceleratorRecommendationItems" not in current_limits, (
+        f"[{container_name}@{interval}] current.limits must not contain 'acceleratorRecommendationItems'"
+    )
+
+
+def _validate_accelerator_variation_limits(variation_limits, container_name, interval, engine):
+    """
+    Asserts that variation.limits.accelerators is a non-empty list with percentage
+    format for both compute and memory entries.
+    """
+    accelerators = variation_limits.get("accelerators")
+    assert isinstance(accelerators, list) and len(accelerators) > 0, (
+        f"[{container_name}@{interval}/{engine}] variation.limits.accelerators must be a non-empty list, got: {accelerators}"
+    )
+    for item in accelerators:
+        assert isinstance(item.get("model"), str) and item["model"], (
+            f"[{container_name}@{interval}/{engine}] variation accelerator missing model: {item}"
+        )
+        # count and partition must be absent / empty in variation
+        assert not item.get("count"), (
+            f"[{container_name}@{interval}/{engine}] variation accelerator must not include count: {item}"
+        )
+        compute = item.get("compute") or {}
+        assert compute.get("format") == "percentage", (
+            f"[{container_name}@{interval}/{engine}] variation compute format expected 'percentage', got: {compute}"
+        )
+        memory = item.get("memory") or {}
+        assert memory.get("format") == "percentage", (
+            f"[{container_name}@{interval}/{engine}] variation memory format expected 'percentage', got: {memory}"
+        )
+
+
+def _validate_mig_in_config_limits(config_limits, container_name, interval, engine):
+    """
+    Asserts that at least one nvidia.com/mig-* key is present in config.limits
+    for a GPU-enabled recommendation.
+    """
+    mig_keys = [k for k in config_limits if _MIG_PATTERN.match(k)]
+    assert mig_keys, (
+        f"[{container_name}@{interval}/{engine}] config.limits expected at least one nvidia.com/mig-* key, "
+        f"found keys: {list(config_limits.keys())}"
+    )
+    for key in mig_keys:
+        entry = config_limits[key]
+        assert isinstance(entry, dict), f"config.limits[{key}] must be a dict"
+        assert entry.get("amount") is not None, f"config.limits[{key}] missing amount"
+        assert entry.get("format"), f"config.limits[{key}] missing format"
+
+
+def validate_accelerator_recommendations(recommendations_json):
+    """
+    Validate GPU/accelerator recommendations in a listRecommendations JSON response.
+
+    For each container that has short-term recommendations:
+      - If notification 128001 is present (Accelerator Recommendations Available):
+          * current.limits.accelerators must be a valid list (model, count=1, compute in slices, memory in GiB)
+          * config.limits must contain at least one nvidia.com/mig-* key
+          * variation.limits.accelerators must be a valid list (compute/memory in percentage)
+      - If notification 328001 is present (unsupported accelerator):
+          * current.limits, config.limits, and variation.limits must NOT contain accelerators
+    Returns a list of failure messages (empty == all passed).
+    """
+    failures = []
+
+    for exp_entry in recommendations_json:
+        for kobj in exp_entry.get("kubernetes_objects", []):
+            for container in kobj.get("containers", []):
+                container_name = container.get("container_name", "<unknown>")
+                data = (container.get("recommendations") or {}).get("data") or {}
+
+                for interval, interval_obj in data.items():
+                    short_term = (interval_obj.get("recommendation_terms") or {}).get("short_term") or {}
+                    if not short_term:
+                        continue
+
+                    st_notifications = short_term.get("notifications") or {}
+                    engines = short_term.get("recommendation_engines") or {}
+                    current_limits = (interval_obj.get("current") or {}).get("limits") or {}
+
+                    if _INFO_ACCELERATOR_RECOMMENDATIONS_AVAILABLE in st_notifications:
+                        # ── GPU supported: validate current, config MIG key, and variation ──
+                        try:
+                            _validate_accelerator_current_limits(current_limits, container_name, interval)
+                        except AssertionError as e:
+                            failures.append(str(e))
+
+                        for engine_name in ("cost", "performance"):
+                            engine = engines.get(engine_name) or {}
+                            engine_notifications = engine.get("notifications") or {}
+                            config_limits = (engine.get("config") or {}).get("limits") or {}
+                            variation_limits = (engine.get("variation") or {}).get("limits") or {}
+
+                            if _INFO_ACCELERATOR_RECOMMENDATIONS_AVAILABLE not in engine_notifications:
+                                failures.append(
+                                    f"[{container_name}@{interval}/{engine_name}] notification {_INFO_ACCELERATOR_RECOMMENDATIONS_AVAILABLE} "
+                                    f"(Accelerator Recommendations are available) expected but missing"
+                                )
+                                continue
+
+                            try:
+                                _validate_mig_in_config_limits(config_limits, container_name, interval, engine_name)
+                            except AssertionError as e:
+                                failures.append(str(e))
+
+                            try:
+                                _validate_accelerator_variation_limits(variation_limits, container_name, interval, engine_name)
+                            except AssertionError as e:
+                                failures.append(str(e))
+
+                    elif _NOTICE_ACCELERATOR_NOT_SUPPORTED_BY_KRUIZE in st_notifications:
+                        # ── Unsupported GPU: no accelerator data must appear anywhere ──
+                        if "accelerators" in current_limits:
+                            failures.append(
+                                f"[{container_name}@{interval}] unsupported GPU but current.limits contains accelerators"
+                            )
+                        for engine_name in ("cost", "performance"):
+                            engine = engines.get(engine_name) or {}
+                            engine_notifications = engine.get("notifications") or {}
+                            config_limits = (engine.get("config") or {}).get("limits") or {}
+                            variation_limits = (engine.get("variation") or {}).get("limits") or {}
+
+                            if _NOTICE_ACCELERATOR_NOT_SUPPORTED_BY_KRUIZE not in engine_notifications:
+                                failures.append(
+                                    f"[{container_name}@{interval}/{engine_name}] notification {_NOTICE_ACCELERATOR_NOT_SUPPORTED_BY_KRUIZE} "
+                                    f"(accelerator not supported) expected but missing"
+                                )
+                            if "accelerators" in config_limits:
+                                failures.append(
+                                    f"[{container_name}@{interval}/{engine_name}] unsupported GPU but config.limits contains accelerators"
+                                )
+                            if "accelerators" in variation_limits:
+                                failures.append(
+                                    f"[{container_name}@{interval}/{engine_name}] unsupported GPU but variation.limits contains accelerators"
+                                )
+                            mig_keys = [k for k in config_limits if _MIG_PATTERN.match(k)]
+                            if mig_keys:
+                                failures.append(
+                                    f"[{container_name}@{interval}/{engine_name}] unsupported GPU but MIG keys found in config.limits: {mig_keys}"
+                                )
+
+    return failures

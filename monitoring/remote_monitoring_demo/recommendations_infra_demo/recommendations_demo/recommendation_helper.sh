@@ -319,6 +319,26 @@ function validate_experiment_recommendations() {
                 else
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentMetrics("metrics_recommendations_data.json")'
                         python3 -c 'import recommendations_demo.recommendation_validation; recommendations_demo.recommendation_validation.getExperimentBoxPlots("metrics_recommendations_data.json","container")'
+                        # Validate GPU/accelerator recommendations when present
+                        python3 - <<'PYEOF'
+import json, sys
+import recommendations_demo.recommendation_validation as rv
+with open('metrics_recommendations_data.json', 'r') as f:
+    data = json.load(f)
+failures = rv.validate_accelerator_recommendations(data)
+if failures:
+    print('ACCELERATOR VALIDATION FAILURES:')
+    for msg in failures:
+        print('  FAIL:', msg)
+    sys.exit(1)
+else:
+    print('Accelerator recommendation validation passed (or no GPU data present)')
+PYEOF
+                        accel_exit=$?
+                        if [[ ${accel_exit} -ne 0 ]]; then
+                            echo "Accelerator recommendation validation FAILED for ${exp_name}" | tee -a /dev/stderr
+                            validate_status=$((validate_status + 1))
+                        fi
                 fi
                 if [[ ${VALIDATE} == "true" ]]; then
                         IFS="|" read -ra parts <<< "${exp_name}"
