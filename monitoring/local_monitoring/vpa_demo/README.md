@@ -41,6 +41,7 @@ s = start (default), t = terminate
 u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>
 n = namespace of benchmark. Default - default
 o = Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
+g = Specify Kruize operator git branch to clone (optional). Default - main
 k = Disable operator and use deploy scripts instead
 ```
 

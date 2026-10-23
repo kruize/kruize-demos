@@ -25,6 +25,9 @@ source ${current_dir}/../common.sh
 KRUIZE_OPERATOR_DOCKER_REPO="quay.io/kruize/kruize-operator"
 export NAMESPACE="openshift-tuning"
 
+# Default operator branch
+export KRUIZE_OPERATOR_BRANCH="main"
+
 # Default docker image repo
 export KRUIZE_DOCKER_REPO="quay.io/kruize/autotune_operator"
 
@@ -49,6 +52,7 @@ function usage() {
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "u = Kruize UI Image. Default - quay.io/kruize/kruize-ui:<version as in package.json>"
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
+	echo "g = Specify Kruize operator git branch to clone: -g <branch>. Default - main"
 	echo "n = namespace of benchmark. Default - default"
 	echo "p = expose prometheus port"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
@@ -68,7 +72,7 @@ export EXPERIMENT_TYPE=""
 export KRUIZE_OPERATOR_IMAGE=""
 
 # Iterate through the commandline options
-while getopts c:kfi:no:pstu: gopts
+while getopts c:fg:i:kn:o:pstu: gopts
 do
 	case "${gopts}" in
 		c)
@@ -76,6 +80,9 @@ do
 			;;
 		f)
 			env_setup=1
+			;;
+		g)
+			export KRUIZE_OPERATOR_BRANCH="${OPTARG}"
 			;;
 		i)
 			KRUIZE_DOCKER_IMAGE="${OPTARG}"
