@@ -25,6 +25,12 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Kruize operator deployment name constant
 OPERATOR_DEPLOYMENT_NAME="kruize-operator"
 
+# Default git branches
+export AUTOTUNE_BRANCH="${AUTOTUNE_BRANCH:-mvp_demo}"
+export KRUIZE_OPERATOR_BRANCH="${KRUIZE_OPERATOR_BRANCH:-mvp_demo}"
+export KRUIZE_OPTIMIZER_BRANCH="${KRUIZE_OPTIMIZER_BRANCH:-mvp_demo}"
+export BENCHMARKS_BRANCH="${BENCHMARKS_BRANCH:-}"
+
 # Configurable wait duration for optimizer to create experiments (in seconds)
 # TODO: Remove this workaround once BULK API filters are fixed (issue #182)
 OPTIMIZER_WAIT_DURATION="${OPTIMIZER_WAIT_DURATION:-120}"
@@ -437,12 +443,16 @@ function kruize_local_demo_setup() {
 	if [ ! -d "autotune" ]; then
 		echo -n "🔄 Pulling required repositories... "
 		{
-			clone_repos autotune
+			clone_repos autotune "${AUTOTUNE_BRANCH}"
 			if [[ ${#EXPERIMENTS[@]} -ne 0 ]] && [[ ${EXPERIMENTS[*]} != "container_experiment_local" ]] ; then
-				clone_repos benchmarks
+				clone_repos benchmarks "${BENCHMARKS_BRANCH}"
 			fi
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Done!"
+	else
+		pushd autotune >/dev/null 2>&1
+		git checkout "${AUTOTUNE_BRANCH}" >/dev/null 2>&1 || true
+		popd >/dev/null 2>&1
 	fi
 
 	# Check for both operator and kruize deployments
@@ -737,8 +747,7 @@ function kruize_local_demo_setup() {
 
 #setup the operator and deploy it
 function operator_setup() {
-#      	clone_repos kruize-operator
-  git clone -b mvp_demo https://github.com/kruize/kruize-operator.git
+	clone_repos kruize-operator "${KRUIZE_OPERATOR_BRANCH}"
 
 	echo "🔄 Checking for existence of $NAMESPACE namespace"
 
@@ -1291,10 +1300,14 @@ function optimizer_demo_setup() {
 		echo -n "🔄 Pulling required repositories... "
 		{
 			cd ${local_monitoring_dir}
-			clone_repos autotune
-			clone_repos benchmarks
+			clone_repos autotune "${AUTOTUNE_BRANCH}"
+			clone_repos benchmarks "${BENCHMARKS_BRANCH}"
 		} >> "${LOG_FILE}" 2>&1
 		echo "✅ Done!"
+	else
+		pushd "${local_monitoring_dir}/autotune" >/dev/null 2>&1
+		git checkout "${AUTOTUNE_BRANCH}" >/dev/null 2>&1 || true
+		popd >/dev/null 2>&1
 	fi
 
 	# Check for both operator and kruize deployments
@@ -1797,11 +1810,14 @@ function kruize_optimizer_install() {
 	
 	# Clone kruize-optimizer repo if not present
 	if [ ! -d "${optimizer_dir}" ]; then
-		echo "📥 Cloning kruize-optimizer repository (mvp_demo branch)..."
+		echo "📥 Cloning kruize-optimizer repository (${KRUIZE_OPTIMIZER_BRANCH} branch)..."
 		pushd ${optimizer_demo_dir} > /dev/null
-		git clone -b mvp_demo https://github.com/kruize/kruize-optimizer.git >> "${LOG_FILE}" 2>&1
-		check_err "ERROR: Failed to clone kruize-optimizer repository"
+		clone_repos kruize-optimizer "${KRUIZE_OPTIMIZER_BRANCH}" >> "${LOG_FILE}" 2>&1
 		popd > /dev/null
+	else
+		pushd ${optimizer_dir} > /dev/null 2>&1
+		git checkout "${KRUIZE_OPTIMIZER_BRANCH}" >> "${LOG_FILE}" 2>&1 || true
+		popd > /dev/null 2>&1
 	fi
 	
 	pushd ${optimizer_dir} > /dev/null

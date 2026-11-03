@@ -44,7 +44,7 @@ PYTHON_CMD=python3
 export LOG_FILE="${current_dir}/kruize-bulk-demo.log"
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-w wait-time] [-i kruize-image] [-u kruize-ui-image]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-l] [-p] [-r] [-w wait-time] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-n namespace] [-d load-duration] [-k] [-f] [--branch branch] [--autotune-branch branch] [--operator-branch branch] [--optimizer-branch branch] [--benchmarks-branch branch]"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>"
 	echo "p = expose prometheus port"
@@ -58,6 +58,11 @@ function usage() {
 	echo "o = Kruize operator image. Default - quay.io/kruize/kruize-operator:<version as in Makefile>"
       	echo "k = install kruize using deploy scripts."
 	echo "f = create environment setup if cluster-type is minikube, kind"
+	echo "--branch = Branch name to use for all cloned repositories."
+	echo "--autotune-branch = Kruize/Autotune git repo branch. Default - mvp_demo"
+	echo "--operator-branch = Kruize operator git repo branch. Default - mvp_demo"
+	echo "--optimizer-branch = Kruize optimizer git repo branch. Default - mvp_demo"
+	echo "--benchmarks-branch = Benchmarks git repo branch."
 
 	exit 1
 }
@@ -93,6 +98,71 @@ export start_demo=1
 export APP_NAMESPACE="default"
 export LOAD_DURATION="1200"
 export WAIT_TIME=0
+
+# Default git branches
+export AUTOTUNE_BRANCH="${AUTOTUNE_BRANCH:-mvp_demo}"
+export KRUIZE_OPERATOR_BRANCH="${KRUIZE_OPERATOR_BRANCH:-mvp_demo}"
+export KRUIZE_OPTIMIZER_BRANCH="${KRUIZE_OPTIMIZER_BRANCH:-mvp_demo}"
+export BENCHMARKS_BRANCH="${BENCHMARKS_BRANCH:-}"
+
+# Pre-process long options before passing to getopts
+args=()
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--autotune-branch)
+			export AUTOTUNE_BRANCH="$2"
+			shift 2
+			;;
+		--autotune-branch=*)
+			export AUTOTUNE_BRANCH="${1#*=}"
+			shift
+			;;
+		--operator-branch)
+			export KRUIZE_OPERATOR_BRANCH="$2"
+			shift 2
+			;;
+		--operator-branch=*)
+			export KRUIZE_OPERATOR_BRANCH="${1#*=}"
+			shift
+			;;
+		--optimizer-branch)
+			export KRUIZE_OPTIMIZER_BRANCH="$2"
+			shift 2
+			;;
+		--optimizer-branch=*)
+			export KRUIZE_OPTIMIZER_BRANCH="${1#*=}"
+			shift
+			;;
+		--benchmarks-branch)
+			export BENCHMARKS_BRANCH="$2"
+			shift 2
+			;;
+		--benchmarks-branch=*)
+			export BENCHMARKS_BRANCH="${1#*=}"
+			shift
+			;;
+		--branch)
+			export AUTOTUNE_BRANCH="$2"
+			export KRUIZE_OPERATOR_BRANCH="$2"
+			export KRUIZE_OPTIMIZER_BRANCH="$2"
+			export BENCHMARKS_BRANCH="$2"
+			shift 2
+			;;
+		--branch=*)
+			branch_val="${1#*=}"
+			export AUTOTUNE_BRANCH="${branch_val}"
+			export KRUIZE_OPERATOR_BRANCH="${branch_val}"
+			export KRUIZE_OPTIMIZER_BRANCH="${branch_val}"
+			export BENCHMARKS_BRANCH="${branch_val}"
+			shift
+			;;
+		*)
+			args+=("$1")
+			shift
+			;;
+	esac
+done
+set -- "${args[@]}"
 
 # Iterate through the commandline options
 while getopts c:i:n:d:w:klfprstu:o: gopts

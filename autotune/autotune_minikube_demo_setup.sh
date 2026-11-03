@@ -47,8 +47,11 @@ function autotune_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
-		# Checkout the mvp_demo branch for now
-		git checkout mvp_demo
+		# Checkout specified branch
+		local autotune_branch="${AUTOTUNE_BRANCH:-mvp_demo}"
+		git checkout "${autotune_branch}" >/dev/null 2>/dev/null || {
+			git fetch origin "${autotune_branch}:${autotune_branch}" >/dev/null 2>&1 && git checkout "${autotune_branch}" >/dev/null 2>&1
+		}
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		YAML_TEMPLATE="./manifests/autotune-operator-deployment.yaml_template"

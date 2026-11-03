@@ -88,8 +88,11 @@ function kruize_install() {
 	fi
 	pushd autotune >/dev/null
 		source ./tests/scripts/common/common_functions.sh
-		# Checkout the mvp_demo branch for now
-		git checkout mvp_demo
+		# Checkout specified branch
+		local autotune_branch="${AUTOTUNE_BRANCH:-mvp_demo}"
+		git checkout "${autotune_branch}" >/dev/null 2>/dev/null || {
+			git fetch origin "${autotune_branch}:${autotune_branch}" >/dev/null 2>&1 && git checkout "${autotune_branch}" >/dev/null 2>&1
+		}
 		cluster_type=${CLUSTER_TYPE}
 		kruize_remote_patch
 		kruize_remote_demo_patch

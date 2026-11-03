@@ -37,12 +37,13 @@ function run_benchmark() {
 
 	# Only until the PR #54 is merged
 	# Clone benchmarks (queries has monitoring mode enabled)
+	local benchmarks_branch="${BENCHMARKS_BRANCH:-queries}"
 	if [ ! -d benchmarks ]; then
-		git clone https://github.com/kusumachalasani/benchmarks.git -b queries
+		git clone https://github.com/kusumachalasani/benchmarks.git -b "${benchmarks_branch}"
 	else
 		pushd benchmarks >/dev/null
-                # Checkout the queries branch for now
-                git checkout queries
+	               # Checkout the queries branch for now
+	               git checkout "${benchmarks_branch}"
 		popd >/dev/null
 	fi
 
