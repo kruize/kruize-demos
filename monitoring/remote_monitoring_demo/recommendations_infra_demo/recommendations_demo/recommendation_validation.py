@@ -857,11 +857,10 @@ def getExperimentMetrics(filename):
 
                     # Final formatting fields
                     'cpuUsage_format', 'memoryUsage_format',
-                    # TODO: to be updated in the next release
                     # Pod count related columns
-                    # 'short_term_pod_count_avg', 'short_term_pod_count_max', 'short_term_pod_count_min',
-                    # 'medium_term_pod_count_avg', 'medium_term_pod_count_max', 'medium_term_pod_count_min',
-                    # 'long_term_pod_count_avg', 'long_term_pod_count_max', 'long_term_pod_count_min'
+                    'short_term_pod_count_avg', 'short_term_pod_count_max', 'short_term_pod_count_min',
+                    'medium_term_pod_count_avg', 'medium_term_pod_count_max', 'medium_term_pod_count_min',
+                    'long_term_pod_count_avg', 'long_term_pod_count_max', 'long_term_pod_count_min'
             ]
             # Additional GPU-related fields
             accelerator_fields = [
@@ -917,28 +916,26 @@ def getExperimentMetrics(filename):
                                                 metric_dict[metric_agg_var_name] = str(agg_value)
                                     for recomm_timezone, recomm_data in container_data["recommendations"]["data"].items():
                                         if recomm_timezone == timezone:
-                                            # TODO: to be updated in the next release
-                                            # current = recomm_data["current"]
-                                            # if "replicas" in current:
-                                            #     recomm_dict["current_replicas"] = str(current["replicas"])
-                                            # current_resources = current.get("resources", current)
-                                            # if 'requests' in current_resources:
-                                            #     if 'cpu' in current_resources["requests"]:
-                                            #         recomm_dict["current_cpu_requests"] = str(current_resources["requests"]["cpu"]["amount"])
-                                            #     if 'memory' in current_resources["requests"]:
-                                            #         recomm_dict["current_memory_requests"] = str(current_resources["requests"]["memory"]["amount"])
-                                            # if 'limits' in current_resources:
-                                            #     if 'cpu' in current_resources["limits"]:
-                                            #         recomm_dict["current_cpu_limits"] = str(current_resources["limits"]["cpu"]["amount"])
-                                            #     if 'memory' in current_resources["limits"]:
-                                            #         recomm_dict["current_memory_limits"] = str(current_resources["limits"]["memory"]["amount"])
+                                            current = recomm_data["current"]
+                                            if "replicas" in current:
+                                                recomm_dict["current_replicas"] = str(current["replicas"])
+                                            current_resources = current.get("resources", current)
+                                            if 'requests' in current_resources:
+                                                if 'cpu' in current_resources["requests"]:
+                                                    recomm_dict["current_cpu_requests"] = str(current_resources["requests"]["cpu"]["amount"])
+                                                if 'memory' in current_resources["requests"]:
+                                                    recomm_dict["current_memory_requests"] = str(current_resources["requests"]["memory"]["amount"])
+                                            if 'limits' in current_resources:
+                                                if 'cpu' in current_resources["limits"]:
+                                                    recomm_dict["current_cpu_limits"] = str(current_resources["limits"]["cpu"]["amount"])
+                                                if 'memory' in current_resources["limits"]:
+                                                    recomm_dict["current_memory_limits"] = str(current_resources["limits"]["memory"]["amount"])
                                             for recomm_type, recomm_typedata in recomm_data["recommendation_terms"].items():
-                                                # TODO: to be updated in the next release
-                                                # if "metrics_info" in recomm_typedata:
-                                                #     pod_count = recomm_typedata["metrics_info"].get("pod_count", {})
-                                                #     for stat in ["avg", "max", "min"]:
-                                                #         if stat in pod_count:
-                                                #             recomm_dict[recomm_type + "_pod_count_" + stat] = str(pod_count[stat])
+                                                if "metrics_info" in recomm_typedata:
+                                                    pod_count = recomm_typedata["metrics_info"].get("pod_count", {})
+                                                    for stat in ["avg", "max", "min"]:
+                                                        if stat in pod_count:
+                                                            recomm_dict[recomm_type + "_pod_count_" + stat] = str(pod_count[stat])
                                                 if 'recommendation_engines' in recomm_typedata:
                                                     for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
                                                         if "config" in recomm_enginedata:
@@ -1045,32 +1042,30 @@ def get_recommondations(filename):
                                 'timezone': timezone,
                                 }
                                 recomm_dict = {}
-                                # TODO: to be updated in the next release
-                                # current = timezone_data["current"]
-                                # # New API nests requests/limits under "resources" and adds "replicas"
-                                # # Old API has requests/limits at the top level of "current"
-                                # if "replicas" in current:
-                                #     recomm_dict["current_replicas"] = str(current["replicas"])
-                                # current_resources = current.get("resources", current)
-                                # if 'requests' in current_resources:
-                                #     if 'cpu' in current_resources["requests"]:
-                                #         recomm_dict["current_cpu_requests"] = str(current_resources["requests"]["cpu"]["amount"])
-                                #     if 'memory' in current_resources["requests"]:
-                                #         recomm_dict["current_memory_requests"] = str(current_resources["requests"]["memory"]["amount"])
-                                # if 'limits' in current_resources:
-                                #     if 'cpu' in current_resources["limits"]:
-                                #         recomm_dict["current_cpu_limits"] = str(current_resources["limits"]["cpu"]["amount"])
-                                #     if 'memory' in current_resources["limits"]:
-                                #         recomm_dict["current_memory_limits"] = str(current_resources["limits"]["memory"]["amount"])
+                                current = timezone_data["current"]
+                                # New API nests requests/limits under "resources" and adds "replicas"
+                                # Old API has requests/limits at the top level of "current"
+                                if "replicas" in current:
+                                    recomm_dict["current_replicas"] = str(current["replicas"])
+                                current_resources = current.get("resources", current)
+                                if 'requests' in current_resources:
+                                    if 'cpu' in current_resources["requests"]:
+                                        recomm_dict["current_cpu_requests"] = str(current_resources["requests"]["cpu"]["amount"])
+                                    if 'memory' in current_resources["requests"]:
+                                        recomm_dict["current_memory_requests"] = str(current_resources["requests"]["memory"]["amount"])
+                                if 'limits' in current_resources:
+                                    if 'cpu' in current_resources["limits"]:
+                                        recomm_dict["current_cpu_limits"] = str(current_resources["limits"]["cpu"]["amount"])
+                                    if 'memory' in current_resources["limits"]:
+                                        recomm_dict["current_memory_limits"] = str(current_resources["limits"]["memory"]["amount"])
 
                                 for recomm_type, recomm_typedata in timezone_data["recommendation_terms"].items():
-                                    # TODO: to be updated in the next release
                                     # New API: capture metrics_info.pod_count per term
-                                    # if "metrics_info" in recomm_typedata:
-                                    #     pod_count = recomm_typedata["metrics_info"].get("pod_count", {})
-                                    #     for stat in ["avg", "max", "min"]:
-                                    #         if stat in pod_count:
-                                    #             recomm_dict[recomm_type + "_pod_count_" + stat] = str(pod_count[stat])
+                                    if "metrics_info" in recomm_typedata:
+                                        pod_count = recomm_typedata["metrics_info"].get("pod_count", {})
+                                        for stat in ["avg", "max", "min"]:
+                                            if stat in pod_count:
+                                                recomm_dict[recomm_type + "_pod_count_" + stat] = str(pod_count[stat])
                                     if 'recommendation_engines' in recomm_typedata:
                                         for recomm_engine, recomm_enginedata in recomm_typedata["recommendation_engines"].items():
                                             if "config" in recomm_enginedata:
