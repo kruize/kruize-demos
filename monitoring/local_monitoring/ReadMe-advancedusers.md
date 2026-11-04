@@ -24,7 +24,7 @@ By default, it runs on the `Kind` cluster.
 ```
 
 ```
-Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-o kruize-operator-image] [-k]
+Usage: ./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-e recommendation_experiment] [-l] [-p] [-f] [-i kruize-image] [-u kruize-ui-image] [-b] [-n namespace] [-d load-duration] [-m benchmark-manifests] [-o kruize-operator-image] [-k] [--branch branch] [--autotune-branch branch] [--operator-branch branch] [--optimizer-branch branch] [--benchmarks-branch branch]
 c = supports minikube, kind and openshift cluster-type
 e = supports container, namespace and gpu. Default - none.
 i = kruize image. Default - quay.io/kruize/autotune_operator:<version as in pom.xml>
@@ -39,6 +39,11 @@ d = duration to run the benchmark load
 m = manifests of the benchmark
 o = Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
 k = Disable operator and use deploy scripts instead
+--branch = Branch name to use for all cloned repositories
+--autotune-branch = Kruize/Autotune git repo branch. Default - mvp_demo
+--operator-branch = Kruize operator git repo branch. Default - mvp_demo
+--optimizer-branch = Kruize optimizer git repo branch. Default - mvp_demo
+--benchmarks-branch = Benchmarks git repo branch
 ```
 
 ## Deployment Modes

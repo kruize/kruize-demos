@@ -40,7 +40,7 @@ KRUIZE_UI_PORT=8081
 KRUIZE_OPERATOR=1
 
 function usage() {
-	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k] [--skip-app]"
+	echo "Usage: $0 [-s|-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k] [--skip-app] [--branch branch] [--autotune-branch branch] [--operator-branch branch] [--optimizer-branch branch] [--benchmarks-branch branch]"
 	echo "s = start (default), t = terminate"
 	echo "c = supports minikube, kind and openshift cluster-type"
 	echo "f = create environment setup if cluster-type is minikube, kind"
@@ -51,6 +51,11 @@ function usage() {
 	echo "n = namespace of benchmark. Default - default"
 	echo "k = Disable operator and install kruize using deploy scripts instead."
 	echo "--skip-app = When used with -t, skip cleanup of the benchmark application and its namespace."
+	echo "--branch = Branch name to use for all cloned repositories."
+	echo "--autotune-branch = Kruize/Autotune git repo branch. Default - mvp_demo"
+	echo "--operator-branch = Kruize operator git repo branch. Default - mvp_demo"
+	echo "--optimizer-branch = Kruize optimizer git repo branch. Default - mvp_demo"
+	echo "--benchmarks-branch = Benchmarks git repo branch."
 
 	exit 1
 }
@@ -65,15 +70,70 @@ export APP_NAMESPACE="default"
 export KRUIZE_OPERATOR_IMAGE=""
 export KRUIZE_OPTIMIZER_IMAGE="quay.io/kruize/kruize-optimizer:0.0.1"
 
+# Default git branches
+export AUTOTUNE_BRANCH="${AUTOTUNE_BRANCH:-mvp_demo}"
+export KRUIZE_OPERATOR_BRANCH="${KRUIZE_OPERATOR_BRANCH:-mvp_demo}"
+export KRUIZE_OPTIMIZER_BRANCH="${KRUIZE_OPTIMIZER_BRANCH:-mvp_demo}"
+export BENCHMARKS_BRANCH="${BENCHMARKS_BRANCH:-}"
+
 # Pre-process long options before passing to getopts
 args=()
-for arg in "$@"; do
-	case "${arg}" in
+while [[ $# -gt 0 ]]; do
+	case "$1" in
 		--skip-app)
 			skip_app=1
+			shift
+			;;
+		--autotune-branch)
+			export AUTOTUNE_BRANCH="$2"
+			shift 2
+			;;
+		--autotune-branch=*)
+			export AUTOTUNE_BRANCH="${1#*=}"
+			shift
+			;;
+		--operator-branch)
+			export KRUIZE_OPERATOR_BRANCH="$2"
+			shift 2
+			;;
+		--operator-branch=*)
+			export KRUIZE_OPERATOR_BRANCH="${1#*=}"
+			shift
+			;;
+		--optimizer-branch)
+			export KRUIZE_OPTIMIZER_BRANCH="$2"
+			shift 2
+			;;
+		--optimizer-branch=*)
+			export KRUIZE_OPTIMIZER_BRANCH="${1#*=}"
+			shift
+			;;
+		--benchmarks-branch)
+			export BENCHMARKS_BRANCH="$2"
+			shift 2
+			;;
+		--benchmarks-branch=*)
+			export BENCHMARKS_BRANCH="${1#*=}"
+			shift
+			;;
+		--branch)
+			export AUTOTUNE_BRANCH="$2"
+			export KRUIZE_OPERATOR_BRANCH="$2"
+			export KRUIZE_OPTIMIZER_BRANCH="$2"
+			export BENCHMARKS_BRANCH="$2"
+			shift 2
+			;;
+		--branch=*)
+			branch_val="${1#*=}"
+			export AUTOTUNE_BRANCH="${branch_val}"
+			export KRUIZE_OPERATOR_BRANCH="${branch_val}"
+			export KRUIZE_OPTIMIZER_BRANCH="${branch_val}"
+			export BENCHMARKS_BRANCH="${branch_val}"
+			shift
 			;;
 		*)
-			args+=("${arg}")
+			args+=("$1")
+			shift
 			;;
 	esac
 done

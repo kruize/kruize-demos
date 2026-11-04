@@ -72,13 +72,18 @@ For detailed deployment options and advanced usage, see the [Advanced Users Guid
 
 ### Usage
 ```
-./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image] [-k]
+./local_monitoring_demo.sh [-s|-t] [-c cluster-type] [-f] [-o kruize-operator-image] [-k] [--branch branch] [--autotune-branch branch] [--operator-branch branch] [--optimizer-branch branch] [--benchmarks-branch branch]
   -c: Cluster type (kind, minikube, openshift)
   -s: Start demo (default)
   -t: Terminate demo
   -f: Fresh setup (kind/minikube only)
   -o: Specify custom operator image (optional). Default - quay.io/kruize/kruize-operator:<version as in Makefile>
   -k: Disable operator and use deploy scripts instead
+  --branch: Branch name to use for all cloned repositories
+  --autotune-branch: Kruize/Autotune git repo branch. Default - mvp_demo
+  --operator-branch: Kruize operator git repo branch. Default - mvp_demo
+  --optimizer-branch: Kruize optimizer git repo branch. Default - mvp_demo
+  --benchmarks-branch: Benchmarks git repo branch
 ```
 
 Refer the documentation of Kruize operator [README.md](https://github.com/kruize/kruize-operator/blob/main/README.md) and [Makefile](https://github.com/kruize/kruize-operator/blob/main/Makefile) for more details.

@@ -123,15 +123,49 @@ function sys_cpu_mem_check() {
 ###########################################
 function clone_repos() {
 	repo_name=$1
+	branch_name=$2
+	if [ -z "${branch_name}" ]; then
+		case "${repo_name}" in
+			autotune)
+				branch_name="${AUTOTUNE_BRANCH:-mvp_demo}"
+				;;
+			kruize-operator)
+				branch_name="${KRUIZE_OPERATOR_BRANCH:-mvp_demo}"
+				;;
+			kruize-optimizer)
+				branch_name="${KRUIZE_OPTIMIZER_BRANCH:-mvp_demo}"
+				;;
+			benchmarks)
+				branch_name="${BENCHMARKS_BRANCH:-}"
+				;;
+		esac
+	fi
+
 	echo
 	echo "#######################################"
-	echo "1. Cloning ${repo_name} git repos"
-	if [ ! -d ${repo_name} ]; then
-		git clone git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
+	if [ -n "${branch_name}" ]; then
+		echo "1. Cloning ${repo_name} git repo (branch: ${branch_name})"
+	else
+		echo "1. Cloning ${repo_name} git repo"
+	fi
+	if [ ! -d "${repo_name}" ]; then
+		branch_flag=""
+		if [ -n "${branch_name}" ]; then
+			branch_flag="-b ${branch_name}"
+		fi
+		git clone ${branch_flag} git@github.com:kruize/${repo_name}.git >/dev/null 2>/dev/null
 		if [ $? -ne 0 ]; then
-			git clone https://github.com/kruize/${repo_name}.git 2>/dev/null
+			git clone ${branch_flag} https://github.com/kruize/${repo_name}.git 2>/dev/null
 		fi
 		check_err "ERROR: git clone of kruize/${repo_name} failed."
+	else
+		if [ -n "${branch_name}" ]; then
+			pushd "${repo_name}" >/dev/null 2>&1
+			git checkout "${branch_name}" >/dev/null 2>&1 || {
+				git fetch origin "${branch_name}:${branch_name}" >/dev/null 2>&1 && git checkout "${branch_name}" >/dev/null 2>&1
+			}
+			popd >/dev/null 2>&1
+		fi
 	fi
 
 	echo "done"
@@ -167,8 +201,11 @@ function kruize_install() {
 	fi
 	pushd autotune >/dev/null
 		{
-		# Chekout mvp_demo
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Checkout specified branch
+		local autotune_branch="${AUTOTUNE_BRANCH:-mvp_demo}"
+		git checkout "${autotune_branch}" >/dev/null 2>/dev/null || {
+			git fetch origin "${autotune_branch}:${autotune_branch}" >/dev/null 2>&1 && git checkout "${autotune_branch}" >/dev/null 2>&1
+		}
 		KRUIZE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
 		# Kruize UI repo
 		KRUIZE_UI_REPO="quay.io/kruize/kruize-ui"
@@ -756,8 +793,11 @@ function kruize_local_patch() {
 	KRUIZE_CRC_DEPLOY_MANIFEST_AKS="${CRC_DIR}/aks/kruize-crc-aks.yaml"
 
 	pushd autotune >/dev/null
-		# Checkout mvp_demo to get the latest mvp_demo release version
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Checkout specified branch
+		local autotune_branch="${AUTOTUNE_BRANCH:-mvp_demo}"
+		git checkout "${autotune_branch}" >/dev/null 2>/dev/null || {
+			git fetch origin "${autotune_branch}:${autotune_branch}" >/dev/null 2>&1 && git checkout "${autotune_branch}" >/dev/null 2>&1
+		}
 
 		if [ ${CLUSTER_TYPE} == "kind" ]; then
 			sed -i 's/"local": "false"/"local": "true"/' ${KRUIZE_CRC_DEPLOY_MANIFEST_MINIKUBE}

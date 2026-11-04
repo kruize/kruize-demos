@@ -17,7 +17,7 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 ## Usage
 
 ```bash
-./optimizer_demo.sh [-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k] [--skip-app]
+./optimizer_demo.sh [-t] [-c cluster-type] [-f] [-i kruize-image] [-u kruize-ui-image] [-o kruize-operator-image] [-p optimizer-image] [-n namespace] [-k] [--skip-app] [--branch branch] [--autotune-branch branch] [--operator-branch branch] [--optimizer-branch branch] [--benchmarks-branch branch]
 ```
 
 ### Options
@@ -35,6 +35,11 @@ The optimizer demo sets up and demonstrates Kruize Optimizers's ability to confi
 | `-n` | Namespace for benchmark | `default` |
 | `-k` | Disable operator and use deploy scripts | - |
 | `--skip-app` | skip cleanup of the benchmark application and its namespace | - |
+| `--branch` | Branch name to use for all cloned repositories | - |
+| `--autotune-branch` | Kruize/Autotune git repo branch | `mvp_demo` |
+| `--operator-branch` | Kruize operator git repo branch | `mvp_demo` |
+| `--optimizer-branch` | Kruize optimizer git repo branch | `mvp_demo` |
+| `--benchmarks-branch` | Benchmarks git repo branch | Default repo branch |
 
 ## Examples
 

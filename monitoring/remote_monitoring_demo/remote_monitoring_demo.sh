@@ -89,8 +89,11 @@ function kruize_install() {
 		exit -1
 	fi
 	pushd autotune >/dev/null
-		# Checkout mvp_demo to get the latest mvp_demo release version
-		git checkout mvp_demo >/dev/null 2>/dev/null
+		# Checkout specified branch
+		local autotune_branch="${AUTOTUNE_BRANCH:-mvp_demo}"
+		git checkout "${autotune_branch}" >/dev/null 2>/dev/null || {
+			git fetch origin "${autotune_branch}:${autotune_branch}" >/dev/null 2>&1 && git checkout "${autotune_branch}" >/dev/null 2>&1
+		}
 		kruize_local_disable >> "${LOG_FILE}" 2>&1
 
 		AUTOTUNE_VERSION="$(grep -A 1 "autotune" pom.xml | grep version | awk -F '>' '{ split($2, a, "<"); print a[1] }')"
