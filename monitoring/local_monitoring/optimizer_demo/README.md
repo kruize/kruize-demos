@@ -88,7 +88,7 @@ This demo automatically installs the following benchmarks:
 
 ### Optimizer Label
 
-The demo automatically adds the label `kruize.io/optimizer: enabled` to all benchmark deployments.
+The demo automatically adds the label `ibm.runtimes.intelligence.monitoring=true` to all benchmark deployments.
 Optimizer automatically creates experiments for workloads with the above label. 
 
 ## Experiments

@@ -1418,7 +1418,7 @@ function optimizer_demo_setup() {
 	fi
 
 	# Install sysbench benchmark
-	echo -n "🔄 Installing sysbench benchmark (Workload labeled: kruize/autotune=enabled)..."
+	echo -n "🔄 Installing sysbench benchmark (Workload labeled: ibm.runtimes.intelligence.monitoring=true)..."
 	cd ${local_monitoring_dir}
 	create_namespace ${APP_NAMESPACE} >> "${LOG_FILE}" 2>&1
 	# Clean up any existing sysbench deployment
@@ -1430,9 +1430,9 @@ function optimizer_demo_setup() {
 	echo "✅ Completed!"
 
 	# Add label to sysbench deployment for auto-experiment creation
-	sysbench_label="kruize/autotune=enabled"
+	sysbench_label="ibm.runtimes.intelligence.monitoring=true"
 	if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
+		echo -n "🔄 Adding ibm.runtimes.intelligence.monitoring=true label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
 		# Label the deployment so all pods get the label
 		kubectl label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
 		echo -n "🔄 Enabling kube state metrics labels..." >> "${LOG_FILE}" 2>&1
@@ -1440,7 +1440,7 @@ function optimizer_demo_setup() {
 		./autotune/scripts/enable_kube_state_metrics_labels.sh >> "${LOG_FILE}" 2>&1
 		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
 	else
-		echo -n "🔄 Adding kruize/autotune=enabled label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
+		echo -n "🔄 Adding ibm.runtimes.intelligence.monitoring=true label to sysbench deployment..." >> "${LOG_FILE}" 2>&1
 		# Label the deployment so all pods get the label
 		oc label deployment sysbench "${sysbench_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
 		echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
@@ -1453,7 +1453,7 @@ function optimizer_demo_setup() {
 
 	# Install TFB benchmark if BENCHMARK2 is set
 	if [ ! -z "${BENCHMARK2}" ]; then
-		echo -n "🔄 Installing TFB benchmark (Workload labeled: kruize/autotune=enabled)..."
+		echo -n "🔄 Installing TFB benchmark (Workload labeled: ibm.runtimes.intelligence.monitoring=true)..."
 		cd ${local_monitoring_dir}
 		# Clean up any existing tfb deployment and load jobs
 		if [[ "${skip_app}" -eq 0 ]]; then
@@ -1468,14 +1468,14 @@ function optimizer_demo_setup() {
 		echo "✅ Completed!"
 
 		# Add label to tfb deployment for auto-experiment creation
-		tfb_label="kruize/autotune=enabled"
+		tfb_label="ibm.runtimes.intelligence.monitoring=true"
 		if [[ ${CLUSTER_TYPE} == "minikube" ]] || [[ ${CLUSTER_TYPE} == "kind" ]]; then
-			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Adding ibm.runtimes.intelligence.monitoring=true label to TFB deployment..." >> "${LOG_FILE}" 2>&1
 			# Label the deployment so all pods get the label
 			kubectl label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
 			echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
 		else
-			echo -n "🔄 Adding kruize/autotune=enabled label to TFB deployment..." >> "${LOG_FILE}" 2>&1
+			echo -n "🔄 Adding ibm.runtimes.intelligence.monitoring=true label to TFB deployment..." >> "${LOG_FILE}" 2>&1
 			# Label the deployment so all pods get the label
 			oc label deployment tfb-qrh-sample "${tfb_label}" -n ${APP_NAMESPACE} --overwrite >> "${LOG_FILE}" 2>&1
 			echo "✅ Complete!" >> "${LOG_FILE}" 2>&1
@@ -1687,7 +1687,7 @@ function optimizer_demo_setup() {
 	echo "🕒 Success! Kruize optimizer demo setup took ${elapsed_time} seconds"
 	echo
 	echo "📝 Note: This demo installs Kruize optimizer and sysbench, tfb workload with labels."
-	echo "📝 Experiments are auto-created by the optimizer for labelled workloads, use label - kruize/autotune=enabled."
+	echo "📝 Experiments are auto-created by the optimizer for labelled workloads, use label - ibm.runtimes.intelligence.monitoring=true"
 	echo "📝 Use the listExperiments API or Kruize UI to see created experiments."
 }
 
